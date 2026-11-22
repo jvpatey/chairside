@@ -36,6 +36,29 @@ export function getFillInSmsSubtitlePart(profile: WorkerProfile | null): string 
   return 'Texts: Off';
 }
 
+export type FillInSmsBadgeTone = 'on' | 'off' | 'needs_phone';
+
+export type FillInSmsBadgePresentation = {
+  tone: FillInSmsBadgeTone;
+  label: string;
+  showDot: boolean;
+};
+
+/** Badge copy + tone when fill-ins are on. Null when fill-ins are off. */
+export function getFillInSmsBadgePresentation(
+  profile: WorkerProfile | null,
+): FillInSmsBadgePresentation | null {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return null;
+  if (smsActive) {
+    return { tone: 'on', label: 'Text alerts on', showDot: true };
+  }
+  if (smsNeedsPhone) {
+    return { tone: 'needs_phone', label: 'Add phone for texts', showDot: false };
+  }
+  return { tone: 'off', label: 'Text alerts off', showDot: false };
+}
+
 function formatScheduleDaysCompact(blocks: AvailabilityBlock[]): string {
   if (blocks.length === 0) return 'No schedule set';
 
@@ -93,11 +116,18 @@ export function getFillInAvailabilityCollapsedSummary(
         ? 'Matching days only'
         : 'Alerts off';
 
-  const { smsActive } = getFillInSmsStatus(profile);
-  const textsPart = smsActive ? 'Texts on' : 'Texts off';
+  const { smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  const textsPart = smsActive
+    ? 'Texts on'
+    : smsNeedsPhone
+      ? 'Needs phone'
+      : 'Texts off';
   const primarySegments: FillInAvailabilityStatusSegment[] = [
     { text: 'Available', tone: 'positive' },
-    { text: textsPart, tone: smsActive ? 'positive' : 'negative' },
+    {
+      text: textsPart,
+      tone: smsActive ? 'positive' : 'negative',
+    },
     { text: alertPart, tone: 'default' },
   ];
 

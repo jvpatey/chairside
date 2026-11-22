@@ -2,13 +2,18 @@ import type { FillInOutreachWorker } from '@chairside/api';
 import { getRoleTypeLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ApplicantPostHeader } from '@/components/clinic/ApplicantPostHeader';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { getOutreachAvailabilityDisplay } from '@/lib/outreachAvailabilityDisplay';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
+import {
+  colorWithAlpha,
+  useTheme,
+  useThemedStyles,
+  type GradientAccent,
+} from '@/theme';
 
 type AvailableFillInWorkerCardProps = {
   worker: FillInOutreachWorker;
@@ -35,7 +40,7 @@ export function AvailableFillInWorkerCard({
 }: AvailableFillInWorkerCardProps) {
   const { colors } = useTheme();
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -79,8 +84,10 @@ export function AvailableFillInWorkerCard({
       alignSelf: 'flex-start',
       fontSize: 12,
       fontWeight: '600',
-      color: colors.secondary,
-      backgroundColor: colors.secondarySubtle,
+      color: colors.success,
+      backgroundColor: colorWithAlpha(colors.success, isDark ? 0.18 : 0.1),
+      borderColor: colorWithAlpha(colors.success, 0.28),
+      borderWidth: StyleSheet.hairlineWidth,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       borderRadius: 999,

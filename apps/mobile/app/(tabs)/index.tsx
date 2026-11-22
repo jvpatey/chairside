@@ -22,6 +22,7 @@ import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickA
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
 import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
+import { TextAlertsStatusBadge } from '@/components/worker/TextAlertsStatusBadge';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
@@ -174,16 +175,9 @@ export default function WorkerDashboardScreen() {
       : upcomingConfirmed.length > 0
         ? `${upcomingConfirmed.length} confirmed fill-ins`
         : null;
-  const smsStatusLabel = smsStatus.smsActive
-    ? 'Text alerts on'
-    : smsStatus.smsNeedsPhone
-      ? 'Add phone for texts'
-      : smsStatus.fillInsOn
-        ? 'Text alerts off'
-        : null;
   const homeStatusLine = isProfileComplete
-    ? [smsStatusLabel, confirmedLabel, pendingLabel].filter(Boolean).join(' · ') ||
-      'We’ll text you when a fill-in opens nearby'
+    ? [confirmedLabel, pendingLabel].filter(Boolean).join(' · ') ||
+      (smsStatus.fillInsOn ? null : 'We’ll text you when a fill-in opens nearby')
     : null;
 
   const statusHub = WORKER_STATUS_HUB;
@@ -202,11 +196,12 @@ export default function WorkerDashboardScreen() {
             namePlaceholder={isProfileComplete ? 'Your profile' : 'Welcome to Chairside'}
             subtitle={heroSubtitle}
             greetingName={isProfileComplete ? getFirstName(profile?.display_name) : null}
+            statusBadge={isProfileComplete ? <TextAlertsStatusBadge /> : null}
             statusLine={homeStatusLine}
             onStatusPress={
-              smsStatusLabel && !smsStatus.smsActive
-                ? () => router.push(WORKER_PROFILE_NOTIFICATIONS)
-                : () => router.push(WORKER_PENDING_FILLINS)
+              confirmedLabel || pendingLabel
+                ? () => router.push(WORKER_PENDING_FILLINS)
+                : undefined
             }
             hideProfileOnWebTablet
           />

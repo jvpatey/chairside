@@ -8,25 +8,21 @@ import {
   unsaveJobPost,
   type LiveJobPost,
 } from '@chairside/api';
-import { getSpecialtyLabel } from '@chairside/config';
+import { formatJobPostRoleMeta, getSpecialtyLabel } from '@chairside/config';
+import { isMatchableSoftware } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { JobPostDetailView } from '@/components/clinic/JobPostDetailView';
-import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
+import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
 import {
-  hasSourcedContactChannels,
-  SourcedListingContactActions,
-} from '@/components/worker/SourcedListingContactActions';
+  WorkerCompanionListingBody,
+  type CompanionFact,
+} from '@/components/worker/WorkerCompanionListingBody';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
@@ -38,17 +34,28 @@ import {
   parseWorkerPostingReturnParams,
 } from '@/lib/routing';
 import { guardApply } from '@/lib/workerGuard';
-import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
 import {
   formatWorkerPostLocation,
   resolveWorkerPostLocationParts,
-  resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
-import {
-  buildLiveJobMatchDisplayContext,
-  computeJobMatchBreakdown,
-} from '@/lib/workerMatch';
+import { getWorkerPostMapsDestination } from '@/lib/workerPostMaps';
 import { useThemedStyles } from '@/theme';
+
+function buildJobFacts(job: LiveJobPost): CompanionFact[] {
+  // Role / employment / place live in the hero — only extras here.
+  const facts: CompanionFact[] = [];
+  if (job.schedule?.trim()) {
+    facts.push({ label: 'Schedule', value: job.schedule.trim() });
+  }
+  if (job.specialty?.trim()) {
+    facts.push({ label: 'Specialty', value: getSpecialtyLabel(job.specialty) });
+  }
+  const software = job.software_used.filter(isMatchableSoftware).join(' · ');
+  if (software) {
+    facts.push({ label: 'Software', value: software });
+  }
+  return facts;
+}
 
 export default function WorkerJobDetailScreen() {
   const { user } = useAuth();
@@ -81,7 +88,6 @@ export default function WorkerJobDetailScreen() {
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
-    footer: { gap: spacing.sm },
   }));
 
   const loadJob = useCallback(async () => {
@@ -149,7 +155,7 @@ export default function WorkerJobDetailScreen() {
   if (isLoading || !job) {
     return (
       <FormScreen
-        title="Role details"
+        title="Role"
         subtitle={isLoading ? undefined : 'Role not found.'}
         backLabel={backLabel}
         onBack={goBack}>
@@ -159,104 +165,56 @@ export default function WorkerJobDetailScreen() {
   }
 
   const sourced = isSourcedListing(job);
-  const location = formatWorkerPostLocation(job);
   const { displayName, placeLabel } = resolveWorkerPostLocationParts(job);
-  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
-    postedAt: job.created_at,
-    postedByDisplayName: job.posted_by_display_name,
-    postedByTitle: job.posted_by_title,
-  });
-  const jobMatch =
-    !sourced && workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null;
-  const matchContext =
-    !sourced && workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : null;
+  const place =
+    (job.location ? formatWorkerPostLocation(job) : null) || placeLabel || null;
+  const facts = buildJobFacts(job);
+  const mapsDestination = getWorkerPostMapsDestination(job);
 
   return (
     <FormScreen
-      title="Role details"
-      subtitle={job.clinic.clinic_name}
+      title="Role"
       backLabel={backLabel}
       onBack={goBack}
       headerAccessory={
         user?.id ? <SavePostButton isSaved={isSaved} onToggle={() => void handleToggleSaved()} /> : null
       }
       footer={
-        <View style={styles.footer}>
-          {sourced ? (
-            <SourcedListingContactActions contact={job} sections="buttons" />
-          ) : (
-            <OnboardingButton
-              label={hasApplied ? 'Applied' : 'Apply now'}
-              disabled={hasApplied}
-              onPress={handleApply}
-            />
-          )}
-        </View>
+        sourced ? (
+          <SourcedListingContactActions contact={job} sections="buttons" />
+        ) : (
+          <OnboardingButton
+            label={hasApplied ? 'Applied' : 'Apply now'}
+            disabled={hasApplied}
+            onPress={handleApply}
+          />
+        )
       }>
       <View style={styles.content}>
-        <JobPostDetailView
-          job={job}
-          part="hero"
-          featured={job.has_priority_listing}
-          heroAccessory={
-            jobMatch && matchContext ? (
-              <MatchTierBadge
-                breakdown={jobMatch}
-                context={matchContext}
-                subtitle={job.title}
-                showProfileHint
-              />
-            ) : null
+        <WorkerCompanionListingBody
+          title={job.title}
+          subtitle={formatJobPostRoleMeta(job)}
+          pay={job.wage_range}
+          clinicName={displayName}
+          place={place}
+          onClinicPress={
+            !sourced && job.clinic_id
+              ? () =>
+                  router.push(
+                    getWorkerClinicProfileRoute(
+                      job.clinic_id!,
+                      returnContext?.returnTo === 'application-detail'
+                        ? returnContext
+                        : { returnTo: 'job-detail', jobId: job.id },
+                    ),
+                  )
+              : undefined
           }
+          facts={facts}
+          notes={job.description}
+          contact={sourced ? job : null}
+          mapsDestination={mapsDestination}
         />
-        {sourced ? (
-          <SurfaceCard>
-            <ClinicPostHeader
-              clinicName={displayName}
-              logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
-              location={placeLabel}
-              detail={getSpecialtyLabel(job.clinic.specialty)}
-              detailIcon="medkit-outline"
-              metaIcons
-            />
-          </SurfaceCard>
-        ) : job.clinic_id ? (
-          <SurfaceCard
-            onPress={() =>
-              router.push(
-                getWorkerClinicProfileRoute(
-                  job.clinic_id!,
-                  returnContext?.returnTo === 'application-detail'
-                    ? returnContext
-                    : { returnTo: 'job-detail', jobId: job.id },
-                ),
-              )
-            }>
-            <ClinicPostHeader
-              clinicName={displayName}
-              logoStoragePath={resolveWorkerPostLogoStoragePath(job)}
-              location={placeLabel}
-              detail={getSpecialtyLabel(job.clinic.specialty)}
-              detailIcon="medkit-outline"
-              metaIcons
-            />
-            <ClinicProfileLinkFooter />
-          </SurfaceCard>
-        ) : null}
-        <JobPostDetailView
-          job={job}
-          part="body"
-          locationLabel={job.location ? location : null}
-          postedByLabel={postedByLabel}
-          postedOnLabel={postedOnLabel}
-        />
-        {sourced && hasSourcedContactChannels(job) ? (
-          <SurfaceCard>
-            <CardDetailSection title="Contact">
-              <SourcedListingContactActions contact={job} sections="rows" />
-            </CardDetailSection>
-          </SurfaceCard>
-        ) : null}
       </View>
     </FormScreen>
   );

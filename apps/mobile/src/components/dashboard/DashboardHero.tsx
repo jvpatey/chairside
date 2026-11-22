@@ -41,9 +41,11 @@ type DashboardHeroProps = {
   greetingName?: string | null;
   /** Live one-line summary; tap opens highest-priority destination. */
   pulse?: DashboardHeroPulse | null;
-  /** Product status under identity (e.g. "2 open fill-ins · Text alerts on"). */
+  /** Product status under identity (e.g. "2 confirmed · 1 pending"). */
   statusLine?: string | null;
   onStatusPress?: () => void;
+  /** Leading status chip (e.g. text-alerts state badge). */
+  statusBadge?: ReactNode;
   /** Static context chip (e.g. read-only label). Ignored when `contextSlot` is set. */
   contextLine?: string;
   /** Interactive or custom context under the subtitle (e.g. location scope picker). */
@@ -93,6 +95,7 @@ export function DashboardHero({
   pulse,
   statusLine,
   onStatusPress,
+  statusBadge,
   contextLine,
   contextSlot,
   showActions = true,
@@ -157,9 +160,15 @@ export function DashboardHero({
       flexShrink: 0,
       alignSelf: 'center' as const,
     },
+    statusRow: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      marginTop: 2,
+    },
     statusPressable: {
       alignSelf: 'flex-start' as const,
-      marginTop: 2,
       ...webPointer(),
     },
     statusLine: {
@@ -167,10 +176,10 @@ export function DashboardHero({
       lineHeight: 20,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
-      color: colors.secondary,
+      color: colors.labelSecondary,
     },
     statusLineMuted: {
-      color: colors.labelSecondary,
+      color: colors.labelTertiary,
     },
     contextRow: {
       flexDirection: 'row' as const,
@@ -283,27 +292,32 @@ export function DashboardHero({
       <HeroStaggerBlock delayMs={40} reduceMotion={reduceMotion}>
         <DashboardHeroSubtitle subtitle={subtitle} detail={trimmedIdentity} />
       </HeroStaggerBlock>
-      {trimmedStatus ? (
+      {statusBadge || trimmedStatus ? (
         <HeroStaggerBlock delayMs={80} reduceMotion={reduceMotion}>
-          {onStatusPress ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={trimmedStatus}
-              onPress={handleStatusPress}
-              style={({ pressed, hovered }) => [
-                styles.statusPressable,
-                webHover(hovered, pressed, webListRowHoverStyles(colors)),
-                pressed && { opacity: 0.85 },
-              ]}>
-              <Text style={styles.statusLine} numberOfLines={1}>
-                {trimmedStatus}
-              </Text>
-            </Pressable>
-          ) : (
-            <Text style={[styles.statusLine, styles.statusLineMuted]} numberOfLines={1}>
-              {trimmedStatus}
-            </Text>
-          )}
+          <View style={styles.statusRow}>
+            {statusBadge}
+            {trimmedStatus ? (
+              onStatusPress ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={trimmedStatus}
+                  onPress={handleStatusPress}
+                  style={({ pressed, hovered }) => [
+                    styles.statusPressable,
+                    webHover(hovered, pressed, webListRowHoverStyles(colors)),
+                    pressed && { opacity: 0.85 },
+                  ]}>
+                  <Text style={styles.statusLine} numberOfLines={1}>
+                    {trimmedStatus}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={[styles.statusLine, styles.statusLineMuted]} numberOfLines={1}>
+                  {trimmedStatus}
+                </Text>
+              )
+            ) : null}
+          </View>
         </HeroStaggerBlock>
       ) : null}
     </View>
@@ -341,7 +355,7 @@ export function DashboardHero({
     </View>
   ) : null;
 
-  const pulseFooter = pulse && !trimmedStatus ? (
+  const pulseFooter = pulse && !trimmedStatus && !statusBadge ? (
     <HeroStaggerBlock delayMs={120} reduceMotion={reduceMotion}>
       <View>
         {!useFlush ? <View style={styles.pulseDivider} /> : null}

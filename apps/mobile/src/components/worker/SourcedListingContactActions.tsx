@@ -119,6 +119,7 @@ function ContactChannelRow({
   accessibilityLabel,
   onPress,
   onCopied,
+  density = 'default',
 }: {
   icon: 'call-outline' | 'mail-outline';
   label: string;
@@ -126,31 +127,34 @@ function ContactChannelRow({
   accessibilityLabel: string;
   onPress: () => void;
   onCopied?: () => void;
+  /** inline = quiet icon + value for companion document layout. */
+  density?: 'default' | 'inline';
 }) {
   const { colors } = useTheme();
+  const inline = density === 'inline';
   const styles = useThemedStyles(({ colors, spacing }) => ({
     row: {
       position: 'relative' as const,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: spacing.md,
-      minHeight: 56,
-      paddingVertical: spacing.sm,
-      borderRadius: 10,
+      gap: inline ? spacing.sm : spacing.md,
+      minHeight: inline ? 44 : 56,
+      paddingVertical: inline ? spacing.xs : spacing.sm,
+      borderRadius: inline ? 0 : 10,
       overflow: 'hidden' as const,
     },
     iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: inline ? 22 : 40,
+      height: inline ? 22 : 40,
+      borderRadius: inline ? 0 : 20,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      backgroundColor: colors.primarySubtle,
+      backgroundColor: inline ? 'transparent' : colors.primarySubtle,
     },
     textBlock: {
       flex: 1,
       minWidth: 0,
-      gap: 2,
+      gap: inline ? 0 : 2,
     },
     label: {
       fontSize: 12,
@@ -160,8 +164,8 @@ function ContactChannelRow({
       color: colors.labelTertiary,
     },
     value: {
-      fontSize: 16,
-      lineHeight: 22,
+      fontSize: inline ? 15 : 16,
+      lineHeight: inline ? 20 : 22,
       fontWeight: '600' as const,
       letterSpacing: -0.2,
       color: colors.labelPrimary,
@@ -188,10 +192,14 @@ function ContactChannelRow({
         ]}
       />
       <View style={styles.iconWrap} pointerEvents="none">
-        <Ionicons name={icon} size={18} color={colors.primary} />
+        <Ionicons
+          name={icon}
+          size={18}
+          color={inline ? colors.labelSecondary : colors.primary}
+        />
       </View>
       <View style={styles.textBlock} pointerEvents="none">
-        <Text style={styles.label}>{label}</Text>
+        {inline ? null : <Text style={styles.label}>{label}</Text>}
         <Text style={styles.value} numberOfLines={2}>
           {value}
         </Text>
@@ -217,6 +225,7 @@ export function SourcedListingContactActions({
   compact = false,
   revealBeforeShow = false,
   sections = 'all',
+  density = 'default',
   onContactTap,
   onContactReveal,
   onContactCopy,
@@ -227,10 +236,13 @@ export function SourcedListingContactActions({
   revealBeforeShow?: boolean;
   /** rows = body card; buttons = footer CTAs; all = public sticky footer. */
   sections?: SourcedContactSections;
+  /** inline = quiet icon rows for companion document layout. */
+  density?: 'default' | 'inline';
   onContactTap?: (method: ContactMethod) => void;
   onContactReveal?: (method: 'phone' | 'email') => void;
   onContactCopy?: (method: 'phone' | 'email') => void;
 }) {
+  const inline = density === 'inline';
   const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
       gap: spacing.md,
@@ -239,10 +251,10 @@ export function SourcedListingContactActions({
       gap: 0,
     },
     rowDivider: {
-      height: 1,
+      height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
-      opacity: 0.6,
-      marginLeft: 56,
+      opacity: inline ? 0.5 : 0.6,
+      marginLeft: inline ? 30 : 56,
     },
     buttons: {
       gap: spacing.sm,
@@ -307,6 +319,7 @@ export function SourcedListingContactActions({
             accessibilityLabel="Call clinic"
             onPress={openPhone}
             onCopied={() => onContactCopy?.('phone')}
+            density={density}
           />
         ) : null}
         {showPhoneValue && showEmailValue ? <View style={styles.rowDivider} /> : null}
@@ -318,6 +331,7 @@ export function SourcedListingContactActions({
             accessibilityLabel="Email clinic"
             onPress={openEmail}
             onCopied={() => onContactCopy?.('email')}
+            density={density}
           />
         ) : null}
       </View>

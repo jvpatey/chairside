@@ -13,34 +13,28 @@ import {
   type LiveShiftPost,
   type WorkerApplication,
 } from '@chairside/api';
-import { getSpecialtyLabel } from '@chairside/config';
+import { getRoleTypeLabel } from '@chairside/config';
+import { isMatchableSoftware } from '@chairside/core';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 
-import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
-import {
-  CancelledPillBadge,
-  RequestedPillBadge,
-} from '@/components/matching/ApplicationStatusBadge';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { CardDetailSection } from '@/components/ui/CardDetailSection';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
-import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { ClinicPostHeader } from '@/components/worker/ClinicPostHeader';
-import { ClinicProfileLinkFooter } from '@/components/worker/ClinicProfileLinkFooter';
 import { SavePostButton } from '@/components/worker/SavePostButton';
 import { ShiftUrgencyBadge } from '@/components/worker/ShiftUrgencyBadge';
+import { SourcedListingContactActions } from '@/components/worker/SourcedListingContactActions';
 import {
-  hasSourcedContactChannels,
-  SourcedListingContactActions,
-} from '@/components/worker/SourcedListingContactActions';
+  WorkerCompanionListingBody,
+  type CompanionFact,
+} from '@/components/worker/WorkerCompanionListingBody';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { AnalyticsEvents } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getWorkerApplicationRoute,
   getWorkerClinicProfileRoute,
@@ -51,13 +45,13 @@ import {
   WORKER_SETUP_BASICS,
   type WorkerApplicationReturnTarget,
 } from '@/lib/routing';
-import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
+import { formatShiftPostDateLabel } from '@/lib/shiftPostDisplay';
+import { formatTimeRangePreview } from '@/lib/time';
 import {
   formatWorkerPostLocation,
   resolveWorkerPostLocationParts,
-  resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
-import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
+import { getWorkerPostMapsDestination } from '@/lib/workerPostMaps';
 import { useThemedStyles } from '@/theme';
 
 type ShiftApplicationView =
@@ -84,16 +78,24 @@ function resolveShiftApplicationView(application: WorkerApplication | null): Shi
   return { kind: 'none' };
 }
 
+function buildShiftFacts(shift: LiveShiftPost): CompanionFact[] {
+  // Role / hours / place live in the hero — only software extras here.
+  const software = (shift.clinic.software_used ?? [])
+    .filter((item) => isMatchableSoftware(item))
+    .join(' · ');
+  return software ? [{ label: 'Software', value: software }] : [];
+}
+
 export default function WorkerShiftDetailScreen() {
   const { user } = useAuth();
   const { workerProfile, isProfileComplete } = useWorkerProfile();
   const { id, returnTo, applicationId, applicationReturnTo: postingApplicationReturnTo } =
     useLocalSearchParams<{
-    id?: string;
-    returnTo?: string;
-    applicationId?: string;
-    applicationReturnTo?: string;
-  }>();
+      id?: string;
+      returnTo?: string;
+      applicationId?: string;
+      applicationReturnTo?: string;
+    }>();
   const shiftId = typeof id === 'string' ? id : '';
   const returnContext = useMemo(
     () =>
@@ -230,7 +232,7 @@ export default function WorkerShiftDetailScreen() {
   if (isLoading || !shift) {
     return (
       <FormScreen
-        title="Fill-in details"
+        title="Fill-in"
         subtitle={isLoading ? undefined : 'Fill-in not found.'}
         backLabel={backLabel}
         onBack={goBack}>
@@ -246,6 +248,14 @@ export default function WorkerShiftDetailScreen() {
       : ((resolvedReturnTo as WorkerApplicationReturnTarget | undefined) ?? 'fill-ins-tab');
 
   const sourced = isSourcedListing(shift);
+  const { displayName, placeLabel } = resolveWorkerPostLocationParts(shift);
+  const place =
+    (shift.location ? formatWorkerPostLocation(shift) : null) || placeLabel || null;
+  const roleLabel = getRoleTypeLabel(shift.role_type);
+  const hours = formatTimeRangePreview(shift.start_time, shift.end_time);
+  const subtitle = [roleLabel, hours].filter(Boolean).join(' · ');
+  const facts = buildShiftFacts(shift);
+  const mapsDestination = getWorkerPostMapsDestination(shift);
 
   const footerAction = sourced ? (
     <SourcedListingContactActions contact={shift} sections="buttons" />
@@ -272,25 +282,9 @@ export default function WorkerShiftDetailScreen() {
     />
   ) : null;
 
-  const statusFooter =
-    applicationView.kind === 'pending' ? (
-      <RequestedPillBadge />
-    ) : applicationView.kind === 'cancelled' ? (
-      <CancelledPillBadge />
-    ) : null;
-
-  const location = formatWorkerPostLocation(shift);
-  const { displayName, placeLabel } = resolveWorkerPostLocationParts(shift);
-  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
-    postedAt: shift.created_at,
-    postedByDisplayName: shift.posted_by_display_name,
-    postedByTitle: shift.posted_by_title,
-  });
-
   return (
     <FormScreen
-      title="Fill-in details"
-      subtitle={shift.clinic.clinic_name}
+      title="Fill-in"
       backLabel={backLabel}
       onBack={goBack}
       headerAccessory={
@@ -299,63 +293,31 @@ export default function WorkerShiftDetailScreen() {
       accent="primary"
       footer={footerAction}>
       <View style={styles.content}>
-        <ShiftPostDetailView
-          shift={shift}
-          softwareUsed={shift.clinic.software_used}
-          section="hero"
-          featured={shift.has_priority_listing}
-          heroAccessory={<ShiftUrgencyBadge urgency={shift.urgency} />}
+        <WorkerCompanionListingBody
+          title={formatShiftPostDateLabel(shift.shift_date)}
+          subtitle={subtitle}
+          pay={shift.compensation}
+          clinicName={displayName}
+          place={place}
+          onClinicPress={
+            !sourced && shift.clinic_id
+              ? () =>
+                  router.push(
+                    getWorkerClinicProfileRoute(
+                      shift.clinic_id!,
+                      returnContext?.returnTo === 'application-detail'
+                        ? returnContext
+                        : { returnTo: 'shift-detail', shiftId: shift.id },
+                    ),
+                  )
+              : undefined
+          }
+          facts={facts}
+          notes={shift.description}
+          badge={<ShiftUrgencyBadge urgency={shift.urgency} />}
+          contact={sourced ? shift : null}
+          mapsDestination={mapsDestination}
         />
-        {sourced ? (
-          <SurfaceCard>
-            <ClinicPostHeader
-              clinicName={displayName}
-              logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
-              location={placeLabel}
-              detail={getSpecialtyLabel(shift.clinic.specialty)}
-              detailIcon="medkit-outline"
-              metaIcons
-            />
-          </SurfaceCard>
-        ) : shift.clinic_id ? (
-          <SurfaceCard
-            onPress={() =>
-              router.push(
-                getWorkerClinicProfileRoute(
-                  shift.clinic_id!,
-                  returnContext?.returnTo === 'application-detail'
-                    ? returnContext
-                    : { returnTo: 'shift-detail', shiftId: shift.id },
-                ),
-              )
-            }>
-            <ClinicPostHeader
-              clinicName={displayName}
-              logoStoragePath={resolveWorkerPostLogoStoragePath(shift)}
-              location={placeLabel}
-              detail={getSpecialtyLabel(shift.clinic.specialty)}
-              detailIcon="medkit-outline"
-              metaIcons
-              textFooter={statusFooter}
-            />
-            <ClinicProfileLinkFooter />
-          </SurfaceCard>
-        ) : null}
-        <ShiftPostDetailView
-          shift={shift}
-          softwareUsed={shift.clinic.software_used}
-          section="details"
-          locationLabel={shift.location ? location : null}
-          postedByLabel={postedByLabel}
-          postedOnLabel={postedOnLabel}
-        />
-        {sourced && hasSourcedContactChannels(shift) ? (
-          <SurfaceCard>
-            <CardDetailSection title="Contact">
-              <SourcedListingContactActions contact={shift} sections="rows" />
-            </CardDetailSection>
-          </SurfaceCard>
-        ) : null}
       </View>
     </FormScreen>
   );
