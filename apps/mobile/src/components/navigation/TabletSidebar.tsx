@@ -945,23 +945,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const sidebarContent = (
     <>
       <View style={[styles.brandSection, isCollapsed && styles.brandSectionCollapsed]}>
-        {isCollapsed ? (
-          <View style={styles.brandWordmarkCollapsed}>
-            <ChairsideWordmark
-              variant="stacked"
-              align="center"
-              onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
-            />
-          </View>
-        ) : (
-          <View style={styles.brandWordmarkWrap}>
-            <ChairsideWordmark
-              variant="small"
-              align="left"
-              onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
-            />
-          </View>
-        )}
+        <View style={[styles.brandWordmarkWrap, isCollapsed && styles.brandWordmarkCollapsed]}>
+          <ChairsideWordmark
+            collapsed={isCollapsed}
+            onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
+          />
+        </View>
         {showGroupLocationScope ? (
           <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
         ) : null}
