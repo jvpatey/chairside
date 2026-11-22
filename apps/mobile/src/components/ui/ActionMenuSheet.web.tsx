@@ -95,10 +95,25 @@ function ActionMenuDialog({
     actionPressed: {
       opacity: 0.88,
     },
+    actionLabelWrap: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
     actionLabel: {
       fontSize: 15,
       fontWeight: '500',
       color: colors.labelPrimary,
+      flexShrink: 1,
+    },
+    actionDetail: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.labelTertiary,
+      flexShrink: 0,
     },
     actionDestructive: {
       color: colors.destructive,
@@ -236,14 +251,26 @@ function ActionMenuDialog({
                   ]}
                 >
                   {action.icon ?? null}
-                  <Text
-                    style={[
-                      styles.actionLabel,
-                      action.destructive && styles.actionDestructive,
-                    ]}
-                  >
-                    {action.label}
-                  </Text>
+                  <View style={styles.actionLabelWrap}>
+                    <Text
+                      style={[
+                        styles.actionLabel,
+                        action.destructive && styles.actionDestructive,
+                      ]}
+                      numberOfLines={1}>
+                      {action.label}
+                    </Text>
+                    {action.detail ? (
+                      <Text
+                        style={[
+                          styles.actionDetail,
+                          action.detailColor ? { color: action.detailColor } : null,
+                        ]}
+                        numberOfLines={1}>
+                        {action.detail}
+                      </Text>
+                    ) : null}
+                  </View>
                 </Pressable>
               ))}
             </SurfaceCard>

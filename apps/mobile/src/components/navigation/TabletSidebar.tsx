@@ -40,6 +40,10 @@ import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import {
+  getTextAlertsStatusLabel,
+  getTextAlertsStatusTone,
+} from '@/lib/profileHubSubtitles';
+import {
   CLINIC_HOME,
   CLINIC_PROFILE,
   CLINIC_PROFILE_ACCOUNT,
@@ -50,6 +54,7 @@ import {
   getWorkerFillInAvailabilityRoute,
   WORKER_PROFILE,
   WORKER_PROFILE_ACCOUNT,
+  WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
@@ -719,31 +724,54 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const accountMenuActions = [
     {
-      label: 'Account',
+      label: role === 'worker' ? 'Profile' : 'Account',
       icon: <Ionicons name="person-outline" size={20} color={colors.labelSecondary} />,
       onPress: () => {
         router.push(role === 'worker' ? WORKER_PROFILE_ACCOUNT : CLINIC_PROFILE_ACCOUNT);
       },
     },
-    {
-      label: role === 'worker' ? 'Text alerts' : 'Notifications',
-      icon: (
-        <Ionicons
-          name={role === 'worker' ? 'chatbubble-ellipses-outline' : 'notifications-outline'}
-          size={20}
-          color={colors.labelSecondary}
-        />
-      ),
-      onPress: () => {
-        router.push(
-          role === 'worker'
-            ? getWorkerFillInAvailabilityRoute('profile')
-            : CLINIC_PROFILE_NOTIFICATIONS,
-        );
-      },
-    },
-    ...(role === 'clinic'
+    ...(role === 'worker'
       ? [
+          {
+            label: 'Text alerts',
+            detail: getTextAlertsStatusLabel(workerProfile),
+            detailColor: (() => {
+              const tone = getTextAlertsStatusTone(workerProfile);
+              if (tone === 'on') return colors.success;
+              if (tone === 'needs_phone') return colors.warning;
+              return colors.labelTertiary;
+            })(),
+            icon: (
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={20}
+                color={colors.labelSecondary}
+              />
+            ),
+            onPress: () => {
+              router.push(getWorkerFillInAvailabilityRoute('profile'));
+            },
+          },
+          {
+            label: 'Notifications',
+            icon: (
+              <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />
+            ),
+            onPress: () => {
+              router.push(WORKER_PROFILE_NOTIFICATIONS);
+            },
+          },
+        ]
+      : [
+          {
+            label: 'Notifications',
+            icon: (
+              <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />
+            ),
+            onPress: () => {
+              router.push(CLINIC_PROFILE_NOTIFICATIONS);
+            },
+          },
           {
             label: 'Billing',
             icon: <Ionicons name="card-outline" size={20} color={colors.labelSecondary} />,
@@ -751,8 +779,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
               router.push(CLINIC_PROFILE_BILLING);
             },
           },
-        ]
-      : []),
+        ]),
     {
       label: 'Sign out',
       destructive: true,

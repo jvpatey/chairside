@@ -56,9 +56,9 @@ describe('isFillInTextAlertsSwitchOn', () => {
 });
 
 describe('getFillInTextAlertsHint', () => {
-  it('shows the saved number when on', () => {
-    expect(getFillInTextAlertsHint('on', '9025551234')).toContain('(902) 555-1234');
-    expect(getFillInTextAlertsHint('on', '9025551234')).toContain('On by default');
+  it('keeps on-state copy about opt-out without repeating the number', () => {
+    expect(getFillInTextAlertsHint('on', '9025551234')).toContain('STOP');
+    expect(getFillInTextAlertsHint('on', '9025551234')).not.toContain('(902) 555-1234');
   });
 
   it('asks for a number while finishing', () => {

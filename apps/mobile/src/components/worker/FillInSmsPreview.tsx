@@ -2,9 +2,9 @@ import { Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
 
-/** Matches production `buildFillInSms` tone (YES + Details companion). */
+/** Matches production `buildFillInSms` tone (YES + Details companion), with generic sample details. */
 export const DEFAULT_SMS_BODY =
-  'Chairside: Evergreen Dental (Dartmouth) posted a fill-in for Dec 21, 8 AM-5 PM. Pay: $45/hr. Reply YES 4821 to request. Details: chairsidedental.app/f/… Reply STOP to opt out.';
+  'Chairside: A nearby clinic posted a fill-in for tomorrow, 8 AM–5 PM. Reply YES 4821 to request. Details: chairsidedental.app/f/… Reply STOP to opt out.';
 
 type FillInSmsPreviewProps = {
   body?: string;

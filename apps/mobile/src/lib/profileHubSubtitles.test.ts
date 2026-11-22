@@ -19,6 +19,8 @@ import {
   getClinicMessagingSubtitle,
   getNotificationsSubtitle,
   getOtherAlertsSubtitle,
+  getTextAlertsStatusLabel,
+  getTextAlertsStatusTone,
   getTextAlertsSubtitle,
 } from '@/lib/profileHubSubtitles';
 
@@ -28,6 +30,58 @@ describe('getAccountTypeLabel', () => {
     expect(getAccountTypeLabel('clinic')).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: false })).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: true })).toBe('Clinic group');
+  });
+});
+
+describe('getTextAlertsStatusLabel', () => {
+  it('returns short On / Off / Add phone without phone number', () => {
+    expect(
+      getTextAlertsStatusLabel({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('On');
+    expect(
+      getTextAlertsStatusLabel({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('Add phone');
+    expect(
+      getTextAlertsStatusLabel({
+        short_notice_available: false,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
+  });
+});
+
+describe('getTextAlertsStatusTone', () => {
+  it('maps status to on / needs_phone / off', () => {
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('on');
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('needs_phone');
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toBe('off');
   });
 });
 

@@ -82,7 +82,26 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
   return added.length > 0 ? `${added[0]} · ${missingLabel}` : missingLabel;
 }
 
-/** Hub row for SMS-first text alerts. */
+/** Short On / Off / Add phone — account menu trailing status. */
+export function getTextAlertsStatusLabel(profile: WorkerProfile | null): string {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return 'Off';
+  if (smsActive) return 'On';
+  if (smsNeedsPhone) return 'Add phone';
+  return 'Off';
+}
+
+/** Tone for account-menu Text alerts detail color. */
+export type TextAlertsStatusTone = 'on' | 'off' | 'needs_phone';
+
+export function getTextAlertsStatusTone(profile: WorkerProfile | null): TextAlertsStatusTone {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (smsActive) return 'on';
+  if (fillInsOn && smsNeedsPhone) return 'needs_phone';
+  return 'off';
+}
+
+/** Hub row for SMS-first text alerts (includes phone when on). */
 export function getTextAlertsSubtitle(profile: WorkerProfile | null): string {
   const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
   if (!fillInsOn) return 'Off';

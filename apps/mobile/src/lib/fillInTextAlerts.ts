@@ -38,13 +38,16 @@ export function getFillInTextAlertsHint(
   const formatted = savedPhone ? formatPhoneNumber(savedPhone) : '';
   switch (state) {
     case 'on':
-      return `On by default at ${formatted}. Turn off anytime — reply STOP to opt out.`;
+      // Number is shown in its own row — keep this line about consent / opt-out.
+      return 'Turn off anytime. Reply STOP on any text to opt out.';
     case 'off_ready':
-      return `Off. Turn on to resume texts at ${formatted}.`;
+      return formatted
+        ? `Off. Turn on to resume texts at ${formatted}.`
+        : 'Off. Turn on to resume texts.';
     case 'finishing':
       return 'Add your mobile number below. Texts turn on automatically when you save.';
     case 'changing_number':
-      return 'Enter the new number for fill-in texts.';
+      return 'Update the number that receives fill-in texts.';
     default:
       return 'On by default when you add a mobile number. You can turn texts off anytime.';
   }

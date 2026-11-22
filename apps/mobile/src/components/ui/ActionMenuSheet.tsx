@@ -22,6 +22,10 @@ import { useThemedStyles } from '@/theme';
 
 export type ActionMenuSheetItem = {
   label: string;
+  /** Quiet trailing status (e.g. Text alerts · On). */
+  detail?: string;
+  /** Optional color for `detail` (e.g. success when Text alerts are on). */
+  detailColor?: string;
   destructive?: boolean;
   icon?: ReactNode;
   onPress: () => void;
@@ -105,12 +109,21 @@ export function ActionMenuSheetBottom({
     actionContent: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: spacing.sm,
+      width: '100%' as const,
     },
     actionIcon: {
       width: 22,
       alignItems: 'center',
+    },
+    actionLabelWrap: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
     },
     actionHovered: webListRowHoverStyles(colors),
     actionPressed: {
@@ -124,6 +137,13 @@ export function ActionMenuSheetBottom({
       fontSize: 17,
       fontWeight: '500',
       color: colors.labelPrimary,
+      flexShrink: 1,
+    },
+    actionDetail: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: colors.labelTertiary,
+      flexShrink: 0,
     },
     actionDestructive: {
       color: colors.destructive,
@@ -185,14 +205,26 @@ export function ActionMenuSheetBottom({
                   >
                     <View style={styles.actionContent}>
                       {action.icon ? <View style={styles.actionIcon}>{action.icon}</View> : null}
-                      <Text
-                        style={[
-                          styles.actionLabel,
-                          action.destructive && styles.actionDestructive,
-                        ]}
-                      >
-                        {action.label}
-                      </Text>
+                      <View style={styles.actionLabelWrap}>
+                        <Text
+                          style={[
+                            styles.actionLabel,
+                            action.destructive && styles.actionDestructive,
+                          ]}
+                          numberOfLines={1}>
+                          {action.label}
+                        </Text>
+                        {action.detail ? (
+                          <Text
+                            style={[
+                              styles.actionDetail,
+                              action.detailColor ? { color: action.detailColor } : null,
+                            ]}
+                            numberOfLines={1}>
+                            {action.detail}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
                   </Pressable>
                 ))}

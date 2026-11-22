@@ -110,29 +110,30 @@ export function AccountMenuSheetHeader({
   const statusBadge =
     billing && plan && plan !== 'free' ? formatSubscriptionStatusBadge(billing.status) : null;
 
-  const detailRows: InfoTableRowProps[] = [
-    { label: 'Account type', value: getAccountTypeLabel(role, { isGroup }) },
-  ];
+  const detailRows: InfoTableRowProps[] = [];
 
-  if (role === 'clinic' && plan) {
-    detailRows.push({
-      label: 'Plan',
-      value: '',
-      valueNode: (
-        <PlanValue
-          plan={plan}
-          statusBadge={statusBadge}
-          subscriptionNote={subscriptionNote}
-        />
-      ),
-    });
-  }
-
-  if (role === 'clinic' && isGroup && locationCount != null && locationCount > 0) {
-    detailRows.push({
-      label: 'Locations',
-      value: formatLocationCount(locationCount),
-    });
+  // Clinics keep plan / locations; workers skip "Account type" (role is already clear).
+  if (role === 'clinic') {
+    detailRows.push({ label: 'Account type', value: getAccountTypeLabel(role, { isGroup }) });
+    if (plan) {
+      detailRows.push({
+        label: 'Plan',
+        value: '',
+        valueNode: (
+          <PlanValue
+            plan={plan}
+            statusBadge={statusBadge}
+            subscriptionNote={subscriptionNote}
+          />
+        ),
+      });
+    }
+    if (isGroup && locationCount != null && locationCount > 0) {
+      detailRows.push({
+        label: 'Locations',
+        value: formatLocationCount(locationCount),
+      });
+    }
   }
 
   if (trimmedEmail) {
