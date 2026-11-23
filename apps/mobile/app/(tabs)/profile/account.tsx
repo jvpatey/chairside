@@ -1,17 +1,16 @@
 import { router } from 'expo-router';
 
+import { AccountScreenContent } from '@/components/account/AccountScreenContent';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
-import { WorkerYouProfileView } from '@/components/worker/WorkerYouProfileView';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useSignOut } from '@/hooks/useSignOut';
 import { ACCOUNT_DELETION_DESCRIPTION } from '@/lib/accountDeletionCopy';
+import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 export default function WorkerProfileAccountScreen() {
   const { user, profile, refreshProfile } = useAuth();
-  const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { isSigningOut, signOut } = useSignOut();
   const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
 
@@ -19,19 +18,17 @@ export default function WorkerProfileAccountScreen() {
 
   return (
     <ProfileDetailScreen
-      title="Profile"
-      subtitle="Photo, contact, role, and city — edit everything here."
+      title="Account"
+      subtitle="Password, privacy, sign out, and account deletion."
       onBack={() => navigateToWorkerProfileHub(router)}>
-      <WorkerYouProfileView
+      <AccountScreenContent
         user={user}
         displayName={profile?.display_name}
         firstName={profile?.first_name}
         lastName={profile?.last_name}
-        workerProfile={workerProfile}
-        onProfileRefresh={async () => {
-          await refreshProfile();
-          await refreshWorkerProfile();
-        }}
+        accountTypeLabel={getAccountTypeLabel('worker')}
+        audience="worker"
+        onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}
         onSignOut={signOut}
         isDeleting={isDeleting}

@@ -53,7 +53,7 @@ import {
   WORKER_HOME,
   getWorkerFillInAvailabilityRoute,
   WORKER_PROFILE,
-  WORKER_PROFILE_ACCOUNT,
+  WORKER_PROFILE_PROFESSIONAL,
   WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
@@ -727,7 +727,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       label: role === 'worker' ? 'Profile' : 'Account',
       icon: <Ionicons name="person-outline" size={20} color={colors.labelSecondary} />,
       onPress: () => {
-        router.push(role === 'worker' ? WORKER_PROFILE_ACCOUNT : CLINIC_PROFILE_ACCOUNT);
+        router.push(role === 'worker' ? WORKER_PROFILE_PROFESSIONAL : CLINIC_PROFILE_ACCOUNT);
       },
     },
     ...(role === 'worker'

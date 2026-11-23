@@ -12,6 +12,7 @@ import {
   WORKER_PROFILE,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_APPLICATION_KIT,
+  WORKER_PROFILE_PROFESSIONAL,
   type ApplyPostType,
 } from '@/lib/routing';
 
@@ -28,7 +29,7 @@ export type SetupReturnTarget =
 
 const SETUP_RETURN_ROUTES: Record<Exclude<SetupReturnTarget, 'worker-apply'>, Href> = {
   'worker-profile': WORKER_PROFILE,
-  'worker-professional': WORKER_PROFILE_ACCOUNT,
+  'worker-professional': WORKER_PROFILE_PROFESSIONAL,
   'worker-account': WORKER_PROFILE_ACCOUNT,
   'worker-application-kit': WORKER_PROFILE_APPLICATION_KIT,
   'clinic-profile': CLINIC_PROFILE,

@@ -1,5 +1,5 @@
 import { normalizePhoneToE164 } from '@chairside/config';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 import { getSignupEmailRedirectUrl } from './authSignup';
 import { getSupabaseClient } from './client';
@@ -68,14 +68,27 @@ export async function verifyEmailOtp(email: string, token: string): Promise<Sess
   throw new Error('Could not verify that code. Try again.');
 }
 
-export async function signInWithPhoneOtp(phone: string, role?: UserRole) {
+export type SignInWithPhoneOtpOptions = {
+  /**
+   * When false (sign-in), never mint a new Auth user for an unknown number.
+   * Sign-up keeps the default true.
+   */
+  createUser?: boolean;
+};
+
+export async function signInWithPhoneOtp(
+  phone: string,
+  role?: UserRole,
+  options?: SignInWithPhoneOtpOptions,
+) {
   const supabase = getSupabaseClient();
   const e164 = normalizeAuthPhone(phone);
+  const createUser = options?.createUser ?? true;
 
   const { error } = await supabase.auth.signInWithOtp({
     phone: e164,
     options: {
-      shouldCreateUser: true,
+      shouldCreateUser: createUser,
       data: role ? { role } : undefined,
     },
   });
@@ -96,6 +109,182 @@ export async function verifyPhoneOtp(phone: string, token: string): Promise<Sess
   if (error) throw error;
   if (!data.session) throw new Error('Could not verify that code. Try again.');
   return data.session;
+}
+
+function isPhoneTakenAuthError(error: unknown): boolean {
+  const message =
+    error && typeof error === 'object' && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : '';
+  const lower = message.toLowerCase();
+  return (
+    (lower.includes('phone') &&
+      (lower.includes('already') || lower.includes('registered') || lower.includes('exists'))) ||
+    lower.includes('unique') ||
+    lower.includes('duplicate')
+  );
+}
+
+/**
+ * Clears empty phone-only Auth shells that stole this number (pre-link bug),
+ * or reports that the number is free / already ours.
+ */
+export async function reclaimAuthPhone(phone: string): Promise<'available' | 'owned' | 'reclaimed'> {
+  const supabase = getSupabaseClient();
+  const e164 = normalizeAuthPhone(phone);
+  const { data, error } = await supabase.functions.invoke('reclaim-auth-phone', {
+    body: { phone: e164, action: 'reclaim' },
+  });
+  if (error) throw error;
+  const status = (data as { status?: string; error?: string } | null)?.status;
+  if (status === 'available' || status === 'owned' || status === 'reclaimed') {
+    return status;
+  }
+  const message =
+    (data as { error?: string } | null)?.error ??
+    'That number is already linked to another account.';
+  throw new Error(message);
+}
+
+/**
+ * After phone OTP sign-in: if this session is an empty shell but worker_profiles
+ * already owns the number, delete the shell and tell the client to use email.
+ */
+export async function resolvePhoneShellLogin(phone: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const e164 = normalizeAuthPhone(phone);
+  const { data, error } = await supabase.functions.invoke('reclaim-auth-phone', {
+    body: { phone: e164, action: 'resolve_shell_login' },
+  });
+  if (error) throw error;
+  const payload = data as { status?: string; message?: string; error?: string } | null;
+  if (payload?.status === 'conflict') {
+    throw new Error(
+      payload.message ??
+        'That number belongs to an existing account. Sign in with email, then verify your mobile in Profile.',
+    );
+  }
+  if (payload?.error) {
+    throw new Error(payload.error);
+  }
+}
+
+export type AuthPhoneBindResult = {
+  e164: string;
+  /** False when Auth already confirmed this phone (or project applies phone without OTP). */
+  needsOtp: boolean;
+};
+
+/**
+ * While signed in, start linking this mobile to the current Auth user (SMS OTP).
+ * Always follows `updateUser` with a `phone_change` resend so a code is actually
+ * delivered when confirmations are enabled. Does not update worker_profiles until
+ * `verifyAuthPhoneBind` succeeds (unless needsOtp is false).
+ */
+export async function requestAuthPhoneBind(phone: string): Promise<AuthPhoneBindResult> {
+  const supabase = getSupabaseClient();
+  const e164 = normalizeAuthPhone(phone);
+  const digits = authPhoneToStorageDigits(e164) ?? '';
+
+  const {
+    data: { user: current },
+  } = await supabase.auth.getUser();
+  if (current && authUserHasVerifiedPhone(current, digits)) {
+    return { e164, needsOtp: false };
+  }
+
+  const tryUpdate = async () => {
+    const { error } = await supabase.auth.updateUser({ phone: e164 });
+    if (error) throw error;
+  };
+
+  try {
+    await tryUpdate();
+  } catch (error) {
+    if (!isPhoneTakenAuthError(error)) throw error;
+    await reclaimAuthPhone(e164);
+    await tryUpdate();
+  }
+
+  const {
+    data: { user: afterUpdate },
+  } = await supabase.auth.getUser();
+  if (afterUpdate && authUserHasVerifiedPhone(afterUpdate, digits)) {
+    // Phone confirmations are off — Auth applied the number with no SMS.
+    return { e164, needsOtp: false };
+  }
+
+  const { error: resendError } = await supabase.auth.resend({
+    type: 'phone_change',
+    phone: e164,
+  });
+  if (resendError) {
+    const lower = resendError.message.toLowerCase();
+    // updateUser may already have triggered the first SMS; rate limits are OK to surface.
+    if (lower.includes('rate') || lower.includes('security') || lower.includes('60')) {
+      throw resendError;
+    }
+    if (lower.includes('disabled') || lower.includes('provider') || lower.includes('hook')) {
+      throw resendError;
+    }
+  }
+
+  return { e164, needsOtp: true };
+}
+
+/**
+ * Confirm the SMS from `requestAuthPhoneBind`, then write digits to worker_profiles.
+ */
+export async function verifyAuthPhoneBind(
+  userId: string,
+  phone: string,
+  token: string,
+): Promise<string> {
+  const supabase = getSupabaseClient();
+  const e164 = normalizeAuthPhone(phone);
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone: e164,
+    token: token.trim(),
+    type: 'phone_change',
+  });
+  if (error) throw error;
+
+  // Hosted Auth requires phone_change OTP; some local setups apply updateUser immediately.
+  // Either way, persist the verified number on the worker profile for SMS alerts.
+  const storagePhone = authPhoneToStorageDigits(e164);
+  if (storagePhone) {
+    await ensureWorkerProfileRow(userId);
+    await upsertWorkerProfile(userId, { phone: storagePhone });
+  }
+
+  // Prefer session from verify when present; otherwise keep the existing signed-in session.
+  if (!data.session) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      throw new Error('Could not verify that code. Try again.');
+    }
+  }
+
+  return e164;
+}
+
+/** True when Auth already has this NANP number on the signed-in user. */
+export function authUserHasPhone(authPhone: string | null | undefined, storageDigits: string): boolean {
+  if (!authPhone?.trim() || !storageDigits.trim()) return false;
+  try {
+    return authPhoneToStorageDigits(normalizeAuthPhone(authPhone)) === storageDigits.replace(/\D/g, '');
+  } catch {
+    return false;
+  }
+}
+
+/** True when Auth has this number and it is confirmed (safe to skip bind OTP). */
+export function authUserHasVerifiedPhone(
+  user: Pick<User, 'phone' | 'phone_confirmed_at'> | null | undefined,
+  storageDigits: string,
+): boolean {
+  if (!user?.phone_confirmed_at) return false;
+  return authUserHasPhone(user.phone, storageDigits);
 }
 
 type FinishWorkerOtpAuthInput = {

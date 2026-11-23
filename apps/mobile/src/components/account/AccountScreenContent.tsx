@@ -10,7 +10,6 @@ import { AccountProfileHero } from '@/components/account/AccountProfileHero';
 import { AccountSignOutCard } from '@/components/account/AccountSignOutCard';
 import {
   ProfileDetailStack,
-  ProfileSummaryBanner,
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
@@ -52,18 +51,11 @@ export function AccountScreenContent({
   const isClinic = audience === 'clinic';
 
   const styles = useThemedStyles(({ colors, typography }) => ({
-    intro: profileSettingsHintStyle({ typography, colors }),
     hint: profileSettingsHintStyle({ typography, colors }),
   }));
 
   return (
     <ProfileDetailStack>
-      <ProfileSummaryBanner icon="information-circle-outline" title="Account overview">
-        <Text style={styles.intro}>
-          Manage how you sign in, how your name appears, and what happens to your account data.
-        </Text>
-      </ProfileSummaryBanner>
-
       <AccountProfileHero
         displayName={displayName}
         email={user.email}
@@ -71,16 +63,18 @@ export function AccountScreenContent({
         icon={isClinic ? 'business-outline' : 'person-circle-outline'}
       />
 
-      <SectionPanel icon="person-outline" iconAccent="primary" title="Profile">
-        <AccountDisplayNameField
-          userId={user.id}
-          savedFirstName={firstName}
-          savedLastName={lastName}
-          savedDisplayName={displayName}
-          audience={isClinic ? 'clinic' : 'worker'}
-          onSaved={onProfileRefresh}
-        />
-      </SectionPanel>
+      {isClinic ? (
+        <SectionPanel icon="person-outline" iconAccent="primary" title="Profile">
+          <AccountDisplayNameField
+            userId={user.id}
+            savedFirstName={firstName}
+            savedLastName={lastName}
+            savedDisplayName={displayName}
+            audience="clinic"
+            onSaved={onProfileRefresh}
+          />
+        </SectionPanel>
+      ) : null}
 
       {showPasswordSection ? (
         <SectionPanel icon="lock-closed-outline" iconAccent="secondary" title="Security">

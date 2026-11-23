@@ -4,11 +4,13 @@ import {
   getProfile,
   getSupabaseClient,
   resetPasswordForEmail,
+  resolvePhoneShellLogin,
   signInWithApple,
   signInWithEmail,
   signInWithEmailOtp,
   signInWithGoogle,
   signInWithPhoneOtp,
+  signOut,
   verifyEmailOtp,
   verifyPhoneOtp,
   type OtpChannel,
@@ -250,7 +252,7 @@ export default function SignInScreen() {
         setPhoneE164(null);
         setFormSuccess(`We sent a code to ${email.trim()}.`);
       } else {
-        const e164 = await signInWithPhoneOtp(phone);
+        const e164 = await signInWithPhoneOtp(phone, undefined, { createUser: false });
         setPhoneE164(e164);
         setFormSuccess('We sent a text with your code.');
       }
@@ -284,6 +286,19 @@ export default function SignInScreen() {
 
       // Returning phone users: keep verified number on worker profile when role is set.
       const profile = await getProfile(session.user.id);
+      if (channel === 'phone' && phoneE164 && !profile?.role) {
+        // Empty phone-only shell from before Auth linking — don't send them through role pick.
+        try {
+          await resolvePhoneShellLogin(phoneE164);
+        } catch (shellError) {
+          try {
+            await signOut();
+          } catch {
+            // Session may already be invalid if the shell was deleted.
+          }
+          throw shellError;
+        }
+      }
       if (profile?.role === 'worker' && channel === 'phone' && phoneE164) {
         await finishWorkerOtpAuth({
           userId: session.user.id,

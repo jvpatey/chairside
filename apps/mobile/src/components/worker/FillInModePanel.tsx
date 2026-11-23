@@ -1,3 +1,9 @@
+import {
+  authUserHasVerifiedPhone,
+  getAuthErrorMessage,
+  requestAuthPhoneBind,
+  verifyAuthPhoneBind,
+} from '@chairside/api';
 import { normalizePhoneForStorage, type FillInNotificationMode } from '@chairside/config';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,6 +12,7 @@ import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FadeSwap } from '@/components/ui/FadeSwap';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import {
@@ -105,6 +112,7 @@ export function FillInModePanel({
   layout = 'default',
 }: FillInModePanelProps) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
@@ -116,6 +124,8 @@ export function FillInModePanel({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [phoneBindE164, setPhoneBindE164] = useState<string | null>(null);
+  const [phoneBindCode, setPhoneBindCode] = useState('');
   const isGrouped = variant === 'grouped';
   const useNestedSections = !isGrouped;
 
@@ -233,6 +243,8 @@ export function FillInModePanel({
     setIsChangingNumber(false);
     setPhone('');
     setPhoneError(null);
+    setPhoneBindE164(null);
+    setPhoneBindCode('');
   };
 
   const persist = async ({ available, mode, sms, phone: phoneToSave }: PersistParams) => {
@@ -333,6 +345,31 @@ export function FillInModePanel({
       return;
     }
     setPhoneError(null);
+    setSaveError(null);
+
+    try {
+      if (user?.id && !authUserHasVerifiedPhone(user, pendingPhone)) {
+        if (!phoneBindE164) {
+          const bind = await requestAuthPhoneBind(pendingPhone);
+          if (bind.needsOtp) {
+            setPhoneBindE164(bind.e164);
+            setPhoneBindCode('');
+            return;
+          }
+        } else {
+          if (phoneBindCode.trim().length < 6) {
+            setPhoneError('Enter the 6-digit code we texted you.');
+            return;
+          }
+          await verifyAuthPhoneBind(user.id, phoneBindE164, phoneBindCode);
+          setPhoneBindE164(null);
+          setPhoneBindCode('');
+        }
+      }
+    } catch (error) {
+      setPhoneError(getAuthErrorMessage(error));
+      return;
+    }
 
     if (textState === 'finishing') {
       const ok = await persist({
@@ -370,6 +407,8 @@ export function FillInModePanel({
         value={phone}
         onChangeText={(text) => {
           setPhone(formatPhoneNumber(text));
+          setPhoneBindE164(null);
+          setPhoneBindCode('');
           if (phoneError) setPhoneError(null);
         }}
         keyboardType="phone-pad"
@@ -379,16 +418,28 @@ export function FillInModePanel({
         validated={Boolean(pendingPhone)}
         accent="primary"
       />
+      {phoneBindE164 ? (
+        <AuthField
+          label="Verification code"
+          value={phoneBindCode}
+          onChangeText={setPhoneBindCode}
+          keyboardType="number-pad"
+          placeholder="6-digit code"
+          editable={!isSaving}
+          autoComplete="one-time-code"
+          accent="primary"
+        />
+      ) : null}
       {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
       <OnboardingButton
         label={
-          textState === 'finishing'
-            ? isSaving
-              ? 'Saving…'
-              : 'Save number'
-            : isSaving
-              ? 'Saving…'
-              : 'Save number'
+          isSaving
+            ? 'Saving…'
+            : phoneBindE164
+              ? 'Verify and save'
+              : user?.id && pendingPhone && !authUserHasVerifiedPhone(user, pendingPhone)
+                ? 'Send code'
+                : 'Save number'
         }
         accent="primary"
         disabled={isSaving || !pendingPhone}

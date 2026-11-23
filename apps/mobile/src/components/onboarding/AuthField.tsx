@@ -89,7 +89,7 @@ export function AuthField({
   const { scrollWrapIntoView } = useFormScroll();
   const styles = useThemedStyles((theme) => ({
     wrap: {
-      gap: theme.spacing.xs,
+      gap: theme.spacing.md,
     },
     inputRow: formFieldInputRowStyle(theme, { multiline }),
     inputRowValidated: {

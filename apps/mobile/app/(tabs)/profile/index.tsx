@@ -13,6 +13,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
+  getAccountSubtitle,
   getOtherAlertsSubtitle,
   getProfessionalBackgroundSubtitle,
   getSupportSubtitle,
@@ -24,6 +25,7 @@ import {
   WORKER_HOME,
   WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_NOTIFICATIONS,
+  WORKER_PROFILE_PROFESSIONAL,
   WORKER_PROFILE_SUPPORT,
 } from '@/lib/routing';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
@@ -83,7 +85,7 @@ export default function WorkerProfileScreen() {
             subtitle={getProfessionalBackgroundSubtitle(workerProfile)}
             iconColor={colors.primary}
             iconBackgroundColor={colors.primarySubtle}
-            onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
+            onPress={() => router.push(WORKER_PROFILE_PROFESSIONAL)}
           />
           <ProfileSettingsRow
             icon="notifications-outline"
@@ -92,6 +94,12 @@ export default function WorkerProfileScreen() {
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
+          />
+          <ProfileSettingsRow
+            icon="person-circle-outline"
+            title="Account"
+            subtitle={getAccountSubtitle(user?.email)}
+            onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
           />
           {isCompact ? (
             <ProfileSettingsRow

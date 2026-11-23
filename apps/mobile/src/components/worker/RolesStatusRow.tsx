@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
-import { WORKER_PROFILE_ACCOUNT } from '@/lib/routing';
+import { WORKER_PROFILE_PROFESSIONAL } from '@/lib/routing';
 import { isWorkerSetupComplete } from '@/lib/setupCompletion';
 import {
   webHover,
@@ -78,7 +78,7 @@ export function RolesStatusRow() {
       accessibilityLabel={`${label}. Open You`}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(WORKER_PROFILE_ACCOUNT);
+        router.push(WORKER_PROFILE_PROFESSIONAL);
       }}
       style={({ pressed, hovered }) => [
         styles.row,

@@ -1,11 +1,14 @@
 import {
+  authUserHasVerifiedPhone,
   getAuthErrorMessage,
   getWorkerRoleTypes,
   isWorkerProfileComplete,
   joinDisplayName,
+  requestAuthPhoneBind,
   resolveAuthNameParts,
   updateAuthEmail,
   updateProfileName,
+  verifyAuthPhoneBind,
   type WorkerProfile,
 } from '@chairside/api';
 import { normalizePhoneForStorage, ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
@@ -13,10 +16,6 @@ import type { User } from '@supabase/supabase-js';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 
-import { AccountChangePasswordSection } from '@/components/account/AccountChangePasswordSection';
-import { AccountDeleteAccountCard } from '@/components/account/AccountDeleteAccountCard';
-import { AccountLegalLinks } from '@/components/account/AccountLegalLinks';
-import { AccountSignOutCard } from '@/components/account/AccountSignOutCard';
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -32,9 +31,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
-import { userHasEmailPasswordLogin } from '@/lib/authProviders';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { WORKER_AUTH_LEGAL_PATHS } from '@/lib/routing';
 import {
   getWorkerProfileFormMissing,
   getWorkerProfileIncompleteBanner,
@@ -57,14 +54,9 @@ type WorkerYouProfileViewProps = {
   lastName?: string | null;
   workerProfile: WorkerProfile | null;
   onProfileRefresh: () => Promise<unknown>;
-  isSigningOut: boolean;
-  onSignOut: () => void;
-  isDeleting: boolean;
-  onDeleteAccount: () => void;
-  deleteDescription: string;
 };
 
-/** Editable profile essentials + account controls on one page. */
+/** Editable worker profile essentials (photo, contact, role, location). */
 export function WorkerYouProfileView({
   user,
   displayName,
@@ -72,18 +64,11 @@ export function WorkerYouProfileView({
   lastName,
   workerProfile,
   onProfileRefresh,
-  isSigningOut,
-  onSignOut,
-  isDeleting,
-  onDeleteAccount,
-  deleteDescription,
 }: WorkerYouProfileViewProps) {
   const { refreshProfile } = useAuth();
   const { refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isWide } = useResponsiveLayout();
-  const busy = isSigningOut || isDeleting;
-  const showPassword = userHasEmailPasswordLogin(user);
 
   const seededName = useMemo(
     () =>
@@ -110,6 +95,8 @@ export function WorkerYouProfileView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [phoneBindE164, setPhoneBindE164] = useState<string | null>(null);
+  const [phoneBindCode, setPhoneBindCode] = useState('');
 
   const profileComplete = isWorkerProfileComplete(workerProfile);
 
@@ -180,31 +167,16 @@ export function WorkerYouProfileView({
       lineHeight: 20,
       color: colors.labelSecondary,
     },
+    fieldGroup: {
+      gap: spacing.md,
+    },
     neededWrap: {
       borderRadius: 12,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colorWithAlpha(colors.primary, isDark ? 0.45 : 0.35),
       backgroundColor: colorWithAlpha(colors.primary, isDark ? 0.1 : 0.06),
-      padding: spacing.sm,
-      gap: spacing.sm,
-    },
-    quiet: {
+      padding: spacing.md,
       gap: spacing.md,
-      paddingTop: spacing.sm,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.separator,
-    },
-    sectionLabel: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: '600' as const,
-      color: colors.labelTertiary,
-      marginBottom: spacing.sm,
-    },
-    quietHint: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.labelSecondary,
     },
   }));
 
@@ -217,8 +189,32 @@ export function WorkerYouProfileView({
     Boolean(city.trim()) &&
     Boolean(province);
 
+  const persistProfile = async (emailNote: string | null) => {
+    await save({
+      role_types: roleTypes,
+      phone: normalizedPhone,
+      city: city.trim(),
+      province,
+    });
+
+    await refreshProfile(user.id);
+    await refreshWorkerProfile();
+    await onProfileRefresh();
+
+    setPhoneBindE164(null);
+    setPhoneBindCode('');
+    setFormSuccess(
+      emailNote
+        ? `Profile saved. ${emailNote}`
+        : 'Profile saved. Text alerts are on for nearby fill-ins.',
+    );
+    if (Platform.OS !== 'web') {
+      Alert.alert('Profile saved', emailNote ?? 'Text alerts are on for nearby fill-ins.');
+    }
+  };
+
   const handleSave = async () => {
-    if (!canSave) {
+    if (!canSave || !normalizedPhone) {
       setFormError(
         missing.phone
           ? 'Add a mobile number — fill-ins are alerted by SMS.'
@@ -245,28 +241,33 @@ export function WorkerYouProfileView({
           'Check your inbox to confirm the new email if Supabase asks you to verify it.';
       }
 
-      await save({
-        role_types: roleTypes,
-        phone: normalizedPhone,
-        city: city.trim(),
-        province,
-      });
+      const phoneAlreadyVerified = authUserHasVerifiedPhone(user, normalizedPhone);
 
-      await refreshProfile(user.id);
-      await refreshWorkerProfile();
-      await onProfileRefresh();
+      // New/changed number: verify via SMS so phone sign-in hits this same account.
+      if (!phoneAlreadyVerified) {
+        if (!phoneBindE164) {
+          const bind = await requestAuthPhoneBind(normalizedPhone);
+          if (!bind.needsOtp) {
+            setPhoneBindE164(null);
+            setPhoneBindCode('');
+            await persistProfile(emailNote);
+            return;
+          }
+          setPhoneBindE164(bind.e164);
+          setPhoneBindCode('');
+          setFormSuccess('We sent a text with a code — enter it below to link this number.');
+          return;
+        }
 
-      setFormSuccess(
-        emailNote
-          ? `Profile saved. ${emailNote}`
-          : 'Profile saved. Text alerts are on for nearby fill-ins.',
-      );
-      if (Platform.OS !== 'web') {
-        Alert.alert(
-          'Profile saved',
-          emailNote ?? 'Text alerts are on for nearby fill-ins.',
-        );
+        if (phoneBindCode.trim().length < 6) {
+          setFormError('Enter the 6-digit code we texted you.');
+          return;
+        }
+
+        await verifyAuthPhoneBind(user.id, phoneBindE164, phoneBindCode);
       }
+
+      await persistProfile(emailNote);
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
@@ -344,28 +345,43 @@ export function WorkerYouProfileView({
         </SectionPanel>
 
         <SectionPanel icon="call-outline" iconAccent="secondary" title="Mobile phone">
-          <View style={missing.phone ? styles.neededWrap : undefined}>
+          <View style={[styles.fieldGroup, missing.phone && styles.neededWrap]}>
             <Text style={missing.phone ? styles.hintNeeded : styles.hint}>
               {missing.phone
                 ? 'Fill-in openings are sent by text — add a mobile number so you don’t miss them.'
-                : 'Used for fill-in text alerts. Texts turn on by default when you save a number.'}
+                : 'Used for fill-in text alerts and phone sign-in. Texts turn on by default when you save a number.'}
             </Text>
             <AuthField
               label="Mobile phone"
               placeholder={PHONE_NUMBER_PLACEHOLDER}
               value={phone}
-              onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+              onChangeText={(text) => {
+                setPhone(formatPhoneNumber(text));
+                setPhoneBindE164(null);
+                setPhoneBindCode('');
+              }}
               keyboardType="phone-pad"
               required
               invalid={missing.phone}
               validated={Boolean(normalizedPhone)}
               accent="secondary"
             />
+            {phoneBindE164 ? (
+              <AuthField
+                label="Verification code"
+                placeholder="6-digit code"
+                value={phoneBindCode}
+                onChangeText={setPhoneBindCode}
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                accent="secondary"
+              />
+            ) : null}
           </View>
         </SectionPanel>
 
         <SectionPanel icon="ribbon-outline" iconAccent="primary" title="Roles">
-          <View style={missing.roles ? styles.neededWrap : undefined}>
+          <View style={[styles.fieldGroup, missing.roles && styles.neededWrap]}>
             <Text style={missing.roles ? styles.hintNeeded : styles.hint}>
               Helps show the right jobs and fill-ins nearby.
             </Text>
@@ -379,7 +395,7 @@ export function WorkerYouProfileView({
         </SectionPanel>
 
         <SectionPanel icon="location-outline" iconAccent="secondary" title="Where you work">
-          <View style={missing.city || missing.province ? styles.neededWrap : undefined}>
+          <View style={[styles.fieldGroup, (missing.city || missing.province) && styles.neededWrap]}>
             <Text style={missing.city || missing.province ? styles.hintNeeded : styles.hint}>
               City and province help show openings near you.
             </Text>
@@ -405,37 +421,20 @@ export function WorkerYouProfileView({
       </ProfileDetailStack>
 
       <OnboardingButton
-        label={isSubmitting ? 'Saving…' : profileComplete ? 'Save changes' : 'Save profile'}
-        disabled={isSubmitting || busy}
+        label={
+          isSubmitting
+            ? phoneBindE164
+              ? 'Verifying…'
+              : 'Saving…'
+            : phoneBindE164
+              ? 'Verify code and save'
+              : profileComplete
+                ? 'Save changes'
+                : 'Save profile'
+        }
+        disabled={isSubmitting}
         onPress={() => void handleSave()}
       />
-
-      {showPassword ? (
-        <View style={styles.quiet}>
-          <Text style={styles.sectionLabel}>Password</Text>
-          <AccountChangePasswordSection user={user} showSectionLabel={false} />
-        </View>
-      ) : null}
-
-      <View style={styles.quiet}>
-        <Text style={styles.sectionLabel}>Legal & support</Text>
-        <AccountLegalLinks legalPaths={WORKER_AUTH_LEGAL_PATHS} />
-      </View>
-
-      <View style={styles.quiet}>
-        <Text style={styles.quietHint}>Sign out on this device anytime.</Text>
-        <AccountSignOutCard
-          isSigningOut={isSigningOut}
-          disabled={busy || isSubmitting}
-          onSignOut={onSignOut}
-        />
-        <AccountDeleteAccountCard
-          isDeleting={isDeleting}
-          disabled={busy || isSubmitting}
-          description={deleteDescription}
-          onDeleteAccount={onDeleteAccount}
-        />
-      </View>
     </View>
   );
 }

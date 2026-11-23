@@ -30,13 +30,21 @@ export {
 } from './authSignup';
 export {
   authPhoneToStorageDigits,
+  authUserHasPhone,
+  authUserHasVerifiedPhone,
   finishWorkerOtpAuth,
   normalizeAuthPhone,
+  reclaimAuthPhone,
+  requestAuthPhoneBind,
+  resolvePhoneShellLogin,
   signInWithEmailOtp,
   signInWithPhoneOtp,
+  verifyAuthPhoneBind,
   verifyEmailOtp,
   verifyPhoneOtp,
+  type AuthPhoneBindResult,
   type OtpChannel,
+  type SignInWithPhoneOtpOptions,
 } from './authOtp';
 import { getSignupEmailRedirectUrl } from './authSignup';
 
@@ -393,17 +401,38 @@ export function getAuthErrorMessage(error: unknown): string {
     return 'Incorrect email or password.';
   }
 
+  if (lower.includes('user already registered')) {
+    return 'An account with this email already exists.';
+  }
+
+  // Must run before the generic "otp" matcher — Supabase returns
+  // "Signups not allowed for otp" when shouldCreateUser is false and no Auth
+  // user has this phone yet (profile phone alone does not count).
   if (
-    lower.includes('otp') ||
+    lower.includes('signups not allowed') ||
+    lower.includes('signup is disabled') ||
+    lower.includes('user not found') ||
+    (lower.includes('phone') && lower.includes('not found'))
+  ) {
+    return 'No account uses this number for sign-in yet. Sign in with email, open Profile, and verify your mobile — then phone sign-in will work.';
+  }
+
+  if (
     lower.includes('token has expired') ||
     lower.includes('token is invalid') ||
-    lower.includes('invalid token')
+    lower.includes('invalid token') ||
+    lower.includes('otp has expired') ||
+    lower.includes('invalid otp') ||
+    (lower.includes('otp') && (lower.includes('expired') || lower.includes('invalid')))
   ) {
     return 'That code is invalid or expired. Request a new one.';
   }
 
-  if (lower.includes('user already registered')) {
-    return 'An account with this email already exists.';
+  if (
+    lower.includes('phone') &&
+    (lower.includes('already') || lower.includes('registered') || lower.includes('exists'))
+  ) {
+    return 'That number is already linked to another account. Sign in the way you first registered, or use a different number.';
   }
 
   if (

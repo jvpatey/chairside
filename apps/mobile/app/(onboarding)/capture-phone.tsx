@@ -1,4 +1,9 @@
-import { getAuthErrorMessage } from '@chairside/api';
+import {
+  authUserHasVerifiedPhone,
+  getAuthErrorMessage,
+  requestAuthPhoneBind,
+  verifyAuthPhoneBind,
+} from '@chairside/api';
 import { normalizePhoneForStorage } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -11,6 +16,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -32,8 +38,12 @@ export default function CapturePhoneScreen() {
   const [phone, setPhone] = useState(
     workerProfile?.phone ? formatPhoneNumber(workerProfile.phone) : '',
   );
+  const [otpStep, setOtpStep] = useState<'phone' | 'code'>('phone');
+  const [otpCode, setOtpCode] = useState('');
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -70,7 +80,13 @@ export default function CapturePhoneScreen() {
     await handleAuthSuccess(refreshProfile, completeOnboarding, user!.id);
   };
 
-  const handleContinue = async () => {
+  const finishWithProfileOnly = async (normalized: string) => {
+    await save({ phone: normalized });
+    await clearWorkerPostAuthCaptureSkip(user!.id, 'phone');
+    await continueAfter();
+  };
+
+  const handleSendCode = async () => {
     if (!user?.id || isSubmitting) return;
     const normalized = normalizePhoneForStorage(phone);
     if (!normalized) {
@@ -80,15 +96,48 @@ export default function CapturePhoneScreen() {
 
     setIsSubmitting(true);
     setFormError(null);
+    setFormSuccess(null);
     try {
-      await save({ phone: normalized });
+      // Already confirmed on Auth — skip SMS and just ensure profile matches.
+      if (authUserHasVerifiedPhone(user, normalized)) {
+        await finishWithProfileOnly(normalized);
+        return;
+      }
+
+      const bind = await requestAuthPhoneBind(normalized);
+      if (!bind.needsOtp) {
+        await finishWithProfileOnly(normalized);
+        return;
+      }
+      setPhoneE164(bind.e164);
+      setOtpStep('code');
+      setOtpCode('');
+      setFormSuccess('We sent a text with your code.');
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not send code', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!user?.id || isSubmitting || otpCode.trim().length < 6) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await verifyAuthPhoneBind(user.id, phoneE164 ?? phone, otpCode);
       await clearWorkerPostAuthCaptureSkip(user.id, 'phone');
       await continueAfter();
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
       if (Platform.OS !== 'web') {
-        Alert.alert('Could not save phone', message);
+        Alert.alert('Could not verify phone', message);
       }
     } finally {
       setIsSubmitting(false);
@@ -110,42 +159,97 @@ export default function CapturePhoneScreen() {
     }
   };
 
+  const canSend = phone.replace(/\D/g, '').length === 10;
+  const canVerify = otpCode.trim().length >= 6;
+
   return (
     <OnboardingShell
       webLayout="centeredDecision"
       footer={
         <View style={styles.footer}>
           <OnboardingButton
-            label={isSubmitting ? 'Saving…' : 'Continue'}
-            disabled={isSubmitting || phone.replace(/\D/g, '').length !== 10}
-            onPress={() => void handleContinue()}
+            label={
+              isSubmitting
+                ? otpStep === 'code'
+                  ? 'Verifying…'
+                  : 'Sending…'
+                : otpStep === 'code'
+                  ? 'Verify and continue'
+                  : 'Send code'
+            }
+            disabled={isSubmitting || (otpStep === 'code' ? !canVerify : !canSend)}
+            onPress={() => void (otpStep === 'code' ? handleVerifyCode() : handleSendCode())}
           />
-          <OnboardingButton
-            label="Skip for now"
-            variant="ghost"
-            disabled={isSubmitting}
-            onPress={() => void handleSkip()}
-          />
-          <Text style={styles.footnote}>You can add a number anytime in Profile.</Text>
+          {otpStep === 'code' ? (
+            <OnboardingButton
+              label="Use a different number"
+              variant="ghost"
+              disabled={isSubmitting}
+              onPress={() => {
+                setOtpStep('phone');
+                setOtpCode('');
+                setPhoneE164(null);
+                setFormSuccess(null);
+                setFormError(null);
+              }}
+            />
+          ) : (
+            <OnboardingButton
+              label="Skip for now"
+              variant="ghost"
+              disabled={isSubmitting}
+              onPress={() => void handleSkip()}
+            />
+          )}
+          <Text style={styles.footnote}>
+            Verifying links this number to your account so you can sign in with it later.
+          </Text>
         </View>
-      }>
+      }
+    >
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
           title="Add a mobile number"
-          subtitle="Fill-in openings are sent by text — add a mobile so you don’t miss them."
-          onBack={() => router.back()}
+          subtitle={
+            otpStep === 'code'
+              ? 'Enter the code we texted you.'
+              : 'Fill-in openings are sent by text — verify a mobile so you don’t miss them, and so you can sign in with this number.'
+          }
+          onBack={() => {
+            if (otpStep === 'code') {
+              setOtpStep('phone');
+              setOtpCode('');
+              setFormSuccess(null);
+              setFormError(null);
+              return;
+            }
+            router.back();
+          }}
         />
       </Animated.View>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
         <FormErrorBanner message={formError} />
-        <AuthField
-          label="Mobile phone"
-          placeholder={PHONE_NUMBER_PLACEHOLDER}
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-          editable={!isSubmitting}
-        />
+        <FormSuccessBanner message={formSuccess} />
+        {otpStep === 'phone' ? (
+          <AuthField
+            label="Mobile phone"
+            placeholder={PHONE_NUMBER_PLACEHOLDER}
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+            editable={!isSubmitting}
+          />
+        ) : (
+          <AuthField
+            label="Verification code"
+            placeholder="6-digit code"
+            keyboardType="number-pad"
+            value={otpCode}
+            onChangeText={setOtpCode}
+            editable={!isSubmitting}
+            autoComplete="one-time-code"
+          />
+        )}
       </Animated.View>
     </OnboardingShell>
   );
