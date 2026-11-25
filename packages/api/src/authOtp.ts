@@ -4,6 +4,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { getSignupEmailRedirectUrl } from './authSignup';
 import { getSupabaseClient } from './client';
 import type { PersonNameParts } from './authDisplayName';
+import { resolveFunctionErrorMessage } from './errors';
 import { updateProfileName, setProfileRole } from './profile';
 import type { UserRole } from './types';
 import { ensureWorkerProfileRow, upsertWorkerProfile } from './workerProfile';
@@ -135,13 +136,14 @@ export async function reclaimAuthPhone(phone: string): Promise<'available' | 'ow
   const { data, error } = await supabase.functions.invoke('reclaim-auth-phone', {
     body: { phone: e164, action: 'reclaim' },
   });
-  if (error) throw error;
   const status = (data as { status?: string; error?: string } | null)?.status;
-  if (status === 'available' || status === 'owned' || status === 'reclaimed') {
+  if (!error && (status === 'available' || status === 'owned' || status === 'reclaimed')) {
     return status;
   }
   const message =
+    (await resolveFunctionErrorMessage(error, data)) ??
     (data as { error?: string } | null)?.error ??
+    (error instanceof Error ? error.message : null) ??
     'That number is already linked to another account.';
   throw new Error(message);
 }
@@ -179,7 +181,7 @@ export type AuthPhoneBindResult = {
  * While signed in, start linking this mobile to the current Auth user (SMS OTP).
  * Always follows `updateUser` with a `phone_change` resend so a code is actually
  * delivered when confirmations are enabled. Does not update worker_profiles until
- * `verifyAuthPhoneBind` succeeds (unless needsOtp is false).
+ * `verifyAuthPhoneBind` succeeds (unless the number was already confirmed).
  */
 export async function requestAuthPhoneBind(phone: string): Promise<AuthPhoneBindResult> {
   const supabase = getSupabaseClient();
@@ -210,8 +212,11 @@ export async function requestAuthPhoneBind(phone: string): Promise<AuthPhoneBind
     data: { user: afterUpdate },
   } = await supabase.auth.getUser();
   if (afterUpdate && authUserHasVerifiedPhone(afterUpdate, digits)) {
-    // Phone confirmations are off — Auth applied the number with no SMS.
-    return { e164, needsOtp: false };
+    // Confirmations are off — Auth applied the number with no SMS. Do not treat
+    // that as a verified bind; callers would skip the code step incorrectly.
+    throw new Error(
+      'Phone was saved without an SMS code. In Supabase Auth → Phone, turn Enable phone confirmations On, then try again.',
+    );
   }
 
   const { error: resendError } = await supabase.auth.resend({
@@ -230,6 +235,38 @@ export async function requestAuthPhoneBind(phone: string): Promise<AuthPhoneBind
   }
 
   return { e164, needsOtp: true };
+}
+
+/**
+ * Remove the signed-in user's Auth phone and clear it on the worker profile.
+ * Turns off SMS opt-in (texts need a number). Phone sign-in will not work until
+ * they verify a number again.
+ */
+export async function clearAuthPhoneBind(userId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  // Unlink the phone identity when possible, then always clear Auth phone fields
+  // so the number is free for another account to verify.
+  const { data: identityData, error: identitiesError } = await supabase.auth.getUserIdentities();
+  if (identitiesError) throw identitiesError;
+
+  const identities = identityData?.identities ?? [];
+  const phoneIdentity = identities.find((identity) => identity.provider === 'phone');
+  if (phoneIdentity && identities.length > 1) {
+    const { error: unlinkError } = await supabase.auth.unlinkIdentity(phoneIdentity);
+    if (unlinkError) throw unlinkError;
+  }
+
+  const { error: clearError } = await supabase.rpc('clear_own_auth_phone');
+  if (clearError) throw clearError;
+
+  await ensureWorkerProfileRow(userId);
+  await upsertWorkerProfile(userId, {
+    phone: null,
+    fill_in_sms_opt_in: false,
+  });
+
+  await supabase.auth.refreshSession();
 }
 
 /**

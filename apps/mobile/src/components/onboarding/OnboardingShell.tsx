@@ -143,7 +143,7 @@ export function OnboardingShell({
     },
     footer: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
+      paddingTop: spacing.lg,
       backgroundColor: colors.backgroundGrouped,
     },
     headerSlot: {

@@ -5,7 +5,11 @@ const verifyOtp = vi.fn();
 const updateUser = vi.fn();
 const getSession = vi.fn();
 const getUser = vi.fn();
+const getUserIdentities = vi.fn();
+const unlinkIdentity = vi.fn();
+const refreshSession = vi.fn();
 const resend = vi.fn();
+const rpc = vi.fn();
 const functionsInvoke = vi.fn();
 const updateProfileNameMock = vi.fn();
 const setProfileRoleMock = vi.fn();
@@ -30,8 +34,12 @@ vi.mock('./client', () => ({
       updateUser,
       getSession,
       getUser,
+      getUserIdentities,
+      unlinkIdentity,
+      refreshSession,
       resend,
     },
+    rpc,
     functions: {
       invoke: (...args: unknown[]) => functionsInvoke(...args),
     },
@@ -56,6 +64,7 @@ import {
   authPhoneToStorageDigits,
   authUserHasPhone,
   authUserHasVerifiedPhone,
+  clearAuthPhoneBind,
   finishWorkerOtpAuth,
   normalizeAuthPhone,
   requestAuthPhoneBind,
@@ -174,6 +183,57 @@ describe('phone OTP', () => {
     });
     expect(updateUser).toHaveBeenCalledWith({ phone: '+19025550100' });
     expect(resend).toHaveBeenCalledWith({ type: 'phone_change', phone: '+19025550100' });
+  });
+
+  it('clears auth phone via unlink when a phone identity exists', async () => {
+    getUserIdentities.mockResolvedValue({
+      data: {
+        identities: [
+          { id: 'email-1', provider: 'email' },
+          { id: 'phone-1', provider: 'phone' },
+        ],
+      },
+      error: null,
+    });
+    unlinkIdentity.mockResolvedValue({ data: {}, error: null });
+    rpc.mockResolvedValue({ data: null, error: null });
+    refreshSession.mockResolvedValue({ data: {}, error: null });
+    await clearAuthPhoneBind('u1');
+    expect(unlinkIdentity).toHaveBeenCalledWith({ id: 'phone-1', provider: 'phone' });
+    expect(rpc).toHaveBeenCalledWith('clear_own_auth_phone');
+    expect(upsertWorkerProfileMock).toHaveBeenCalledWith('u1', {
+      phone: null,
+      fill_in_sms_opt_in: false,
+    });
+  });
+
+  it('clears auth phone via RPC when no phone identity is linked', async () => {
+    getUserIdentities.mockResolvedValue({
+      data: { identities: [{ id: 'email-1', provider: 'email' }] },
+      error: null,
+    });
+    rpc.mockResolvedValue({ data: null, error: null });
+    refreshSession.mockResolvedValue({ data: {}, error: null });
+    await clearAuthPhoneBind('u1');
+    expect(unlinkIdentity).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith('clear_own_auth_phone');
+    expect(upsertWorkerProfileMock).toHaveBeenCalledWith('u1', {
+      phone: null,
+      fill_in_sms_opt_in: false,
+    });
+  });
+
+  it('rejects auto-confirmed phone when confirmations are off', async () => {
+    getUser
+      .mockResolvedValueOnce({ data: { user: { phone: null, phone_confirmed_at: null } } })
+      .mockResolvedValueOnce({
+        data: {
+          user: { phone: '+19025550100', phone_confirmed_at: '2026-01-01T00:00:00Z' },
+        },
+      });
+    updateUser.mockResolvedValue({ data: { user: {} }, error: null });
+    await expect(requestAuthPhoneBind('9025550100')).rejects.toThrow(/without an SMS code/i);
+    expect(resend).not.toHaveBeenCalled();
   });
 
   it('reclaims a shell then retries bind when the phone is taken', async () => {

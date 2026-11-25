@@ -46,17 +46,21 @@ export default function CapturePhoneScreen() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
+    stack: {
+      gap: spacing.xl,
+    },
     form: {
       gap: spacing.md,
     },
     footer: {
-      gap: spacing.sm,
+      gap: spacing.md,
     },
     footnote: {
       fontSize: 13,
       lineHeight: 18,
-      color: colors.labelSecondary,
+      color: colors.labelTertiary,
       textAlign: 'center' as const,
+      paddingTop: spacing.sm,
     },
   }));
 
@@ -80,8 +84,14 @@ export default function CapturePhoneScreen() {
     await handleAuthSuccess(refreshProfile, completeOnboarding, user!.id);
   };
 
-  const finishWithProfileOnly = async (normalized: string) => {
-    await save({ phone: normalized });
+  const finishWithPhone = async (normalized: string) => {
+    // First verified number in setup: turn fill-in texts on by default.
+    await save({
+      phone: normalized,
+      fill_in_sms_opt_in: true,
+      short_notice_available: true,
+      fill_in_notification_mode: 'all',
+    });
     await clearWorkerPostAuthCaptureSkip(user!.id, 'phone');
     await continueAfter();
   };
@@ -98,15 +108,15 @@ export default function CapturePhoneScreen() {
     setFormError(null);
     setFormSuccess(null);
     try {
-      // Already confirmed on Auth — skip SMS and just ensure profile matches.
+      // Already confirmed on Auth — skip code entry and ensure profile + texts match.
       if (authUserHasVerifiedPhone(user, normalized)) {
-        await finishWithProfileOnly(normalized);
+        await finishWithPhone(normalized);
         return;
       }
 
       const bind = await requestAuthPhoneBind(normalized);
       if (!bind.needsOtp) {
-        await finishWithProfileOnly(normalized);
+        await finishWithPhone(normalized);
         return;
       }
       setPhoneE164(bind.e164);
@@ -130,9 +140,16 @@ export default function CapturePhoneScreen() {
     setIsSubmitting(true);
     setFormError(null);
     try {
+      const normalized =
+        normalizePhoneForStorage(phoneE164 ?? phone) ??
+        normalizePhoneForStorage(phone);
+      if (!normalized) {
+        setFormError('Enter a valid 10-digit mobile number.');
+        return;
+      }
       await verifyAuthPhoneBind(user.id, phoneE164 ?? phone, otpCode);
-      await clearWorkerPostAuthCaptureSkip(user.id, 'phone');
-      await continueAfter();
+      await finishWithPhone(normalized);
+      return;
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
@@ -207,50 +224,52 @@ export default function CapturePhoneScreen() {
         </View>
       }
     >
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
-        <AuthScreenHeader
-          title="Add a mobile number"
-          subtitle={
-            otpStep === 'code'
-              ? 'Enter the code we texted you.'
-              : 'Fill-in openings are sent by text — verify a mobile so you don’t miss them, and so you can sign in with this number.'
-          }
-          onBack={() => {
-            if (otpStep === 'code') {
-              setOtpStep('phone');
-              setOtpCode('');
-              setFormSuccess(null);
-              setFormError(null);
-              return;
+      <View style={styles.stack}>
+        <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
+          <AuthScreenHeader
+            title="Add a mobile number"
+            subtitle={
+              otpStep === 'code'
+                ? 'Enter the code we texted you.'
+                : 'Fill-in openings are sent by text — verify a mobile so you don’t miss them, and so you can sign in with this number.'
             }
-            router.back();
-          }}
-        />
-      </Animated.View>
-      <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
-        <FormErrorBanner message={formError} />
-        <FormSuccessBanner message={formSuccess} />
-        {otpStep === 'phone' ? (
-          <AuthField
-            label="Mobile phone"
-            placeholder={PHONE_NUMBER_PLACEHOLDER}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={(text) => setPhone(formatPhoneNumber(text))}
-            editable={!isSubmitting}
+            onBack={() => {
+              if (otpStep === 'code') {
+                setOtpStep('phone');
+                setOtpCode('');
+                setFormSuccess(null);
+                setFormError(null);
+                return;
+              }
+              router.back();
+            }}
           />
-        ) : (
-          <AuthField
-            label="Verification code"
-            placeholder="6-digit code"
-            keyboardType="number-pad"
-            value={otpCode}
-            onChangeText={setOtpCode}
-            editable={!isSubmitting}
-            autoComplete="one-time-code"
-          />
-        )}
-      </Animated.View>
+        </Animated.View>
+        <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
+          <FormErrorBanner message={formError} />
+          <FormSuccessBanner message={formSuccess} />
+          {otpStep === 'phone' ? (
+            <AuthField
+              label="Mobile phone"
+              placeholder={PHONE_NUMBER_PLACEHOLDER}
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+              editable={!isSubmitting}
+            />
+          ) : (
+            <AuthField
+              label="Verification code"
+              placeholder="6-digit code"
+              keyboardType="number-pad"
+              value={otpCode}
+              onChangeText={setOtpCode}
+              editable={!isSubmitting}
+              autoComplete="one-time-code"
+            />
+          )}
+        </Animated.View>
+      </View>
     </OnboardingShell>
   );
 }

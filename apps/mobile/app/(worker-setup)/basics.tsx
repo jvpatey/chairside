@@ -131,7 +131,19 @@ export default function WorkerBasicsScreen() {
       }
       await save({
         role_types: roleTypes,
-        ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+        ...(normalizedPhone
+          ? {
+              phone: normalizedPhone,
+              // Setup: verified number turns fill-in texts on by default.
+              ...(!isEditMode
+                ? {
+                    fill_in_sms_opt_in: true,
+                    short_notice_available: true,
+                    fill_in_notification_mode: 'all' as const,
+                  }
+                : {}),
+            }
+          : {}),
       });
       if (isEditMode) {
         router.replace(exitHref);

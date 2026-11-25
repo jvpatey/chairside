@@ -701,6 +701,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      clear_own_auth_phone: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       record_job_post_listing_view: {
         Args: { p_job_post_id: string };
         Returns: undefined;

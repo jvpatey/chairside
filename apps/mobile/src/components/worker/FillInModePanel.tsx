@@ -1,5 +1,6 @@
 import {
   authUserHasVerifiedPhone,
+  clearAuthPhoneBind,
   getAuthErrorMessage,
   requestAuthPhoneBind,
   verifyAuthPhoneBind,
@@ -15,6 +16,7 @@ import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getFillInTextAlertsHint,
   getFillInTextAlertsState,
@@ -183,6 +185,11 @@ export function FillInModePanel({
       color: colors.labelPrimary,
       letterSpacing: -0.2,
     },
+    phoneActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+    },
     changeLink: {
       ...webPointer(),
     },
@@ -192,6 +199,13 @@ export function FillInModePanel({
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
       color: colors.primary,
+    },
+    removeLinkText: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.destructive,
     },
     cancelLink: {
       alignSelf: 'center',
@@ -400,6 +414,42 @@ export function FillInModePanel({
     setIsChangingNumber(true);
   };
 
+  const runRemovePhone = async () => {
+    if (!user?.id) return;
+    setIsSaving(true);
+    setPhoneError(null);
+    setSaveError(null);
+    try {
+      await clearAuthPhoneBind(user.id);
+      setPhone('');
+      setPhoneBindE164(null);
+      setPhoneBindCode('');
+      setSmsOptIn(false);
+      setIsChangingNumber(false);
+      // Keep the add-number form open so the section doesn’t go blank.
+      setIsFinishingTexts(true);
+      await refreshWorkerProfile();
+    } catch (error) {
+      setPhoneError(getAuthErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemovePhone = () => {
+    if (isSaving || !user?.id) return;
+    showConfirmActionSheet({
+      title: 'Remove mobile number?',
+      message:
+        'Text alerts and phone sign-in will stop until you add and verify a number again.',
+      confirmLabel: 'Remove number',
+      destructive: true,
+      onConfirm: () => {
+        void runRemovePhone();
+      },
+    });
+  };
+
   const phoneEntry = phoneEntryOpen ? (
     <View style={styles.phoneBlock}>
       <AuthField
@@ -456,17 +506,32 @@ export function FillInModePanel({
     <View style={styles.phoneSummary}>
       <View style={styles.phoneSummaryTop}>
         <Text style={styles.phoneSummaryLabel}>Mobile</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Change mobile number"
-          onPress={startChangingNumber}
-          style={({ pressed, hovered }) => [
-            styles.changeLink,
-            webHover(hovered, pressed, { opacity: 0.85 }),
-            pressed && { opacity: 0.75 },
-          ]}>
-          <Text style={styles.changeLinkText}>Change</Text>
-        </Pressable>
+        <View style={styles.phoneActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change mobile number"
+            disabled={isSaving}
+            onPress={startChangingNumber}
+            style={({ pressed, hovered }) => [
+              styles.changeLink,
+              webHover(hovered, pressed, { opacity: 0.85 }),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.changeLinkText}>Change</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove mobile number"
+            disabled={isSaving}
+            onPress={handleRemovePhone}
+            style={({ pressed, hovered }) => [
+              styles.changeLink,
+              webHover(hovered, pressed, { opacity: 0.85 }),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.removeLinkText}>Remove</Text>
+          </Pressable>
+        </View>
       </View>
       <Pressable
         accessibilityRole="button"

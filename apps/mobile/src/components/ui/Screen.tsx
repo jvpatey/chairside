@@ -175,6 +175,10 @@ export function Screen({
       marginBottom: spacing.lg,
       ...(fillsContainer ? { flexShrink: 0 } : {}),
     },
+    headerWithSoftDivider: {
+      // Matches softDivider marginTop so the line is centered in the gap.
+      marginBottom: spacing.md,
+    },
     headerHidden: {
       marginBottom: 0,
     },
@@ -185,8 +189,7 @@ export function Screen({
       marginBottom: spacing.md,
     },
     softDivider: {
-      marginTop: spacing.sm,
-      marginBottom: spacing.sm,
+      marginTop: spacing.md,
     },
     compactHeader: {
       position: 'absolute' as const,
@@ -238,14 +241,22 @@ export function Screen({
 
   const headerBaseStyle = [
     styles.header,
+    softHeaderDivider && styles.headerWithSoftDivider,
     !showTopBar && styles.headerHidden,
     !showHeader && showTopBar && styles.headerCompact,
   ];
 
+  const headerInner = (
+    <>
+      {pageHeader}
+      {softDividerBlock}
+    </>
+  );
+
   const headerBlock = collapseLargeTitle ? (
-    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{pageHeader}</Animated.View>
+    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{headerInner}</Animated.View>
   ) : (
-    <View style={headerBaseStyle}>{pageHeader}</View>
+    <View style={headerBaseStyle}>{headerInner}</View>
   );
 
   const compactHeader =
@@ -283,7 +294,6 @@ export function Screen({
           >
             {headerBlock}
             {tabletSubtitleBlock}
-            {softDividerBlock}
             <View ref={scrollContentRef} style={styles.body}>
               {children}
             </View>
@@ -311,7 +321,6 @@ export function Screen({
       <WebPageEnter animate={animateEntry}>
         {headerBlock}
         {tabletSubtitleBlock}
-        {softDividerBlock}
         <View ref={scrollContentRef}>{children}</View>
       </WebPageEnter>
     ),

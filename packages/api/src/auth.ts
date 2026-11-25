@@ -34,6 +34,7 @@ export {
   authUserHasVerifiedPhone,
   finishWorkerOtpAuth,
   normalizeAuthPhone,
+  clearAuthPhoneBind,
   reclaimAuthPhone,
   requestAuthPhoneBind,
   resolvePhoneShellLogin,
@@ -405,6 +406,18 @@ export function getAuthErrorMessage(error: unknown): string {
     return 'An account with this email already exists.';
   }
 
+  if (lower.includes('saved without an sms') || lower.includes('enable phone confirmations')) {
+    return 'Phone verification needs SMS confirmations on. In Supabase Auth → Phone, turn Enable phone confirmations On, then try again.';
+  }
+
+  if (
+    lower.includes('invalid payload sent to hook') ||
+    lower.includes('error running hook') ||
+    lower.includes('could not read the phone number')
+  ) {
+    return 'Could not send the verification text. Wait a moment and try again.';
+  }
+
   // Must run before the generic "otp" matcher — Supabase returns
   // "Signups not allowed for otp" when shouldCreateUser is false and no Auth
   // user has this phone yet (profile phone alone does not count).
@@ -430,9 +443,12 @@ export function getAuthErrorMessage(error: unknown): string {
 
   if (
     lower.includes('phone') &&
-    (lower.includes('already') || lower.includes('registered') || lower.includes('exists'))
+    (lower.includes('already') ||
+      lower.includes('registered') ||
+      lower.includes('exists') ||
+      lower.includes('linked'))
   ) {
-    return 'That number is already linked to another account. Sign in the way you first registered, or use a different number.';
+    return 'That number is already linked to another account. Sign in with the account that had this number, remove it there, then try again — or use a different number.';
   }
 
   if (

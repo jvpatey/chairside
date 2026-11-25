@@ -6,14 +6,13 @@ import {
   WELCOME_STAGGER,
   enterFadeUp,
 } from '@/components/onboarding/onboardingAnimations';
-import { ONBOARDING_SUBTITLE } from '@/constants';
-import { fontExtraBold, useThemedStyles } from '@/theme';
+import { fontExtraBold, fontSemibold, useThemedStyles } from '@/theme';
 
-const MOBILE_HEADLINE = 'Dental staffing, simplified.';
-
+const MOBILE_HEADLINE = 'Fill the chair today.';
+const TRUST_LINE = 'Same-day cover by text · Built for Canadian dental teams';
 export function WelcomeHero() {
   const reducedMotion = useReducedMotion();
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       alignItems: 'center',
       gap: spacing.md,
@@ -40,6 +39,24 @@ export function WelcomeHero() {
       lineHeight: 23,
       textAlign: 'center',
       maxWidth: 330,
+      color: colors.labelSecondary,
+    },
+    fillIn: {
+      color: colors.secondary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+    yes: {
+      color: colors.labelPrimary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+    },
+    trust: {
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: 'center',
+      color: colors.labelTertiary,
+      maxWidth: 300,
     },
   }));
 
@@ -54,7 +71,13 @@ export function WelcomeHero() {
         <Text style={styles.headline}>{MOBILE_HEADLINE}</Text>
       </Animated.View>
       <Animated.View entering={enterFadeUp(WELCOME_STAGGER.subtitle, reducedMotion)}>
-        <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+        <Text style={styles.subtitle}>
+          Same-day <Text style={styles.fillIn}>fill-ins</Text> by text — clinics post, pros{' '}
+          <Text style={styles.yes}>Reply YES</Text>, cover gets confirmed.
+        </Text>
+      </Animated.View>
+      <Animated.View entering={enterFadeUp(WELCOME_STAGGER.trust, reducedMotion)}>
+        <Text style={styles.trust}>{TRUST_LINE}</Text>
       </Animated.View>
     </View>
   );

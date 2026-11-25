@@ -51,6 +51,7 @@ export {
   authPhoneToStorageDigits,
   authUserHasPhone,
   authUserHasVerifiedPhone,
+  clearAuthPhoneBind,
   completeEmailSignUp,
   createSessionFromUrl,
   establishSessionAfterSignUp,

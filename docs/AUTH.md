@@ -12,7 +12,7 @@ After auth, workers get focused capture screens only for what’s missing — **
 
 If a phone-only **shell** Auth user was created before linking existed, `reclaim-auth-phone` deletes that empty user when the real account binds the number, and phone sign-in into a shell that belongs to another profile is rejected with a sign-in-with-email message.
 
-Profile / capture bind calls `updateUser({ phone })` then `resend({ type: 'phone_change' })` so a code is actually sent when confirmations are on.
+Profile / capture bind calls `updateUser({ phone })` then `resend({ type: 'phone_change' })` so a code is actually sent when confirmations are on. Removing a number uses `unlinkIdentity` when a phone identity exists, otherwise `clear_own_auth_phone`, and clears `worker_profiles.phone` (SMS opt-in off).
 
 ```bash
 supabase db push   # or apply migration 138_reclaim_auth_phone.sql
@@ -75,7 +75,7 @@ supabase secrets set SEND_SMS_HOOK_SECRET='v1,whsec_...'
 2. Turn **Enable Phone provider** On
 3. Twilio fields should be disabled / not required (hook is active). If Save still demands Twilio SIDs, enter dummy `AC…` / `MG…` values, Save, then confirm the Send SMS hook is still on.
 4. Keep OTP length **6** and expiry **60** (or your preference)
-5. Turn **Enable phone confirmations** On — required so `updateUser({ phone })` sends an SMS (profile / capture bind). If this is off, Auth may apply the number with no text.
+5. Turn **Enable phone confirmations** On — required so `updateUser({ phone })` sends an SMS (profile / capture bind). If this is off, Auth applies the number with no text and Chairside blocks the bind so setup cannot skip verification.
 6. Save
 
 ### 5. Smoke test

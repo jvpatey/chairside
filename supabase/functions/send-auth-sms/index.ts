@@ -20,9 +20,37 @@ import { toGsmSafeSms } from '../_shared/sms.ts';
 const AUTH_OTP_TYPE = 'auth_otp';
 
 type SendSmsHookPayload = {
-  user: { phone?: string | null; id?: string };
-  sms: { otp?: string };
+  user: {
+    phone?: string | null;
+    /** Pending number during phone_change / updateUser bind. */
+    phone_change?: string | null;
+    id?: string;
+    identities?: Array<{ identity_data?: { phone?: string | null } | null }>;
+  };
+  sms: {
+    otp?: string;
+    /**
+     * Number this OTP is for. On phone_change this is the *new* number;
+     * `user.phone` may still be empty/old. Auth often omits the leading +.
+     */
+    phone?: string | null;
+  };
 };
+
+function resolveHookPhone(payload: SendSmsHookPayload): string | null {
+  const user = payload.user ?? {};
+  const candidates = [
+    payload.sms?.phone,
+    user.phone_change,
+    user.phone,
+    ...(user.identities ?? []).map((identity) => identity.identity_data?.phone),
+  ];
+  for (const candidate of candidates) {
+    const e164 = normalizeE164(candidate ?? null);
+    if (e164) return e164;
+  }
+  return null;
+}
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -73,14 +101,28 @@ Deno.serve(async (req) => {
 
   const otp = verified.sms?.otp?.trim() ?? '';
   if (!/^\d{4,8}$/.test(otp)) {
-    console.error('[send-auth-sms] missing or invalid otp in payload');
-    return jsonResponse({ error: 'Invalid OTP payload' }, 400);
+    console.error('[send-auth-sms] missing or invalid otp in payload', {
+      smsKeys: verified.sms ? Object.keys(verified.sms) : null,
+    });
+    // Auth maps HTTP 400 → "Invalid payload sent to hook"; use 200 + error body.
+    return jsonResponse({
+      error: { http_code: 400, message: 'Invalid OTP payload from Auth' },
+    });
   }
 
-  const phoneE164 = normalizeE164(verified.user?.phone ?? null);
+  const phoneE164 = resolveHookPhone(verified);
   if (!phoneE164) {
-    console.error('[send-auth-sms] invalid phone on user', verified.user?.phone);
-    return jsonResponse({ error: 'Invalid phone number' }, 400);
+    console.error('[send-auth-sms] invalid phone in hook payload', {
+      smsPhone: verified.sms?.phone,
+      userPhone: verified.user?.phone,
+      phoneChange: verified.user?.phone_change,
+    });
+    return jsonResponse({
+      error: {
+        http_code: 400,
+        message: 'Could not read the phone number for this verification text.',
+      },
+    });
   }
 
   const apiBase = Deno.env.get('PINGRAM_API_URL')?.trim() || DEFAULT_PINGRAM_API_URL;

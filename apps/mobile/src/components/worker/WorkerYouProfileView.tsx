@@ -1,5 +1,6 @@
 import {
   authUserHasVerifiedPhone,
+  clearAuthPhoneBind,
   getAuthErrorMessage,
   getWorkerRoleTypes,
   isWorkerProfileComplete,
@@ -31,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import {
   getWorkerProfileFormMissing,
@@ -69,6 +71,8 @@ export function WorkerYouProfileView({
   const { refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const { isWide } = useResponsiveLayout();
+  const [isRemovingPhone, setIsRemovingPhone] = useState(false);
+  const hasSavedPhone = Boolean(workerProfile?.phone?.trim());
 
   const seededName = useMemo(
     () =>
@@ -188,6 +192,44 @@ export function WorkerYouProfileView({
     Boolean(normalizedPhone) &&
     Boolean(city.trim()) &&
     Boolean(province);
+
+  const runRemovePhone = async () => {
+    setIsRemovingPhone(true);
+    setFormError(null);
+    setFormSuccess(null);
+    try {
+      await clearAuthPhoneBind(user.id);
+      setPhone('');
+      setPhoneBindE164(null);
+      setPhoneBindCode('');
+      await refreshProfile();
+      await refreshWorkerProfile();
+      await onProfileRefresh();
+      setFormSuccess('Mobile number removed. Text alerts and phone sign-in are off until you add one again.');
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not remove number', message);
+      }
+    } finally {
+      setIsRemovingPhone(false);
+    }
+  };
+
+  const handleRemovePhone = () => {
+    if (isRemovingPhone || isSubmitting) return;
+    showConfirmActionSheet({
+      title: 'Remove mobile number?',
+      message:
+        'Text alerts and phone sign-in will stop until you add and verify a number again.',
+      confirmLabel: 'Remove number',
+      destructive: true,
+      onConfirm: () => {
+        void runRemovePhone();
+      },
+    });
+  };
 
   const persistProfile = async (emailNote: string | null) => {
     await save({
@@ -377,6 +419,15 @@ export function WorkerYouProfileView({
                 accent="secondary"
               />
             ) : null}
+            {hasSavedPhone ? (
+              <OnboardingButton
+                label={isRemovingPhone ? 'Removing…' : 'Remove number'}
+                variant="ghost"
+                accent="secondary"
+                disabled={isSubmitting || isRemovingPhone}
+                onPress={handleRemovePhone}
+              />
+            ) : null}
           </View>
         </SectionPanel>
 
@@ -432,7 +483,7 @@ export function WorkerYouProfileView({
                 ? 'Save changes'
                 : 'Save profile'
         }
-        disabled={isSubmitting}
+        disabled={isSubmitting || isRemovingPhone}
         onPress={() => void handleSave()}
       />
     </View>
