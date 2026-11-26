@@ -10,7 +10,7 @@ import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 export default function WorkerProfileAccountScreen() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const { isSigningOut, signOut } = useSignOut();
   const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
 
@@ -24,11 +24,8 @@ export default function WorkerProfileAccountScreen() {
       <AccountScreenContent
         user={user}
         displayName={profile?.display_name}
-        firstName={profile?.first_name}
-        lastName={profile?.last_name}
         accountTypeLabel={getAccountTypeLabel('worker')}
         audience="worker"
-        onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}
         onSignOut={signOut}
         isDeleting={isDeleting}

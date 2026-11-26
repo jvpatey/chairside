@@ -34,7 +34,6 @@ const GROUP_COPY: DashboardWelcomeCopy = {
   subtitle: 'Your clinic group is live — start hiring across your locations.',
   bullets: [
     'Post a fill-in or role at any of your clinics',
-    'Invite managers and keep coverage visible',
     'Review applications and message candidates',
   ],
   ctaLabel: 'Go to dashboard',

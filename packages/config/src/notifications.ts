@@ -58,8 +58,8 @@ export const NOTIFICATION_PREFERENCE_CATEGORY_LABELS: Record<
     hint: 'When someone sends you a new message.',
   },
   applications_interviews: {
-    title: 'Applications & interviews',
-    hint: 'Application updates, interview invites, and hiring decisions.',
+    title: 'Cover requests & applicants',
+    hint: 'When someone requests a fill-in or applies to a role.',
   },
   job_alerts: {
     title: 'New roles',

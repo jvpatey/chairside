@@ -1,8 +1,7 @@
 import type { ClinicProfile } from '@chairside/api';
-import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
-import { Text, View } from 'react-native';
+import { getProvinceLabel } from '@chairside/config';
+import { Text } from 'react-native';
 
-import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
 import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
 import {
   FieldBlock,
@@ -10,21 +9,18 @@ import {
   FieldValue,
   ProfileDetailStack,
   ProfileEmptyState,
-  ProfileTagRow,
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { EditPillButton } from '@/components/ui/EditPillButton';
-import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { formatPhoneNumber } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
 type ClinicPracticeViewProps = {
   profile: ClinicProfile | null;
   onEditContact?: () => void;
   onEditLocation?: () => void;
-  onEditPractice?: () => void;
 };
 
 function sectionEditAccessory(onPress?: () => void) {
@@ -35,16 +31,10 @@ export function ClinicPracticeView({
   profile,
   onEditContact,
   onEditLocation,
-  onEditPractice,
 }: ClinicPracticeViewProps) {
-  const { locations } = useClinicProfile();
   const { logoUri } = useClinicLogo();
-  const doctorLocations = locations
-    .filter((location) => location.is_active)
-    .map((location) => ({ id: location.id, name: location.name }));
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
-    doctorsBlock: { gap: spacing.sm },
   }));
 
   if (!profile) {
@@ -52,20 +42,15 @@ export function ClinicPracticeView({
       <ProfileEmptyState
         icon="business-outline"
         title="Add practice details"
-        description="Add your practice details, location, and contact info to start posting."
+        description="Add your clinic name, phone, and address to start posting."
       />
     );
   }
 
   const clinicName = profile.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((item) => item.value === profile.specialty)?.label ?? null;
   const locationLabel = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');
-  const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range ?? null);
-  const softwareUsed = profile.software_used ?? [];
-  const practiceDoctors = profile.practice_doctors ?? [];
   const address = [
     profile.address_line1,
     profile.address_line2,
@@ -81,35 +66,24 @@ export function ClinicPracticeView({
       <ClinicIdentityHeroCard
         clinicName={clinicName}
         logoUri={logoUri}
-        specialtyLabel={specialtyLabel}
+        specialtyLabel={null}
         locationLabel={locationLabel || null}
-        emptyMetaFallback="Add your specialty and location so candidates know where you are."
+        emptyMetaFallback="Add your clinic address."
       />
-
-      <CardInfoPanel variant="info" icon="information-circle-outline" title="What candidates see">
-        <CardInfoPanelText>
-          Candidates use your contact details, location, and practice setup to decide whether a
-          role or fill-in is a good fit before they apply or accept an interview.
-        </CardInfoPanelText>
-      </CardInfoPanel>
 
       <SectionPanel
         icon="call-outline"
         title="Contact"
         headerAccessory={sectionEditAccessory(onEditContact)}>
         <Text style={styles.hint}>
-          Your practice name and phone — cover-request texts for fill-ins go to this number.
+          Your clinic name and phone — cover-request texts for fill-ins go to this number.
         </Text>
         <FieldBlock label="Clinic name">
           <FieldValue value={profile.clinic_name} />
         </FieldBlock>
         <FieldDivider />
-        <FieldBlock label="Contact name">
-          <FieldValue value={profile.contact_name} />
-        </FieldBlock>
-        <FieldDivider />
         <FieldBlock label="Phone">
-          <FieldValue value={profile.phone} />
+          <FieldValue value={profile.phone ? formatPhoneNumber(profile.phone) : null} />
         </FieldBlock>
       </SectionPanel>
 
@@ -118,7 +92,7 @@ export function ClinicPracticeView({
         title="Location"
         headerAccessory={sectionEditAccessory(onEditLocation)}>
         <Text style={styles.hint}>
-          Where your practice is based — shown on roles, fill-ins, and your public clinic profile.
+          Where your practice is based — shown on fill-ins and roles.
         </Text>
         <FieldBlock label="City & province">
           <FieldValue value={locationLabel || null} />
@@ -127,47 +101,6 @@ export function ClinicPracticeView({
         <FieldBlock label="Full address">
           <FieldValue value={address || null} />
         </FieldBlock>
-      </SectionPanel>
-
-      <SectionPanel
-        icon="medkit-outline"
-        title="Practice setup"
-        headerAccessory={sectionEditAccessory(onEditPractice)}>
-        <Text style={styles.hint}>
-          Your clinical environment, team size, and doctors help candidates understand day-to-day
-          work at your practice.
-        </Text>
-        <FieldBlock label="Specialty">
-          <FieldValue value={specialtyLabel} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Software">
-          <ProfileTagRow
-            tags={softwareUsed}
-            emptyText="Add the software systems your team uses."
-          />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Operatories">
-          <FieldValue value={profile.operatories_count?.toString() ?? null} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Team size">
-          <FieldValue value={teamSizeLabel} />
-        </FieldBlock>
-        {practiceDoctors.length > 0 ? (
-          <>
-            <FieldDivider />
-            <FieldBlock label="Doctors">
-              <View style={styles.doctorsBlock}>
-                <PracticeDoctorFieldValue
-                  doctors={practiceDoctors}
-                  locations={doctorLocations}
-                />
-              </View>
-            </FieldBlock>
-          </>
-        ) : null}
       </SectionPanel>
     </ProfileDetailStack>
   );

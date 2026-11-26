@@ -1,20 +1,11 @@
-import {
-  SPECIALTY_OPTIONS,
-  TEAM_SIZE_RANGE_OPTIONS,
-  normalizePracticeDoctors,
-  type ClinicSpecialty,
-  type PracticeDoctor,
-  type TeamSizeRange,
-} from '@chairside/config';
+import { SPECIALTY_OPTIONS, type ClinicSpecialty } from '@chairside/config';
 import { router } from 'expo-router';
-import { CLINIC_SETUP_ABOUT } from '@/lib/routing';
+import { CLINIC_SETUP_REVIEW } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { SoftwareUsedSelector } from '@/components/clinic/SoftwareUsedSelector';
-import { PracticeDoctorsInput } from '@/components/clinic/PracticeDoctorsInput';
-import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
@@ -36,9 +27,6 @@ export default function ClinicPracticeScreen() {
   const progress = useSetupStepProgress('practice', { role: 'clinic' });
   const [specialty, setSpecialty] = useState<ClinicSpecialty>('general');
   const [softwareUsed, setSoftwareUsed] = useState<string[]>([]);
-  const [operatories, setOperatories] = useState('');
-  const [teamSizeRange, setTeamSizeRange] = useState<TeamSizeRange | null>(null);
-  const [practiceDoctors, setPracticeDoctors] = useState<PracticeDoctor[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -56,9 +44,6 @@ export default function ClinicPracticeScreen() {
     if (!clinicProfile) return;
     setSpecialty(clinicProfile.specialty ?? 'general');
     setSoftwareUsed(clinicProfile.software_used ?? []);
-    setOperatories(clinicProfile.operatories_count?.toString() ?? '');
-    setTeamSizeRange(clinicProfile.team_size_range ?? null);
-    setPracticeDoctors(normalizePracticeDoctors(clinicProfile.practice_doctors ?? []));
   }, [clinicProfile]);
 
   const handleContinue = async () => {
@@ -73,14 +58,11 @@ export default function ClinicPracticeScreen() {
       await save({
         specialty,
         software_used: softwareUsed,
-        operatories_count: operatories ? Number(operatories) : null,
-        team_size_range: teamSizeRange,
-        practice_doctors: practiceDoctors,
       });
       if (isEditMode) {
         router.replace(exitHref);
       } else {
-        router.push(CLINIC_SETUP_ABOUT);
+        router.push(CLINIC_SETUP_REVIEW);
       }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
@@ -95,7 +77,7 @@ export default function ClinicPracticeScreen() {
     <FormScreen
       {...setupFormProps}
       title="Practice details"
-      subtitle="Help candidates understand your clinic."
+      subtitle="Specialty and software help match you with the right people."
       onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
@@ -124,29 +106,12 @@ export default function ClinicPracticeScreen() {
             onChange={(value) => setSpecialty(value as ClinicSpecialty)}
           />
         </View>
-        <AuthField
-          label="Operatories"
-          placeholder="4"
-          value={operatories}
-          onChangeText={setOperatories}
-          keyboardType="number-pad"
-          icon="grid-outline"
-        />
-        <View style={styles.section}>
-          <FormSectionHeader icon="people-outline" label="Team size" />
-          <ChipSelector
-            options={TEAM_SIZE_RANGE_OPTIONS}
-            selected={teamSizeRange}
-            onChange={(value) => setTeamSizeRange(value as TeamSizeRange)}
-          />
-        </View>
         <SoftwareUsedSelector
           value={softwareUsed}
           onChange={setSoftwareUsed}
           required
           showValidation={showValidation}
         />
-        <PracticeDoctorsInput value={practiceDoctors} onChange={setPracticeDoctors} />
       </View>
     </FormScreen>
   );

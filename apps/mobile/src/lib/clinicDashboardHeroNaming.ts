@@ -5,8 +5,6 @@ export type ClinicDashboardHeroNamingInput = {
   isProfileComplete: boolean;
   clinicName?: string | null;
   groupName?: string | null;
-  memberDisplayName?: string | null;
-  memberRoleLabel?: string | null;
   contactName?: string | null;
   locationScope: 'all' | string;
   accessibleLocations: Array<{
@@ -24,7 +22,6 @@ export type ClinicDashboardHeroNaming = {
   displayName: string | null;
   namePlaceholder: string;
   subtitle: string;
-  identityLine?: string;
 };
 
 /**
@@ -45,14 +42,11 @@ export function getClinicDashboardHeroNaming(
     const place = [selectedLocation?.city, selectedLocation?.province].filter(Boolean).join(', ');
 
     return {
-      greetingName: getFirstNameToken(input.memberDisplayName),
+      // Groups have no personal name: the group/clinic name is the identity.
+      greetingName: null,
       displayName: input.groupName?.trim() || 'Dental group',
       namePlaceholder: 'Your group',
       subtitle: place || 'Dental group',
-      identityLine:
-        input.isProfileComplete && input.memberRoleLabel
-          ? input.memberRoleLabel
-          : undefined,
     };
   }
 

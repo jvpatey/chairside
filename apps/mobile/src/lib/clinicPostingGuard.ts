@@ -8,7 +8,6 @@ import {
 } from '@/lib/clinicManagerAccess';
 import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { CLINIC_PROFILE_TEAM } from '@/lib/routing';
 
 type GuardClinicMemberAccessInput = {
   isProfileComplete: boolean;
@@ -73,13 +72,12 @@ export function guardClinicMemberAccess({
 
   if (managerReason || (isGroup && !treatAsOwner)) {
     const copy = getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
-    showPostingBlockedAlert(
-      copy.title,
-      copy.message,
-      'View Team & access',
-      CLINIC_PROFILE_TEAM,
-      onNavigate,
-    );
+    showConfirmActionSheet({
+      title: copy.title,
+      message: copy.message,
+      confirmLabel: 'OK',
+      onConfirm: () => {},
+    });
     return false;
   }
 

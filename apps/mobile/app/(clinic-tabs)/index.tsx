@@ -7,8 +7,6 @@ import {
   getShiftPostPendingApplicationCountsMap,
   isClinicGroupsEnabled,
   listClinicApplications,
-  listClinicInvitations,
-  listClinicMemberships,
   listJobPosts,
   listShiftPosts,
   type ClinicApplication,
@@ -59,7 +57,6 @@ import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
 import {
   getManagerAccessBannerCopy,
   getManagerAccessBlockReason,
-  getOwnerUnassignedManagersCopy,
 } from '@/lib/clinicManagerAccess';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
@@ -71,10 +68,6 @@ import {
   isFillInPostingLimitReached,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
-import {
-  buildTeamPulseCounts,
-  type TeamPulseCounts,
-} from '@/lib/groupDashboardMetrics';
 import {
   CLINIC_APPLICATIONS,
   CLINIC_FILL_INS,
@@ -109,8 +102,6 @@ export default function ClinicDashboardScreen() {
     scopedLocationIds,
     isGroup,
     isOwner,
-    memberDisplayName,
-    memberRoleLabel,
     groupDisplayName,
     locationScope,
     accessibleLocations,
@@ -150,10 +141,6 @@ export default function ClinicDashboardScreen() {
   const [shiftApplicationCounts, setShiftApplicationCounts] = useState<Record<string, number>>({});
   const [shiftViewCounts, setShiftViewCounts] = useState<Record<string, number>>({});
   const [applications, setApplications] = useState<ClinicApplication[]>([]);
-  const [teamPulse, setTeamPulse] = useState<TeamPulseCounts>({
-    pendingInvites: 0,
-    unassignedManagers: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
@@ -177,7 +164,6 @@ export default function ClinicDashboardScreen() {
       setShiftApplicationCounts({});
       setShiftViewCounts({});
       setApplications([]);
-      setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
       setLoadError(false);
       setIsLoading(false);
       return;
@@ -228,19 +214,6 @@ export default function ClinicDashboardScreen() {
       setShiftViewCounts(shiftViews);
       setApplications(clinicApplications);
 
-      if (isGroup && isOwner) {
-        try {
-          const [invitations, memberships] = await Promise.all([
-            listClinicInvitations(clinicId),
-            listClinicMemberships(clinicId),
-          ]);
-          setTeamPulse(buildTeamPulseCounts({ invitations, memberships }));
-        } catch {
-          setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
-        }
-      } else {
-        setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
-      }
 
       await refreshUnread();
       await refreshBilling();
@@ -262,7 +235,6 @@ export default function ClinicDashboardScreen() {
         setApplicantCounts({});
         setShiftPendingCounts({});
         setShiftApplicationCounts({});
-        setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
       }
     } finally {
       setIsLoading(false);
@@ -347,10 +319,6 @@ export default function ClinicDashboardScreen() {
   const managerAccessCopy = managerAccessReason
     ? getManagerAccessBannerCopy(managerAccessReason)
     : null;
-  const ownerUnassignedCopy =
-    isGroup && isOwner && teamPulse.unassignedManagers > 0
-      ? getOwnerUnassignedManagersCopy(teamPulse.unassignedManagers)
-      : null;
   const activeLocationCount = useMemo(
     () => locations.filter((location) => location.is_active).length,
     [locations],
@@ -365,14 +333,11 @@ export default function ClinicDashboardScreen() {
     displayName: heroDisplayName,
     namePlaceholder: heroNamePlaceholder,
     subtitle: heroSubtitle,
-    identityLine: heroIdentityLine,
   } = getClinicDashboardHeroNaming({
     isGroup,
     isProfileComplete,
     clinicName,
     groupName,
-    memberDisplayName,
-    memberRoleLabel,
     contactName: clinicProfile?.contact_name,
     locationScope,
     accessibleLocations,
@@ -450,7 +415,6 @@ export default function ClinicDashboardScreen() {
             }
             namePlaceholder={heroNamePlaceholder}
             subtitle={heroSubtitle}
-            identityLine={heroIdentityLine}
             greetingName={heroGreetingName}
             statusLine={
               isProfileComplete
@@ -482,7 +446,7 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        managerAccessCopy || ownerUnassignedCopy || showAddClinicNudge ? (
+        managerAccessCopy || showAddClinicNudge ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
               <AddClinicNudge visible={showAddClinicNudge} />
@@ -492,17 +456,6 @@ export default function ClinicDashboardScreen() {
                   icon="information-circle-outline"
                   title={managerAccessCopy.title}>
                   <CardInfoPanelText>{managerAccessCopy.message}</CardInfoPanelText>
-                </CardInfoPanel>
-              ) : null}
-              {ownerUnassignedCopy ? (
-                <CardInfoPanel
-                  variant="info"
-                  icon="people-outline"
-                  title={ownerUnassignedCopy.title}>
-                  <CardInfoPanelText>{ownerUnassignedCopy.message}</CardInfoPanelText>
-                  <CardInfoPanelText>
-                    Open Team & access from Settings to assign clinics.
-                  </CardInfoPanelText>
                 </CardInfoPanel>
               ) : null}
             </View>

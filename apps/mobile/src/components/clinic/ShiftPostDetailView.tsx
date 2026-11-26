@@ -37,7 +37,6 @@ type ShiftPostDetailViewProps = {
   featured?: boolean;
   /** Site location for group postings (Shift details section). */
   locationLabel?: string | null;
-  postedByLabel?: string | null;
   postedOnLabel?: string | null;
   /** Unique professional detail opens — clinic-facing only. */
   viewCount?: number | null;
@@ -55,7 +54,6 @@ export function ShiftPostDetailView({
   heroAccessory,
   featured = false,
   locationLabel,
-  postedByLabel,
   postedOnLabel,
   viewCount = null,
   applicantCount = null,
@@ -228,11 +226,6 @@ export function ShiftPostDetailView({
         {description ? (
           <CardDetailSection title="Notes" divided>
             <DetailProse text={description} />
-          </CardDetailSection>
-        ) : null}
-        {postedByLabel?.trim() ? (
-          <CardDetailSection title="Posted by" divided>
-            <DetailProse text={postedByLabel} />
           </CardDetailSection>
         ) : null}
         {postedOnLabel?.trim() ? (

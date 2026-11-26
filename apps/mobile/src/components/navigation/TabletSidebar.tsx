@@ -32,7 +32,6 @@ import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
-import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import {
@@ -164,8 +163,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     clinicProfile,
     isGroup,
     organization,
-    membership,
-    isOwner,
     accessibleLocations,
   } = useClinicProfile();
   const { billing } = useClinicBilling();
@@ -660,28 +657,21 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const clinicGroupName =
     organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
-  const clinicMemberName =
-    membership?.display_name?.trim() || profile?.display_name?.trim() || null;
-  const clinicRoleLabel = isGroup
-    ? getClinicMembershipRoleLabel(membership?.role, isOwner)
-    : null;
-  // Groups: person-first. Individuals/workers unchanged.
   const profileName =
     role === 'worker'
       ? profile?.display_name
       : isGroup
-        ? clinicMemberName
+        ? clinicGroupName
         : clinicProfile?.clinic_name?.trim() || null;
   const profileSubtitle =
     role === 'worker'
       ? (workerProfile && formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))) ||
         'Dental professional'
       : isGroup
-        ? clinicGroupName || 'Dental group'
+        ? 'Dental group'
         : [clinicProfile?.city, clinicProfile?.province].filter(Boolean).join(', ') ||
           'Dental practice';
-  const profileMeta =
-    role === 'clinic' && isGroup ? clinicRoleLabel : null;
+  const profileMeta = null;
 
   const handleToggleCollapse = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

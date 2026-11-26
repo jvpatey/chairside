@@ -17,7 +17,7 @@ export default function ClinicProfilePracticeScreen() {
   return (
     <ProfileDetailScreen
       title="Practice details"
-      subtitle="Contact, location, and practice setup candidates use to understand your clinic."
+      subtitle="Clinic name, phone, and address."
       onBack={() => navigateToClinicProfileHub(router)}>
       <ClinicPracticeView
         profile={clinicProfile}
@@ -26,9 +26,6 @@ export default function ClinicProfilePracticeScreen() {
         }
         onEditLocation={() =>
           router.push(getSetupEditRoute('/(clinic-setup)/location', 'clinic-practice'))
-        }
-        onEditPractice={() =>
-          router.push(getSetupEditRoute('/(clinic-setup)/practice', 'clinic-practice'))
         }
       />
     </ProfileDetailScreen>

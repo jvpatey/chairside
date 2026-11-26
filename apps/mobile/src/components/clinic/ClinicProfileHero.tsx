@@ -215,7 +215,6 @@ type ClinicProfileHeroProps = {
   editable?: boolean;
   /** Group: show member photo / person avatar instead of org logo. */
   memberPhotoUri?: string | null;
-  memberDisplayName?: string | null;
   /** When set, overrides default avatar press (e.g. open Your profile). */
   onAvatarPress?: () => void;
   isUploadingAvatar?: boolean;
@@ -232,7 +231,6 @@ export function ClinicProfileHero({
   identityInline = false,
   editable = false,
   memberPhotoUri,
-  memberDisplayName,
   onAvatarPress,
   isUploadingAvatar,
   hideClinicMeta = false,
@@ -266,7 +264,6 @@ export function ClinicProfileHero({
       <ClinicIdentityHeroCard
         clinicName={name}
         logoUri={avatarUri}
-        personName={memberDisplayName || name}
         avatarKind={usePersonAvatar ? 'person' : 'clinic'}
         specialtyLabel={specialtyLabel}
         locationLabel={locationLabel || null}

@@ -66,8 +66,6 @@ export default function PostJobScreen() {
     accessibleLocations,
     locationScope,
     isGroup,
-    attribution,
-    attributionLabel,
   } = useClinicActingContext();
   const {
     billing,
@@ -213,7 +211,6 @@ export default function PostJobScreen() {
           status: 'live',
           organization_id: clinicId,
           location_id: locationId,
-          ...attribution,
         });
         resetForm();
         router.replace(CLINIC_POSTINGS);
@@ -303,9 +300,6 @@ export default function PostJobScreen() {
                   setFormError(null);
                 }}
               />
-              {attributionLabel ? (
-                <Text style={styles.helper}>Will show as posted by {attributionLabel}</Text>
-              ) : null}
             </View>
           ) : null}
 

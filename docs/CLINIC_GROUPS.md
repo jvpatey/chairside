@@ -41,28 +41,37 @@ Groups always view **exactly one clinic** — there is no combined “all locati
 
 The group name is always the dashboard hero title. A solid location pill (`ClinicLocationScopeSwitcher`) sits under the hero title on the dashboard and under the page title on Fill-ins, Roles, Calendar and Applications; it switches the clinic (dropdown on web, bottom sheet on native). The post fill-in / post role forms default to the selected clinic.
 
-### Org-level (About / Group profile)
+### Org-level (group name and phone)
 
-Shared across multi-site accounts: practice doctors, description, and website. Specialty, software, and clinic photo live on each clinic row. Practice doctors (`practice_doctors` JSON) can be assigned to one or more `location_ids`.
+Shared across multi-site accounts: group name and the phone that receives cover-request texts. Specialty, software, address, phone and clinic photo live on each clinic row. The old marketplace-style story (description, website, practice doctors, operatories, team size) is no longer editable in Settings; the columns remain in the database.
 
-## Profile hub
+## Settings hub
 
-- **Clinics** — owners add/edit sites (individuals included so they can grow into a group). Managers see assigned clinics only.
-- **Your profile** — group owners/managers edit membership name, title, bio, photo.
-- **Practice details** — single-site clinics; multi-site uses Clinics.
-- **Team & access** — group owners invite managers after multi-location exists.
-- **About / Group profile** — owners only for story, website, doctors.
+Mirrors the candidate hub: a short list of rows, no marketing/marketplace content.
+
+- **Group & clinics** (groups; "Clinics" for single-site owners) — one screen: the group name and cover-request phone (owners), your profile photo, and the list of clinics (owners add/edit/delete; managers see assigned clinics only). Group fields save with one "Save changes" button.
+- **Identity** — the clinic/group name is the public identity. Personal names and titles are no longer entered in Settings; posts are not attributed to a person in the UI. The `posted_by_*` columns and the membership `display_name`/`title` still exist in the database and are filled by triggers; they are not shown.
+- **Practice details** — single-site clinics: contact, location, specialty, software.
+- **Team & access** — hidden in the app (no owner invites, manager role changes or team list). Existing memberships, locations and the database are unchanged, and the invite RPCs still exist. Pending invite links still open `/accept-invite`.
+- **Notifications** — one category: cover requests & applicants.
+- **Account**, **Support**.
+
+Plans & billing is no longer in the hub while plans are being reworked (everything is unlimited; see Billing).
 
 ## Access model
 
 - **Owner** — one primary login with full org access, billing, locations, and invitations.
-- **Manager** — invited individual login with location assignments only. Sets personal profile after join via **Profile → Your profile**.
+- **Manager** — invited individual login with location assignments only. Sets a profile photo via **Group & clinics**.
 
 ## Free group trial caps
 
 Free group accounts (plan `free` + `account_type=group`) can use up to **2 locations** and **1 manager per location** (2 managers). Hitting either cap shows an upgrade prompt toward Group Starter / Group Pro. Paid hiring tools (screening, CRM follow-ups, PDF export, Discover, general candidate messaging) stay locked on Free the same as individual Free clinics.
 
-### Manager invitations
+### Manager invitations (hidden in app)
+
+No owner UI creates or manages invitations as of the team-hide change. The flow below describes the database/RPC behaviour that still exists for previously sent invites.
+
+Owners previously invited managers from **Settings → Team & access** after multi-location exists:
 
 Owners invite managers from **Settings → Team & access** after multi-location exists:
 

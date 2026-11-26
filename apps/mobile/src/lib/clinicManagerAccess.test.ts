@@ -11,7 +11,6 @@ vi.mock('@chairside/api', () => ({
 import {
   getManagerAccessBannerCopy,
   getManagerAccessBlockReason,
-  getOwnerUnassignedManagersCopy,
   isClinicMemberReadyToPost,
 } from '@/lib/clinicManagerAccess';
 
@@ -91,7 +90,5 @@ describe('clinicManagerAccess', () => {
     expect(getManagerAccessBannerCopy('no_clinic_assigned').title).toBe(
       'Waiting for clinic access',
     );
-    expect(getOwnerUnassignedManagersCopy(1).message).toContain('Assign them a location');
-    expect(getOwnerUnassignedManagersCopy(2).message).toContain('2 managers');
   });
 });

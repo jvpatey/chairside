@@ -66,8 +66,6 @@ export default function PostShiftScreen() {
     accessibleLocations,
     locationScope,
     isGroup,
-    attribution,
-    attributionLabel,
   } = useClinicActingContext();
   const { clinicProfile } = useClinicProfile();
   const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
@@ -278,7 +276,6 @@ export default function PostShiftScreen() {
           status: 'live',
           organization_id: clinicId,
           location_id: locationId ?? accessibleLocations[0]?.id ?? null,
-          ...attribution,
         });
         navigateAfterFillInSave(router, resolvedReturnTo, { posted: true });
       }
@@ -371,9 +368,6 @@ export default function PostShiftScreen() {
               }}
               accent={FILL_IN_ACCENT}
             />
-            {attributionLabel ? (
-              <Text style={styles.loading}>Will show as posted by {attributionLabel}</Text>
-            ) : null}
           </View>
         ) : null}
 

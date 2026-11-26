@@ -17,7 +17,6 @@ import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import {
   CLINIC_APPLICATIONS,
   CLINIC_FINISH_PROFILE,
-  CLINIC_PROFILE_TEAM,
   getClinicMessagesRoute,
 } from '@/lib/routing';
 
@@ -89,17 +88,14 @@ export function ClinicReadinessChecklist({
             ? 'Clinic profile complete'
             : 'Complete your clinic profile to post',
         body: managerNeedsAccess
-          ? 'Ask your group owner to assign you a clinic in Team & access.'
+          ? 'Ask your group owner to give you clinic access.'
           : profileComplete
             ? 'Your practice details are ready for workers.'
             : 'Add your practice details so workers know who they are applying to.',
         complete: profileComplete,
         primary: !profileComplete,
         onPress: () => {
-          if (managerNeedsAccess) {
-            router.push(CLINIC_PROFILE_TEAM);
-            return;
-          }
+          if (managerNeedsAccess) return;
           const missing = getMissingClinicProfileFields(clinicProfile, { locations });
           router.push(
             missing.length > 0 ? getClinicPostingSetupHref(missing, isGroup) : CLINIC_FINISH_PROFILE,
