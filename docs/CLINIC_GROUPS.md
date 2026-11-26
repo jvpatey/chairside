@@ -95,6 +95,8 @@ Host from web static assets (served without SPA rewrite):
 
 Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`). Managers can read billing state but cannot purchase or restore.
 
+> **Interim — everything is unlimited.** Tiered plans are being reworked. Migration `143_unlimited_plans_interim.sql` redefines the limit helpers (`clinic_active_*_limit`, `clinic_max_locations`, `clinic_max_managers`, `clinic_custom_screening_limit`) as unlimited and `clinic_can_use_feature` as unlocked for all clinics (except `priority_listing`, which stays a paid placement perk). Posting, location and manager triggers, `get_clinic_billing_state` and the app all read through these helpers, so no app change is needed to re-enable limits — redefine them in the next migration. The matrices below describe the previous behaviour.
+
 ### Plan families
 
 Chairside has two product lines:

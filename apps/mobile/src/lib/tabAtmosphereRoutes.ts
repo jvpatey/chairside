@@ -77,7 +77,6 @@ function isProfilePath(relativePath: string): boolean {
 
 function isFillInOutreachPath(relativePath: string): boolean {
   return (
-    relativePath === '/find-available-workers' ||
     relativePath.startsWith('/outreach-compose') ||
     relativePath === '/open-inquiry-candidates'
   );
@@ -175,7 +174,6 @@ function getStackParentTabFromRelativePath(
   if (
     root === 'shift' ||
     root === 'post-shift' ||
-    root === 'find-available-workers' ||
     root === 'outreach-compose'
   ) {
     return role === 'worker' ? 'fillins' : 'fill-ins';

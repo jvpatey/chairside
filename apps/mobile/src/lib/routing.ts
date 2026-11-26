@@ -196,7 +196,6 @@ export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
-export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_OPEN_INQUIRY_CANDIDATES: Href = '/(clinic-tabs)/open-inquiry-candidates' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
@@ -206,7 +205,6 @@ export const CLINIC_PROFILE_MEMBER: Href = '/(clinic-tabs)/profile/member' as Hr
 export const CLINIC_PROFILE_GROUP: Href = '/(clinic-tabs)/profile/group' as Href;
 export const CLINIC_PROFILE_LOCATIONS: Href = '/(clinic-tabs)/profile/locations' as Href;
 export const CLINIC_PROFILE_TEAM: Href = '/(clinic-tabs)/profile/team' as Href;
-export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging' as Href;
 export const CLINIC_PROFILE_NOTIFICATIONS: Href = '/(clinic-tabs)/profile/notifications' as Href;
 export const CLINIC_PROFILE_ACCOUNT: Href = '/(clinic-tabs)/profile/account' as Href;
 export const CLINIC_PROFILE_BILLING: Href = '/(clinic-tabs)/profile/billing' as Href;
@@ -349,13 +347,6 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
     return CLINIC_FILL_INS;
   }
   return CLINIC_POSTINGS;
-}
-
-export function getFindAvailableWorkersRoute(returnTo: FillInReturnTarget = 'fill-ins-tab'): Href {
-  return {
-    pathname: '/(clinic-tabs)/find-available-workers',
-    params: { returnTo },
-  } as Href;
 }
 
 export function getClinicOutreachComposeRoute(params: {

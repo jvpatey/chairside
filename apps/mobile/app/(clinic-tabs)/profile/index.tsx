@@ -23,7 +23,6 @@ import {
   getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
   getClinicMemberProfileSubtitle,
-  getClinicMessagingSubtitle,
   getClinicNotificationsSubtitle,
   getClinicPracticeSubtitle,
   getSupportSubtitle,
@@ -37,7 +36,6 @@ import {
   CLINIC_PROFILE_GROUP,
   CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_MEMBER,
-  CLINIC_PROFILE_MESSAGING,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
   CLINIC_PROFILE_SUPPORT,
@@ -45,7 +43,6 @@ import {
 } from '@/lib/routing';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
-import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { isClinicGroupsEnabled } from '@chairside/api';
 
 export default function ClinicAccountProfileScreen() {
@@ -60,7 +57,7 @@ export default function ClinicAccountProfileScreen() {
     membership,
   } = useClinicProfile();
   const { photoUri: memberPhotoUri, hasPhoto: hasMemberPhoto } = useClinicMemberPhoto();
-  const { billing, isBillingReady } = useClinicBilling();
+  const { billing } = useClinicBilling();
   const { isCompact, isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
   const showAdminEntry =
@@ -200,20 +197,6 @@ export default function ClinicAccountProfileScreen() {
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}
-          />
-          <ProfileSettingsRow
-            icon="chatbubbles-outline"
-            title="Messaging"
-            subtitle={getClinicMessagingSubtitle(clinicProfile, {
-              locked: isClinicBillingFeatureLocked(
-                billing,
-                isBillingReady,
-                'canUseGeneralCandidateMessaging',
-              ),
-            })}
-            iconColor={colors.success}
-            iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
-            onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
           />
           <ProfileSettingsRow
             icon="card-outline"

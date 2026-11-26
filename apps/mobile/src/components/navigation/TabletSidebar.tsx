@@ -24,7 +24,6 @@ import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
-import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
@@ -36,7 +35,6 @@ import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { getClinicMembershipRoleLabel } from '@/hooks/useClinicActingContext';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import { getRecommendedUpgradePlan } from '@/lib/clinicPlanPresentation';
 import {
   getTextAlertsStatusLabel,
   getTextAlertsStatusTone,
@@ -589,9 +587,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       backgroundColor: colors.backgroundGrouped,
       overflow: 'visible',
     },
-    upgradeRow: {
-      marginBottom: spacing.xs,
-    },
     badgeTextCollapsed: {
       fontSize: 9,
     },
@@ -909,9 +904,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     );
   };
 
-  const recommendedUpgrade =
-    role === 'clinic' && billing ? getRecommendedUpgradePlan(billing.plan, billing.planFamily) : null;
-
   const accountMenuAccessibilityLabel = profileMeta
     ? `Account menu, ${profileName ?? 'Account'}, ${profileMeta}`
     : `Account menu, ${profileName ?? 'Account'}`;
@@ -1022,34 +1014,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             </View>
           ) : null}
         </Pressable>
-        {recommendedUpgrade ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Upgrade plan"
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              openClinicBillingModal({
-                focus: billing?.planFamily === 'group' || isGroup ? 'group' : 'clinic',
-              });
-            }}
-            style={({ pressed, hovered }) => [
-              styles.item,
-              styles.upgradeRow,
-              isCollapsed && styles.itemCollapsed,
-              webHover(hovered, pressed, styles.itemHovered),
-              pressed && styles.itemPressed,
-            ]}
-            {...(isCollapsed && isWeb ? webOnlyStyle({ title: 'Upgrade' } as ViewStyle) : {})}>
-            <View style={styles.iconWrap}>
-              <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
-            </View>
-            {!isCollapsed ? (
-              <Text style={[styles.label, { color: colors.primary }]} numberOfLines={1}>
-                Upgrade
-              </Text>
-            ) : null}
-          </Pressable>
-        ) : null}
         {showAdminEntry ? (
           <Pressable
             accessibilityRole="button"

@@ -35,7 +35,6 @@ import { HiringCelebrationModal } from '@/components/celebration/HiringCelebrati
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { AnimateHeight } from '@/components/ui/AnimateHeight';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
@@ -76,15 +75,10 @@ import {
   matchesConfirmedFillInSearch,
   matchesShiftPostSearch,
 } from '@/lib/clinicListSearch';
-import {
-  getClinicDiscoverRoute,
-  getFindAvailableWorkersRoute,
-  getPostShiftRoute,
-} from '@/lib/routing';
+import { getPostShiftRoute } from '@/lib/routing';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
-  isClinicBillingFeatureLocked,
   isFillInPostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { webOnlyStyle } from '@/lib/webPressableStyles';
@@ -118,14 +112,14 @@ const LIST_BODY_EXIT = FadeOut.duration(140);
 
 export default function ClinicFillInsScreen() {
   const { colors } = useTheme();
-  const { isTablet, isWide } = useResponsiveLayout();
+  const { isWide } = useResponsiveLayout();
   const { user } = useAuth();
   const { clinicId, scopedLocationIds, isGroup, isOwner, accessibleLocations } =
     useClinicActingContext();
   const params = useLocalSearchParams<{ mode?: string; date?: string; posted?: string }>();
   const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const { refreshPending } = useFillInPending();
-  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
     useClinicUpgradePrompt();
   const [coverRequests, setCoverRequests] = useState<FillInCoverRequest[]>([]);
   const [shifts, setShifts] = useState<ShiftPost[]>([]);
@@ -489,28 +483,8 @@ export default function ClinicFillInsScreen() {
                 dimmed: fillInLimitReached,
                 onPress: handlePostFillInPress,
               },
-              {
-                label: 'Find workers',
-                description: 'Browse available staff',
-                icon: 'people-outline',
-                variant: 'primary',
-                onPress: () => guardPosting(getFindAvailableWorkersRoute('fill-ins-tab')),
-              },
             ]}
           />
-
-          {!isTablet ? (
-            <ClinicDiscoverBrowseLink
-              title="Fill-ins from other clinics"
-              onPress={() => {
-                if (isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseClinicDiscover')) {
-                  showDiscoverUpgrade();
-                  return;
-                }
-                router.push(getClinicDiscoverRoute('fill-ins', 'fill-ins-tab'));
-              }}
-            />
-          ) : null}
 
           {fillInLimitReached && billing ? (
             <PlanUpgradeCallout

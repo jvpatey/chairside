@@ -70,7 +70,6 @@ function ClinicTabNavigator() {
         <Tabs.Screen name="conversation/[id]" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="post-job" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="post-shift" options={hiddenTabScreenOptions} />
-        <Tabs.Screen name="find-available-workers" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="open-inquiry-candidates" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="outreach-compose" options={hiddenTabScreenOptions} />
         <Tabs.Screen name="job/[id]" options={hiddenTabScreenOptions} />

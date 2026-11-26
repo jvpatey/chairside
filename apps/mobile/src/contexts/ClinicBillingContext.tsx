@@ -63,37 +63,41 @@ type ClinicBillingContextValue = {
 
 const ClinicBillingContext = createContext<ClinicBillingContextValue | null>(null);
 
+/**
+ * Fallback when billing cannot be loaded. Plans/limits are unlimited for now (see migration
+ * 143_unlimited_plans_interim), so the fallback must not re-impose free-tier limits.
+ */
 const DEFAULT_BILLING: ClinicBillingState = {
   plan: 'free',
   planFamily: 'clinic',
   accountType: 'individual',
   status: 'active',
   activeRoleCount: 0,
-  activeRoleLimit: 1,
+  activeRoleLimit: null,
   activeFillInCount: 0,
-  activeFillInLimit: 1,
+  activeFillInLimit: null,
   canPublishRole: true,
   canPublishFillIn: true,
   activeOpportunityCount: 0,
   activeOpportunityLimit: null,
   canPublishOpportunity: true,
-  canUseFillInOutreach: false,
-  canUseFillInSms: false,
+  canUseFillInOutreach: true,
+  canUseFillInSms: true,
   hasPriorityListing: false,
-  canUseScreeningQuestions: false,
-  canUseCrmFollowups: false,
-  canUseApplicationPdfExport: false,
-  canUseClinicDiscover: false,
-  canUseGeneralCandidateMessaging: false,
-  canUseBulkOutreach: false,
-  canUseHiringInsights: false,
-  customScreeningLimit: 0,
+  canUseScreeningQuestions: true,
+  canUseCrmFollowups: true,
+  canUseApplicationPdfExport: true,
+  canUseClinicDiscover: true,
+  canUseGeneralCandidateMessaging: true,
+  canUseBulkOutreach: true,
+  canUseHiringInsights: true,
+  customScreeningLimit: null,
   locationCount: 0,
-  maxLocations: 1,
+  maxLocations: null,
   canAddLocation: true,
   managerCount: 0,
-  maxManagers: 0,
-  canAddManager: false,
+  maxManagers: null,
+  canAddManager: true,
   currentPeriodEnd: null,
 };
 

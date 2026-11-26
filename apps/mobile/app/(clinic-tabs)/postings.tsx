@@ -12,7 +12,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
-  getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getClinicApplicationRoute,
   getJobDetailRoute,
@@ -38,7 +37,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
-import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,7 +64,6 @@ import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
-  isClinicBillingFeatureLocked,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -84,7 +81,7 @@ export default function ClinicPostingsScreen() {
     useClinicActingContext();
   const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
-  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
@@ -294,19 +291,6 @@ export default function ClinicPostingsScreen() {
             dimmed={roleLimitReached}
             onPress={handlePostRolePress}
           />
-
-          {!isTablet ? (
-            <ClinicDiscoverBrowseLink
-              title="Roles from other clinics"
-              onPress={() => {
-                if (isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseClinicDiscover')) {
-                  showDiscoverUpgrade();
-                  return;
-                }
-                router.push(getClinicDiscoverRoute('roles', 'postings-tab'));
-              }}
-            />
-          ) : null}
 
           {roleLimitReached && billing ? (
             <PlanUpgradeCallout

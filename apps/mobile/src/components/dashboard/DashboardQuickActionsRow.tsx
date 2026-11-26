@@ -21,7 +21,7 @@ export type DashboardQuickActionConfig = {
 };
 
 type DashboardQuickActionsRowProps = {
-  actions: [DashboardQuickActionConfig, DashboardQuickActionConfig];
+  actions: [DashboardQuickActionConfig] | [DashboardQuickActionConfig, DashboardQuickActionConfig];
   /** Phone stacked tiles even on a wide window (marketing preview). */
   forcePhoneLayout?: boolean;
   /** Emphasize the first action (fill-ins) over the second (roles). */
@@ -36,11 +36,13 @@ export function DashboardQuickActionsRow({
   const { isWide } = useResponsiveLayout();
   const compact = forcePhoneLayout ? false : IS_WEB && isWide;
   // Uneven flex only on wide compact rows — equal tiles on phone keeps the pair balanced.
-  const emphasize = emphasizeFirst && compact;
+  const emphasize = emphasizeFirst && compact && actions.length > 1;
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
     primaryFlex: { flex: emphasize ? 1.35 : 1, minWidth: 0 },
     secondaryFlex: { flex: 1, minWidth: 0 },
+    // A lone tile spans the full row.
+    singleTile: { flex: 1, minWidth: 0 },
   }));
 
   return (
@@ -49,7 +51,13 @@ export function DashboardQuickActionsRow({
         {actions.map((action, index) => (
           <View
             key={action.label}
-            style={index === 0 ? styles.primaryFlex : styles.secondaryFlex}>
+            style={
+              actions.length === 1
+                ? styles.singleTile
+                : index === 0
+                  ? styles.primaryFlex
+                  : styles.secondaryFlex
+            }>
             <DashboardQuickActionTile
               label={action.label}
               description={action.description}
