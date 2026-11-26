@@ -43,7 +43,7 @@ import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -276,8 +276,6 @@ export default function ClinicPostingsScreen() {
   const historyDetail =
     historyCounts.archived === 1 ? '1 archived role' : `${historyCounts.archived} archived roles`;
 
-  const showScopeChip = isGroup && accessibleLocations.length > 1;
-
   return (
     <>
       {upgradePrompt}
@@ -286,7 +284,7 @@ export default function ClinicPostingsScreen() {
         subtitle="Permanent openings — alert matched professionals."
         refreshing={refreshing}
         onRefresh={onRefresh}
-        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
+        scopeAccessory={<ClinicLocationScopeSwitcher />}>
         <View style={styles.wrap}>
           <DashboardQuickActionTile
             label="Post role"

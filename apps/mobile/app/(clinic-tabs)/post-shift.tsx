@@ -30,6 +30,7 @@ import { FillInSmsPreview } from '@/components/worker/FillInSmsPreview';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
 import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
@@ -63,6 +64,7 @@ export default function PostShiftScreen() {
   const {
     clinicId,
     accessibleLocations,
+    locationScope,
     isGroup,
     attribution,
     attributionLabel,
@@ -91,9 +93,7 @@ export default function PostShiftScreen() {
   const [description, setDescription] = useState('');
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(
-    accessibleLocations.find((location) => location.is_primary)?.id ??
-      accessibleLocations[0]?.id ??
-      null,
+    resolveActiveLocationId(locationScope, accessibleLocations),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);

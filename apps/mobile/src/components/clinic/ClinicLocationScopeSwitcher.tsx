@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -26,34 +26,13 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import {
-  colorWithAlpha,
-  fontSemibold,
-  useTheme,
-  useThemedStyles,
-} from '@/theme';
-
-export type ClinicLocationScopeSwitcherVariant = 'sidebar' | 'hero';
-
-type ClinicLocationScopeSwitcherProps = {
-  variant?: ClinicLocationScopeSwitcherVariant;
-  /** Icon-only trigger for the narrow collapsed sidebar rail. */
-  collapsed?: boolean;
-  /** Placed before the sidebar trigger (e.g. collapse chevron). */
-  startAccessory?: ReactNode;
-};
-
-export function getClinicAllLocationsLabel(isOwner: boolean): string {
-  return isOwner ? 'All locations' : 'My locations';
-}
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 export function getClinicLocationScopeLabel(
   locationScope: string,
   locations: { id: string; name: string }[],
-  isOwner = true,
 ): string {
-  if (locationScope === 'all') return getClinicAllLocationsLabel(isOwner);
-  return locations.find((location) => location.id === locationScope)?.name ?? 'Selected location';
+  return locations.find((location) => location.id === locationScope)?.name ?? 'Select clinic';
 }
 
 type ScopeOption = {
@@ -61,35 +40,9 @@ type ScopeOption = {
   label: string;
   meta: string | null;
   logoStoragePath: string | null;
-  isAll: boolean;
 };
 
 const DROPDOWN_ENTER = FadeInDown.duration(160).easing(Easing.out(Easing.cubic));
-
-function AllLocationsGlyph({ size }: { size: number }) {
-  const styles = useThemedStyles(({ colors }) => ({
-    wrap: {
-      width: size,
-      height: size,
-      borderRadius: size / 2,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      backgroundColor: colors.fillSubtle,
-    },
-  }));
-  const { colors } = useTheme();
-  return (
-    <View style={styles.wrap}>
-      <Ionicons
-        name="business-outline"
-        size={Math.round(size * 0.5)}
-        color={colors.labelSecondary}
-      />
-    </View>
-  );
-}
 
 function LocationScopeOptionRow({
   option,
@@ -104,7 +57,7 @@ function LocationScopeOptionRow({
   density: 'sheet' | 'menu';
 }) {
   const { colors } = useTheme();
-  const logoUri = useClinicLogoUri(option.isAll ? null : option.logoStoragePath);
+  const logoUri = useClinicLogoUri(option.logoStoragePath);
   const isSheet = density === 'sheet';
   const avatarSize = isSheet ? 40 : 34;
 
@@ -175,11 +128,7 @@ function LocationScopeOptionRow({
         webHover(hovered, pressed, styles.rowHovered, selected),
         pressed && styles.rowPressed,
       ]}>
-      {option.isAll ? (
-        <AllLocationsGlyph size={avatarSize} />
-      ) : (
-        <ClinicLogoAvatar clinicName={option.label} logoUri={logoUri} size={avatarSize} />
-      )}
+      <ClinicLogoAvatar clinicName={option.label} logoUri={logoUri} size={avatarSize} />
       <View style={styles.textWrap}>
         <Text
           style={[styles.label, selected && styles.labelSelected]}
@@ -212,33 +161,15 @@ function ScopeOptionList({
   onSelect: (id: string) => void;
   density: 'sheet' | 'menu';
 }) {
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ spacing }) => ({
     list: {
       gap: density === 'sheet' ? spacing.xs : 2,
     },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      marginVertical: spacing.xs,
-      marginHorizontal: density === 'sheet' ? 0 : spacing.xs,
-    },
   }));
-
-  const allOption = options.find((option) => option.isAll) ?? null;
-  const locationOptions = options.filter((option) => !option.isAll);
 
   return (
     <View style={styles.list}>
-      {allOption ? (
-        <LocationScopeOptionRow
-          option={allOption}
-          selected={allOption.id === selectedId}
-          onPress={() => onSelect(allOption.id)}
-          density={density}
-        />
-      ) : null}
-      {allOption && locationOptions.length > 0 ? <View style={styles.divider} /> : null}
-      {locationOptions.map((option) => (
+      {options.map((option) => (
         <LocationScopeOptionRow
           key={option.id}
           option={option}
@@ -309,16 +240,20 @@ function LocationScopePickerSheet({
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button">
+      {/*
+        The backdrop must not be role="button": on web that renders a <button>, and the
+        option rows inside it are buttons too (invalid nested <button>).
+      */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         {visible ? (
           <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
-            <Pressable onPress={(event) => event.stopPropagation()}>
+            <Pressable accessible={false} onPress={(event) => event.stopPropagation()}>
               <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
                 <View style={styles.header}>
-                  <Text style={styles.title}>Viewing</Text>
+                  <Text style={styles.title}>Switch clinic</Text>
                   <Text style={styles.message}>
-                    Choose which location’s data to show across the clinic home.
+                    Choose which clinic’s fill-ins, roles and applicants to show.
                   </Text>
                 </View>
                 <ScrollView
@@ -349,7 +284,6 @@ type AnchorRect = { x: number; y: number; width: number; height: number };
 function LocationScopeDropdown({
   visible,
   anchor,
-  placement,
   options,
   selectedId,
   onSelect,
@@ -357,8 +291,6 @@ function LocationScopeDropdown({
 }: {
   visible: boolean;
   anchor: AnchorRect | null;
-  /** 'below' anchors under the trigger; 'side' opens beside the collapsed rail. */
-  placement: 'below' | 'side';
   options: ScopeOption[];
   selectedId: string;
   onSelect: (id: string) => void;
@@ -389,23 +321,18 @@ function LocationScopeDropdown({
   const EDGE_GUTTER = 12;
   const width = Math.min(Math.max(anchor.width, MENU_MIN_WIDTH), windowWidth - EDGE_GUTTER * 2);
 
-  let left = placement === 'side' ? anchor.x + anchor.width + 10 : anchor.x;
-  let top = placement === 'side' ? anchor.y : anchor.y + anchor.height + 6;
-  left = Math.max(EDGE_GUTTER, Math.min(left, windowWidth - width - EDGE_GUTTER));
-  top = Math.max(EDGE_GUTTER, top);
+  const left = Math.max(EDGE_GUTTER, Math.min(anchor.x, windowWidth - width - EDGE_GUTTER));
+  const top = Math.max(EDGE_GUTTER, anchor.y + anchor.height + 6);
   const maxHeight = Math.min(400, windowHeight - top - EDGE_GUTTER);
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close location menu">
+      {/* Not role="button": option rows inside are buttons (no nested <button> on web). */}
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <Animated.View
           entering={DROPDOWN_ENTER}
           style={{ position: 'absolute', left, top, width }}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
+          <Pressable accessible={false} onPress={(event) => event.stopPropagation()}>
             <View style={styles.panel}>
               <ScrollView
                 style={{ maxHeight }}
@@ -429,158 +356,66 @@ function LocationScopeDropdown({
   );
 }
 
-/** Compact location-scope trigger with platform-native picker for group clinics. */
-export function ClinicLocationScopeSwitcher({
-  variant = 'sidebar',
-  collapsed = false,
-  startAccessory,
-}: ClinicLocationScopeSwitcherProps) {
-  const { colors, isDark } = useTheme();
-  const {
-    isGroup,
-    accessibleLocations,
-    locationScope,
-    setLocationScope,
-    isOwner,
-  } = useClinicProfile();
+/**
+ * Group clinics always view exactly one location. This pill sits under the page
+ * title and switches it (dropdown on web, bottom sheet on native).
+ */
+export function ClinicLocationScopeSwitcher() {
+  const { colors } = useTheme();
+  const { isGroup, accessibleLocations, locationScope, setLocationScope } = useClinicProfile();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const triggerRef = useRef<View>(null);
   const isWeb = Platform.OS === 'web';
 
-  const showAllOption = isOwner || accessibleLocations.length > 1;
-  const allLocationsLabel = getClinicAllLocationsLabel(isOwner);
-  const label = getClinicLocationScopeLabel(
-    locationScope,
-    accessibleLocations,
-    isOwner,
-  );
-
   const selectedLocation =
-    locationScope === 'all'
-      ? null
-      : accessibleLocations.find((location) => location.id === locationScope) ?? null;
+    accessibleLocations.find((location) => location.id === locationScope) ?? null;
+  const label = getClinicLocationScopeLabel(locationScope, accessibleLocations);
   const selectedLogoUri = useClinicLogoUri(selectedLocation?.logo_storage_path ?? null);
 
-  const options = useMemo(() => {
-    const next: ScopeOption[] = [];
-    if (showAllOption) {
-      next.push({
-        id: 'all',
-        label: allLocationsLabel,
-        meta:
-          accessibleLocations.length > 1
-            ? `${accessibleLocations.length} clinics`
-            : null,
-        logoStoragePath: null,
-        isAll: true,
-      });
-    }
-    for (const location of accessibleLocations) {
-      next.push({
+  const options = useMemo<ScopeOption[]>(
+    () =>
+      accessibleLocations.map((location) => ({
         id: location.id,
         label: location.name,
         meta: [location.city, location.province].filter(Boolean).join(', ') || null,
         logoStoragePath: location.logo_storage_path,
-        isAll: false,
-      });
-    }
-    return next;
-  }, [accessibleLocations, allLocationsLabel, showAllOption]);
+      })),
+    [accessibleLocations],
+  );
 
-  const styles = useThemedStyles(({ colors, spacing, radii }) => ({
-    sidebarWrap: {
-      gap: 4,
-      minWidth: 0,
-    },
-    sidebarEyebrow: {
-      fontSize: 11,
-      lineHeight: 14,
-      fontWeight: '600' as const,
-      color: colors.labelTertiary,
-      textTransform: 'uppercase' as const,
-      letterSpacing: 0.4,
-    },
-    sidebarTriggerRow: {
+  const styles = useThemedStyles(({ colors, spacing, radii, elevation }) => ({
+    trigger: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      gap: spacing.xs,
-      minWidth: 0,
-    },
-    sidebarTrigger: {
-      flex: 1,
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: spacing.xs + 2,
-      minWidth: 0,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      borderRadius: 10,
+      alignSelf: 'flex-start' as const,
+      gap: 8,
+      maxWidth: '100%' as const,
+      paddingLeft: spacing.sm,
+      paddingRight: spacing.sm + 2,
+      paddingVertical: 6,
+      borderRadius: radii.pill,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: colors.surface,
+      ...elevation('subtle'),
       ...webPointer(),
     },
-    sidebarTriggerPressed: {
+    triggerPressed: {
       opacity: 0.88,
     },
-    sidebarLabel: {
-      flex: 1,
-      minWidth: 0,
+    label: {
+      flexShrink: 1,
       fontSize: 13,
       lineHeight: 18,
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
       color: colors.labelPrimary,
     },
-    collapsedWrap: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      gap: spacing.xs,
-    },
-    collapsedTrigger: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-      backgroundColor: colors.fillSubtle,
-      ...webPointer(),
-    },
-    collapsedTriggerPressed: {
-      opacity: 0.88,
-    },
-    heroTrigger: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      alignSelf: 'flex-start' as const,
-      gap: 6,
-      maxWidth: '100%' as const,
-      paddingHorizontal: spacing.sm + 2,
-      paddingVertical: 5,
-      borderRadius: radii.pill,
-      backgroundColor: colorWithAlpha(colors.surface, isDark ? 0.16 : 0.72),
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colorWithAlpha(colors.primaryOnPrimary, isDark ? 0.18 : 0.35),
-      ...webPointer(),
-    },
-    heroTriggerPressed: {
-      opacity: 0.88,
-    },
-    heroLabel: {
-      flexShrink: 1,
-      fontSize: 12,
-      lineHeight: 16,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
   }));
 
-  if (!isGroup || accessibleLocations.length === 0) return null;
+  // A switcher with one choice is noise; single-site managers see nothing here.
+  if (!isGroup || accessibleLocations.length < 2) return null;
 
   const openPicker = () => {
     if (isWeb && triggerRef.current) {
@@ -595,108 +430,41 @@ export function ClinicLocationScopeSwitcher({
 
   const handleSelect = (id: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLocationScope(id === 'all' ? 'all' : id);
+    setLocationScope(id);
   };
 
-  const accessibilityLabel = `Viewing ${label}. Change location.`;
-
-  const triggerGlyph = selectedLocation ? (
-    <ClinicLogoAvatar
-      clinicName={selectedLocation.name}
-      logoUri={selectedLogoUri}
-      size={20}
-    />
-  ) : (
-    <Ionicons name="business-outline" size={15} color={colors.labelSecondary} />
-  );
-
-  const trigger =
-    variant === 'hero' ? (
+  return (
+    <>
       <Pressable
         ref={triggerRef}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
+        accessibilityLabel={`Viewing ${label}. Switch clinic.`}
         onPress={openPicker}
         style={({ pressed, hovered }) => [
-          styles.heroTrigger,
+          styles.trigger,
           webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-          pressed && styles.heroTriggerPressed,
+          pressed && styles.triggerPressed,
         ]}>
         {selectedLocation ? (
           <ClinicLogoAvatar
             clinicName={selectedLocation.name}
             logoUri={selectedLogoUri}
-            size={16}
+            size={20}
           />
         ) : (
-          <Ionicons name="business-outline" size={13} color={colors.labelSecondary} />
+          <Ionicons name="business-outline" size={15} color={colors.labelSecondary} />
         )}
-        <Text style={styles.heroLabel} numberOfLines={1}>
+        <Text style={styles.label} numberOfLines={1}>
           {label}
         </Text>
         <Ionicons name="chevron-down" size={14} color={colors.labelSecondary} />
       </Pressable>
-    ) : collapsed ? (
-      <View style={styles.collapsedWrap}>
-        {startAccessory}
-        <Pressable
-          ref={triggerRef}
-          accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel}
-          onPress={openPicker}
-          style={({ pressed, hovered }) => [
-            styles.collapsedTrigger,
-            webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-            pressed && styles.collapsedTriggerPressed,
-          ]}>
-          {selectedLocation ? (
-            <ClinicLogoAvatar
-              clinicName={selectedLocation.name}
-              logoUri={selectedLogoUri}
-              size={22}
-            />
-          ) : (
-            <Ionicons name="business-outline" size={16} color={colors.labelPrimary} />
-          )}
-        </Pressable>
-      </View>
-    ) : (
-      <View style={styles.sidebarWrap}>
-        <Text style={styles.sidebarEyebrow}>Viewing</Text>
-        <View style={styles.sidebarTriggerRow}>
-          {startAccessory}
-          <Pressable
-            ref={triggerRef}
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel}
-            onPress={openPicker}
-            style={({ pressed, hovered }) => [
-              styles.sidebarTrigger,
-              webHover(hovered, pressed, webTextLinkHoverStyles(colors)),
-              pressed && styles.sidebarTriggerPressed,
-            ]}>
-            {triggerGlyph}
-            <Text style={styles.sidebarLabel} numberOfLines={1}>
-              {label}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.labelSecondary} />
-          </Pressable>
-        </View>
-      </View>
-    );
-
-  const selectedId = locationScope === 'all' ? 'all' : locationScope;
-
-  return (
-    <>
-      {trigger}
       {isWeb ? (
         <LocationScopeDropdown
           visible={pickerOpen}
           anchor={anchor}
-          placement={variant === 'sidebar' && collapsed ? 'side' : 'below'}
           options={options}
-          selectedId={selectedId}
+          selectedId={locationScope}
           onSelect={handleSelect}
           onClose={() => setPickerOpen(false)}
         />
@@ -704,7 +472,7 @@ export function ClinicLocationScopeSwitcher({
         <LocationScopePickerSheet
           visible={pickerOpen}
           options={options}
-          selectedId={selectedId}
+          selectedId={locationScope}
           onSelect={handleSelect}
           onClose={() => setPickerOpen(false)}
         />

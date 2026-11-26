@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router/react-navigation';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 
 export default function ClinicCalendarScreen() {
@@ -21,15 +21,13 @@ export default function ClinicCalendarScreen() {
     }, []),
   );
 
-  const showScopeChip = isGroup && accessibleLocations.length > 1;
-
   return (
     <Screen
       title="Calendar"
       subtitle="Interviews, confirmed fill-ins, and open fill-ins for your clinic."
       refreshing={refreshState?.refreshing}
       onRefresh={refreshState?.onRefresh}
-      headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
+      scopeAccessory={<ClinicLocationScopeSwitcher />}>
       <ScheduleCalendarScreenPanel
         role="clinic"
         clinicId={clinicId ?? undefined}

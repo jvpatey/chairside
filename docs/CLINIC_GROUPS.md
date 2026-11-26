@@ -35,6 +35,12 @@ Owners open **Settings → Clinics** to add another site (name + address + optio
 
 Each site can include: name, optional **clinic photo**, address, phone, specialty, software, operatories, and team size. The first / default location is mirrored onto `clinic_profiles` for marketplace compatibility — internal, not a user-facing “primary” badge.
 
+### Viewing one clinic at a time
+
+Groups always view **exactly one clinic** — there is no combined “all locations” view. The first accessible clinic (primary first) is selected by default; the choice is remembered per user + organization (a stale or legacy `all` value is ignored). `ClinicProfileContext` resolves this via `resolveActiveLocationId`, so `locationScope` is always a location id for groups and `scopedLocationIds` is `[id]`.
+
+The group name is always the dashboard hero title. A solid location pill (`ClinicLocationScopeSwitcher`) sits under the hero title on the dashboard and under the page title on Fill-ins, Roles, Calendar and Applications; it switches the clinic (dropdown on web, bottom sheet on native). The post fill-in / post role forms default to the selected clinic.
+
 ### Org-level (About / Group profile)
 
 Shared across multi-site accounts: practice doctors, description, and website. Specialty, software, and clinic photo live on each clinic row. Practice doctors (`practice_doctors` JSON) can be assigned to one or more `location_ids`.

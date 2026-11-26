@@ -23,6 +23,7 @@ import {
 
 import { useAuth } from '@/contexts/AuthContext';
 import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
+import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import {
   loadStoredLocationScope,
   saveStoredLocationScope,
@@ -65,6 +66,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
 
   const setLocationScope = useCallback(
     (scope: ClinicLocationScope) => {
+      if (scope === 'all') return;
       setLocationScopeState(scope);
       const orgId = workspace?.organization.id;
       if (orgId && user?.id) {
@@ -209,15 +211,19 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
     return filterLocationsForMembership(workspace.locations, workspace.accessibleLocationIds);
   }, [workspace]);
 
+  // Group clinics always view exactly one location (first by default); there is no
+  // combined "all" view. Non-group clinics are unscoped.
+  const activeLocationId = useMemo(
+    () => (workspace?.isGroup ? resolveActiveLocationId(locationScope, accessibleLocations) : null),
+    [accessibleLocations, locationScope, workspace?.isGroup],
+  );
+  const effectiveLocationScope: ClinicLocationScope = activeLocationId ?? 'all';
+
   // Primitive key so consumers don't see a new string[] every workspace identity change.
   const scopedLocationIdsKey = useMemo(() => {
     if (!workspace || !workspace.isGroup) return 'all';
-    if (locationScope === 'all') {
-      if (workspace.isOwner) return 'all';
-      return accessibleLocations.map((location) => location.id).join(',');
-    }
-    return locationScope;
-  }, [accessibleLocations, locationScope, workspace]);
+    return activeLocationId ?? '';
+  }, [activeLocationId, workspace]);
 
   const scopedLocationIds = useMemo((): 'all' | string[] => {
     if (scopedLocationIdsKey === 'all') return 'all';
@@ -247,7 +253,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       clinicId: workspace?.organization.id ?? clinicProfile?.id ?? null,
       isOwner,
       isGroup,
-      locationScope,
+      locationScope: effectiveLocationScope,
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
@@ -263,8 +269,8 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
   }, [
     accessibleLocations,
     clinicProfile,
+    effectiveLocationScope,
     isClinicProfileReady,
-    locationScope,
     refreshClinicProfile,
     scopedLocationIds,
     setLocationScope,

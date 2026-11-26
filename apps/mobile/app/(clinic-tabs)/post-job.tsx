@@ -29,6 +29,7 @@ import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
 import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
@@ -63,6 +64,7 @@ export default function PostJobScreen() {
   const {
     clinicId,
     accessibleLocations,
+    locationScope,
     isGroup,
     attribution,
     attributionLabel,
@@ -86,9 +88,7 @@ export default function PostJobScreen() {
   const [wageRange, setWageRange] = useState('');
   const [description, setDescription] = useState('');
   const [locationId, setLocationId] = useState<string | null>(
-    accessibleLocations.find((location) => location.is_primary)?.id ??
-      accessibleLocations[0]?.id ??
-      null,
+    resolveActiveLocationId(locationScope, accessibleLocations),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);

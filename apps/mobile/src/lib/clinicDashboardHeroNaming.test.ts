@@ -8,23 +8,8 @@ const locations = [
 ];
 
 describe('getClinicDashboardHeroNaming', () => {
-  it('keeps group greetings personal and titles scope-aware', () => {
-    const all = getClinicDashboardHeroNaming({
-      isGroup: true,
-      isProfileComplete: true,
-      groupName: 'Dental Group Test',
-      memberDisplayName: 'Jeff Patey',
-      memberRoleLabel: 'Owner',
-      locationScope: 'all',
-      accessibleLocations: locations,
-    });
-
-    expect(all.greetingName).toBe('Jeff');
-    expect(all.displayName).toBe('Dental Group Test');
-    expect(all.subtitle).toBe('2 locations');
-    expect(all.identityLine).toBe('Owner');
-
-    const scoped = getClinicDashboardHeroNaming({
+  it('keeps the group name as the title and the subtitle on the selected clinic', () => {
+    const first = getClinicDashboardHeroNaming({
       isGroup: true,
       isProfileComplete: true,
       groupName: 'Dental Group Test',
@@ -34,9 +19,35 @@ describe('getClinicDashboardHeroNaming', () => {
       accessibleLocations: locations,
     });
 
-    expect(scoped.greetingName).toBe('Jeff');
-    expect(scoped.displayName).toBe('Downtown');
-    expect(scoped.subtitle).toBe('Halifax, NS');
+    expect(first.greetingName).toBe('Jeff');
+    expect(first.displayName).toBe('Dental Group Test');
+    expect(first.subtitle).toBe('Halifax, NS');
+    expect(first.identityLine).toBe('Owner');
+
+    const second = getClinicDashboardHeroNaming({
+      isGroup: true,
+      isProfileComplete: true,
+      groupName: 'Dental Group Test',
+      memberDisplayName: 'Jeff Patey',
+      locationScope: 'loc-2',
+      accessibleLocations: locations,
+    });
+
+    expect(second.displayName).toBe('Dental Group Test');
+    expect(second.subtitle).toBe('Bedford, NS');
+  });
+
+  it('falls back to the first clinic when the scope is not an accessible location', () => {
+    const naming = getClinicDashboardHeroNaming({
+      isGroup: true,
+      isProfileComplete: true,
+      groupName: 'Dental Group Test',
+      locationScope: 'all',
+      accessibleLocations: locations,
+    });
+
+    expect(naming.displayName).toBe('Dental Group Test');
+    expect(naming.subtitle).toBe('Halifax, NS');
   });
 
   it('still greets the member while group setup is incomplete', () => {
@@ -45,13 +56,13 @@ describe('getClinicDashboardHeroNaming', () => {
       isProfileComplete: false,
       groupName: 'Dental Group Test',
       memberDisplayName: 'Jeff',
-      locationScope: 'all',
+      locationScope: 'loc-1',
       accessibleLocations: locations,
     });
 
     expect(naming.greetingName).toBe('Jeff');
     expect(naming.displayName).toBe('Dental Group Test');
-    expect(naming.subtitle).toBe('2 locations');
+    expect(naming.identityLine).toBeUndefined();
   });
 
   it('uses contact first name for individual clinics when complete', () => {

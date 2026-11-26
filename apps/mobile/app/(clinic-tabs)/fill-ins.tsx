@@ -24,7 +24,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { FillInApplicantCard } from '@/components/clinic/FillInApplicantCard';
 import { ListSearchFilterRow } from '@/components/ui/ListSearchFilterRow';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
@@ -445,8 +445,6 @@ export default function ClinicFillInsScreen() {
     guardPosting(getPostShiftRoute('fill-ins-tab'));
   };
 
-  const showScopeChip = isGroup && accessibleLocations.length > 1;
-
   if (isLoading && !hasLoadedOnce.current) {
     return (
       <Screen
@@ -455,7 +453,7 @@ export default function ClinicFillInsScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
-        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
+        scopeAccessory={<ClinicLocationScopeSwitcher />}>
         <PageLoadingList message="Loading fill-ins…" />
       </Screen>
     );
@@ -470,7 +468,7 @@ export default function ClinicFillInsScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
-        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
+        scopeAccessory={<ClinicLocationScopeSwitcher />}>
         <View style={styles.wrap}>
           {loadError ? (
             <DashboardErrorBanner

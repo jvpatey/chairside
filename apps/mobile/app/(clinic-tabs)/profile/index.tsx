@@ -105,7 +105,6 @@ export default function ClinicAccountProfileScreen() {
           displayName={isGroup ? memberName || 'Your profile' : null}
           identityLine={groupIdentityLine}
           editable
-          plan={billing?.plan ?? 'free'}
           memberPhotoUri={isGroup ? memberPhotoUri : null}
           memberDisplayName={isGroup ? memberName || 'Your profile' : null}
           onAvatarPress={isGroup ? openMemberProfile : undefined}

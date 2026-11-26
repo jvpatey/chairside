@@ -28,8 +28,9 @@ export type ClinicDashboardHeroNaming = {
 };
 
 /**
- * Groups: greeting stays personal; title follows location scope so we don't
- * repeat the person (greeting + title) or the group (title + subtitle).
+ * Groups: the group name is always the title; the location pill below it (rendered
+ * by the dashboard) shows which clinic is selected, so the subtitle only carries that
+ * clinic's place — never the group or clinic name again.
  * Incomplete setup stays out of the subtitle — the Get Started checklist owns that CTA.
  * Individuals: greeting uses contact first name; title is the clinic name.
  */
@@ -37,26 +38,17 @@ export function getClinicDashboardHeroNaming(
   input: ClinicDashboardHeroNamingInput,
 ): ClinicDashboardHeroNaming {
   if (input.isGroup) {
-    const scopedLocation =
-      input.locationScope !== 'all'
-        ? input.accessibleLocations.find((location) => location.id === input.locationScope) ??
-          null
-        : null;
-    const groupName = input.groupName?.trim() || 'Dental group';
-    const locationName = scopedLocation?.name?.trim() || null;
-    const locationPlace = [scopedLocation?.city, scopedLocation?.province]
-      .filter(Boolean)
-      .join(', ');
+    const selectedLocation =
+      input.accessibleLocations.find((location) => location.id === input.locationScope) ??
+      input.accessibleLocations[0] ??
+      null;
+    const place = [selectedLocation?.city, selectedLocation?.province].filter(Boolean).join(', ');
 
     return {
       greetingName: getFirstNameToken(input.memberDisplayName),
-      displayName: locationName || groupName,
+      displayName: input.groupName?.trim() || 'Dental group',
       namePlaceholder: 'Your group',
-      subtitle: scopedLocation
-        ? locationPlace || 'Clinic location'
-        : input.accessibleLocations.length > 1
-          ? `${input.accessibleLocations.length} locations`
-          : locationPlaceFromFirst(input.accessibleLocations) || 'Dental group',
+      subtitle: place || 'Dental group',
       identityLine:
         input.isProfileComplete && input.memberRoleLabel
           ? input.memberRoleLabel
@@ -77,12 +69,4 @@ export function getClinicDashboardHeroNaming(
 function getFirstNameToken(fullName?: string | null): string | null {
   const first = fullName?.trim().split(/\s+/).filter(Boolean)[0];
   return first || null;
-}
-
-function locationPlaceFromFirst(
-  locations: ClinicDashboardHeroNamingInput['accessibleLocations'],
-): string {
-  const first = locations[0];
-  if (!first) return '';
-  return [first.city, first.province].filter(Boolean).join(', ');
 }

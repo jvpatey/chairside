@@ -1,15 +1,9 @@
-import type { ClinicBillingState } from '@chairside/api';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { ClinicPlanBadge } from '@/components/clinic/ClinicPlanBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
-import {
-  formatClinicSubscriptionStatus,
-  formatSubscriptionStatusBadge,
-} from '@/lib/clinicPlanPresentation';
 import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { fontSemibold, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
@@ -23,7 +17,6 @@ export type AccountMenuSheetHeaderProps = {
   avatarKind: 'worker' | 'clinic';
   photoUri?: string | null;
   isGroup?: boolean;
-  billing?: ClinicBillingState | null;
   locationCount?: number;
 };
 
@@ -96,38 +89,17 @@ export function AccountMenuSheetHeader({
   avatarKind,
   photoUri,
   isGroup = false,
-  billing,
   locationCount,
 }: AccountMenuSheetHeaderProps) {
   const trimmedEmail = email?.trim() || null;
   const trimmedMeta = meta?.trim() || null;
   const trimmedSubtitle = subtitle?.trim() || null;
-  const plan = billing?.plan;
-  const subscriptionNote =
-    billing && plan && plan !== 'free'
-      ? formatClinicSubscriptionStatus(billing.status, billing.currentPeriodEnd)
-      : null;
-  const statusBadge =
-    billing && plan && plan !== 'free' ? formatSubscriptionStatusBadge(billing.status) : null;
 
   const detailRows: InfoTableRowProps[] = [];
 
-  // Clinics keep plan / locations; workers skip "Account type" (role is already clear).
+  // Clinics keep account type / locations; workers skip "Account type" (role is already clear).
   if (role === 'clinic') {
     detailRows.push({ label: 'Account type', value: getAccountTypeLabel(role, { isGroup }) });
-    if (plan) {
-      detailRows.push({
-        label: 'Plan',
-        value: '',
-        valueNode: (
-          <PlanValue
-            plan={plan}
-            statusBadge={statusBadge}
-            subscriptionNote={subscriptionNote}
-          />
-        ),
-      });
-    }
     if (isGroup && locationCount != null && locationCount > 0) {
       detailRows.push({
         label: 'Locations',
@@ -228,44 +200,6 @@ export function AccountMenuSheetHeader({
             ))}
           </SurfaceCard>
         </View>
-      ) : null}
-    </View>
-  );
-}
-
-function PlanValue({
-  plan,
-  statusBadge,
-  subscriptionNote,
-}: {
-  plan: NonNullable<ClinicBillingState['plan']>;
-  statusBadge: ReturnType<typeof formatSubscriptionStatusBadge> | null;
-  subscriptionNote: string | null;
-}) {
-  const styles = useThemedStyles(({ colors }) => ({
-    wrap: {
-      alignItems: 'flex-end',
-      gap: 2,
-      flexShrink: 1,
-    },
-    statusLine: {
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.labelTertiary,
-      textAlign: 'right',
-    },
-  }));
-
-  return (
-    <View style={styles.wrap}>
-      <ClinicPlanBadge plan={plan} />
-      {statusBadge && statusBadge.label !== 'Active' ? (
-        <Text style={styles.statusLine}>{statusBadge.label}</Text>
-      ) : null}
-      {subscriptionNote ? (
-        <Text style={styles.statusLine} numberOfLines={2}>
-          {subscriptionNote}
-        </Text>
       ) : null}
     </View>
   );

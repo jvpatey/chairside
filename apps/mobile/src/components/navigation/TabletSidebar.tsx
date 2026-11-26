@@ -21,8 +21,6 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { getSidebarNavIconColor } from '@/components/navigation/sidebarNavIcons';
 import { AccountMenuSheetHeader } from '@/components/navigation/AccountMenuSheetHeader';
 import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
-import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
-import { ClinicPlanBadge } from '@/components/clinic/ClinicPlanBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
@@ -173,10 +171,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     accessibleLocations,
   } = useClinicProfile();
   const { billing } = useClinicBilling();
-  const showGroupLocationScope =
-    role === 'clinic' && isGroup && accessibleLocations.length > 0;
-  const showClinicPlanBadge = role === 'clinic';
-  const clinicPlan = billing?.plan ?? 'free';
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
   const shellRef = useRef<View>(null);
@@ -713,7 +707,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       avatarKind={role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic'}
       photoUri={role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri}
       isGroup={role === 'clinic' && isGroup}
-      billing={role === 'clinic' ? billing : null}
       locationCount={
         role === 'clinic' && isGroup
           ? (billing?.locationCount ?? accessibleLocations.length)
@@ -919,15 +912,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const recommendedUpgrade =
     role === 'clinic' && billing ? getRecommendedUpgradePlan(billing.plan, billing.planFamily) : null;
 
-  const planBadgeNode =
-    showClinicPlanBadge && !isCollapsed ? (
-      <ClinicPlanBadge
-        plan={clinicPlan}
-        compact
-        onPress={() => router.push(CLINIC_PROFILE_BILLING)}
-      />
-    ) : null;
-
   const accountMenuAccessibilityLabel = profileMeta
     ? `Account menu, ${profileName ?? 'Account'}, ${profileMeta}`
     : `Account menu, ${profileName ?? 'Account'}`;
@@ -951,10 +935,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             onPress={() => router.push(role === 'worker' ? WORKER_HOME : CLINIC_HOME)}
           />
         </View>
-        {showGroupLocationScope ? (
-          <ClinicLocationScopeSwitcher variant="sidebar" collapsed={isCollapsed} />
-        ) : null}
-        {planBadgeNode && !isCollapsed ? planBadgeNode : null}
       </View>
 
       <View

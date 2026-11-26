@@ -24,7 +24,6 @@ import { View } from 'react-native';
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { AddClinicNudge } from '@/components/clinic/AddClinicNudge';
-import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
@@ -73,7 +72,6 @@ import {
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import {
-  buildLocationGlanceRows,
   buildTeamPulseCounts,
   type TeamPulseCounts,
 } from '@/lib/groupDashboardMetrics';
@@ -116,7 +114,6 @@ export default function ClinicDashboardScreen() {
     groupDisplayName,
     locationScope,
     accessibleLocations,
-    setLocationScope,
   } = useClinicActingContext();
   const { isTablet } = useResponsiveLayout();
   const {
@@ -435,29 +432,6 @@ export default function ClinicDashboardScreen() {
   );
   const liveHomeRoles = useMemo(() => jobs.filter(isMainListJob).slice(0, 3), [jobs]);
 
-  const locationGlanceRows = useMemo(() => {
-    if (!isGroup || locationScope !== 'all' || accessibleLocations.length < 2) {
-      return [];
-    }
-    return buildLocationGlanceRows({
-      locations: accessibleLocations,
-      jobs,
-      shifts,
-      applications,
-    });
-  }, [accessibleLocations, applications, isGroup, jobs, locationScope, shifts]);
-
-  const focusLocation = useCallback(
-    (locationId: string) => {
-      if (isGroup) {
-        setLocationScope(locationId);
-        return;
-      }
-      router.push(CLINIC_FILL_INS);
-    },
-    [isGroup, setLocationScope],
-  );
-
   const dashboardBody = (
     <DashboardBodyLayout
       hero={
@@ -488,8 +462,8 @@ export default function ClinicDashboardScreen() {
             onStatusPress={() => router.push(CLINIC_FILL_INS)}
             hideProfileOnWebTablet
             contextSlot={
-              isGroup && !isTablet ? (
-                <ClinicLocationScopeSwitcher variant="hero" />
+              isGroup ? (
+                <ClinicLocationScopeSwitcher />
               ) : undefined
             }
           />
@@ -508,7 +482,7 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        managerAccessCopy || ownerUnassignedCopy || locationGlanceRows.length > 0 || showAddClinicNudge ? (
+        managerAccessCopy || ownerUnassignedCopy || showAddClinicNudge ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
               <AddClinicNudge visible={showAddClinicNudge} />
@@ -530,12 +504,6 @@ export default function ClinicDashboardScreen() {
                     Open Team & access from Settings to assign clinics.
                   </CardInfoPanelText>
                 </CardInfoPanel>
-              ) : null}
-              {locationGlanceRows.length > 0 ? (
-                <GroupLocationsGlanceWidget
-                  rows={locationGlanceRows}
-                  onSelectLocation={focusLocation}
-                />
               ) : null}
             </View>
           </FadeInSection>

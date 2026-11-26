@@ -39,6 +39,8 @@ export type ScreenProps = {
   onBack?: () => void;
   backLabel?: string;
   headerAccessory?: ReactNode;
+  /** Rendered directly under the page title (e.g. the group location switcher). */
+  scopeAccessory?: ReactNode;
   headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
   /** Soft edge-faded divider under the page title (Fill-ins / Roles hubs). */
@@ -83,6 +85,7 @@ export function Screen({
   onBack,
   backLabel = 'Back',
   headerAccessory,
+  scopeAccessory,
   headerVariant,
   constrainWidth = true,
   softHeaderDivider = false,
@@ -185,6 +188,11 @@ export function Screen({
     headerCompact: {
       marginBottom: spacing.sm,
     },
+    scopeRow: {
+      marginTop: -spacing.sm,
+      marginBottom: spacing.md,
+      alignItems: 'flex-start' as const,
+    },
     tabletSubtitle: {
       marginBottom: spacing.md,
     },
@@ -246,9 +254,14 @@ export function Screen({
     !showHeader && showTopBar && styles.headerCompact,
   ];
 
+  const scopeBlock = scopeAccessory && showHeader ? (
+    <View style={styles.scopeRow}>{scopeAccessory}</View>
+  ) : null;
+
   const headerInner = (
     <>
       {pageHeader}
+      {scopeBlock}
       {softDividerBlock}
     </>
   );
