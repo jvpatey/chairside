@@ -141,7 +141,7 @@ describe('getTabAccentForName', () => {
     expect(getTabAccentForName('calendar')).toBe('primary');
     expect(getTabAccentForName('browse')).toBe('primary');
     expect(getTabAccentForName('applications')).toBe('tertiary');
-    expect(getTabAccentForName('fillins')).toBe('secondary');
-    expect(getTabAccentForName('fill-ins')).toBe('secondary');
+    expect(getTabAccentForName('fillins')).toBe('primary');
+    expect(getTabAccentForName('fill-ins')).toBe('primary');
   });
 });

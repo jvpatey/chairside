@@ -1,5 +1,6 @@
 import {
   completeEmailSignUp,
+  finishClinicOtpAuth,
   finishWorkerOtpAuth,
   getAuthErrorMessage,
   getProfile,
@@ -59,6 +60,9 @@ export default function SignUpScreen() {
   const role = parseRole(roleParam);
   const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
   const isWorkerSignup = role === 'worker' && !pendingInviteToken;
+  /** Owner clinic signup uses OTP like workers; manager invites keep email/password. */
+  const isClinicOtpSignup = role === 'clinic' && !pendingInviteToken;
+  const isOtpSignup = isWorkerSignup || isClinicOtpSignup;
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
   const reducedMotion = useReducedMotion();
@@ -90,7 +94,10 @@ export default function SignUpScreen() {
     Boolean(firstName.trim()) &&
     Boolean(lastName.trim()) &&
     (channel === 'email' ? Boolean(email.trim()) : phone.replace(/\D/g, '').length === 10);
-  const canVerifyWorkerOtp = otpCode.trim().length >= 4;
+  const canSendClinicOtp =
+    channel === 'email' ? Boolean(email.trim()) : phone.replace(/\D/g, '').length === 10;
+  const canSendOtp = isWorkerSignup ? canSendWorkerOtp : canSendClinicOtp;
+  const canVerifyOtp = otpCode.trim().length >= 4;
 
   useEffect(() => {
     if (pendingInviteToken) {
@@ -115,20 +122,20 @@ export default function SignUpScreen() {
     },
     matchHintSuccess: {
       color: colors.success,
-      fontWeight: '500',
+      fontWeight: '500' as const,
     },
     matchHintError: {
       color: colors.destructive,
-      fontWeight: '500',
+      fontWeight: '500' as const,
     },
     footer: {
       gap: spacing.md,
       marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
     },
     switchRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
       gap: spacing.xs,
       paddingVertical: spacing.sm,
     },
@@ -145,7 +152,7 @@ export default function SignUpScreen() {
     switchLinkHovered: webTextLinkHoverStyles(colors),
     switchLink: {
       fontSize: 15,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       color: colors.primary,
     },
   }));
@@ -155,6 +162,14 @@ export default function SignUpScreen() {
       userId,
       role: 'worker',
       name: { firstName: firstName.trim(), lastName: lastName.trim() },
+      phoneE164: verifiedPhoneE164,
+    });
+    await handleAuthSuccess(refreshProfile, completeOnboarding, userId);
+  };
+
+  const finishClinicSession = async (userId: string, verifiedPhoneE164?: string | null) => {
+    await finishClinicOtpAuth({
+      userId,
       phoneE164: verifiedPhoneE164,
     });
     await handleAuthSuccess(refreshProfile, completeOnboarding, userId);
@@ -257,8 +272,8 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleSendWorkerOtp = async () => {
-    if (!role || isSubmitting || !canSendWorkerOtp) return;
+  const handleSendOtp = async () => {
+    if (!role || isSubmitting || !canSendOtp) return;
 
     setIsSubmitting(true);
     setFormError(null);
@@ -287,8 +302,8 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleVerifyWorkerOtp = async () => {
-    if (!role || isSubmitting || !canVerifyWorkerOtp) return;
+  const handleVerifyOtp = async () => {
+    if (!role || isSubmitting || !canVerifyOtp) return;
 
     setIsSubmitting(true);
     setFormError(null);
@@ -302,7 +317,11 @@ export default function SignUpScreen() {
         throw new Error('Could not verify that code. Try again.');
       }
 
-      await finishWorkerSession(session.user.id, channel === 'phone' ? phoneE164 : null);
+      if (role === 'clinic') {
+        await finishClinicSession(session.user.id, channel === 'phone' ? phoneE164 : null);
+      } else {
+        await finishWorkerSession(session.user.id, channel === 'phone' ? phoneE164 : null);
+      }
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
@@ -457,7 +476,7 @@ export default function SignUpScreen() {
     );
   }
 
-  const workerPrimaryLabel =
+  const otpPrimaryLabel =
     otpStep === 'code'
       ? isSubmitting
         ? 'Verifying…'
@@ -472,16 +491,13 @@ export default function SignUpScreen() {
       footer={
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
-            {isWorkerSignup ? (
+            {isOtpSignup ? (
               <OnboardingButton
-                label={workerPrimaryLabel}
+                label={otpPrimaryLabel}
                 disabled={
-                  isSubmitting ||
-                  (otpStep === 'code' ? !canVerifyWorkerOtp : !canSendWorkerOtp)
+                  isSubmitting || (otpStep === 'code' ? !canVerifyOtp : !canSendOtp)
                 }
-                onPress={() =>
-                  void (otpStep === 'code' ? handleVerifyWorkerOtp() : handleSendWorkerOtp())
-                }
+                onPress={() => void (otpStep === 'code' ? handleVerifyOtp() : handleSendOtp())}
               />
             ) : confirmationRequired ? (
               <OnboardingButton
@@ -518,7 +534,7 @@ export default function SignUpScreen() {
           </View>
         </View>
       }>
-      {confirmationRequired && !isWorkerSignup ? (
+      {confirmationRequired && !isOtpSignup ? (
         <>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
             <AuthScreenHeader
@@ -539,7 +555,7 @@ export default function SignUpScreen() {
               title={
                 pendingInviteToken
                   ? 'Create your clinic account'
-                  : isWorkerSignup
+                  : isOtpSignup
                     ? otpStep === 'code'
                       ? 'Enter your code'
                       : 'Create your account'
@@ -550,10 +566,12 @@ export default function SignUpScreen() {
                   ? 'Use the email your invitation was sent to, then you’ll join the group.'
                   : isWorkerSignup
                     ? 'Name plus phone or email — that’s it to get started.'
-                    : 'A few details to get you into Chairside.'
+                    : isClinicOtpSignup
+                      ? 'Phone or email, then your clinic name and address.'
+                      : 'A few details to get you into Chairside.'
               }
               onBack={() => {
-                if (isWorkerSignup && otpStep === 'code') {
+                if (isOtpSignup && otpStep === 'code') {
                   setOtpStep('contact');
                   setOtpCode('');
                   setFormSuccess(null);
@@ -573,7 +591,7 @@ export default function SignUpScreen() {
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
             <FormErrorBanner message={formError} />
             <FormSuccessBanner message={formSuccess} />
-            {isWorkerSignup ? (
+            {isOtpSignup ? (
               <WorkerOtpAuthForm
                 mode="sign-up"
                 step={otpStep}
@@ -590,12 +608,13 @@ export default function SignUpScreen() {
                 code={otpCode}
                 onCodeChange={setOtpCode}
                 editable={!isSubmitting}
+                showPersonName={isWorkerSignup}
                 onChangeContact={() => {
                   setOtpStep('contact');
                   setOtpCode('');
                   setFormSuccess(null);
                 }}
-                onResendCode={handleSendWorkerOtp}
+                onResendCode={handleSendOtp}
               />
             ) : (
               <>

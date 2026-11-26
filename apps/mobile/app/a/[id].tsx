@@ -2,7 +2,9 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { ClinicCoverDecisionPage } from '@/components/clinic/ClinicCoverDecisionPage';
 import { useAuth } from '@/contexts/AuthContext';
+import { parseListingOpenSource } from '@/lib/analytics/events';
 import { savePendingPublicListingHref } from '@/lib/pendingPublicListing';
 import {
   getClinicApplicationRoute,
@@ -13,12 +15,14 @@ import { useTheme } from '@/theme';
 
 /**
  * HTTPS deep-link landing for SMS handshake (`/a/{applicationId}`).
- * Routes signed-in clinics and professionals to the same decision/detail screens
- * used by in-app navigation.
+ * With `?t=` token: Companion Accept page (no login required).
+ * Without token: routes signed-in clinics/workers to in-app detail screens.
  */
 export default function ApplicationDeepLinkScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, t, src } = useLocalSearchParams<{ id?: string; t?: string; src?: string }>();
   const applicationId = typeof id === 'string' ? id : '';
+  const token = typeof t === 'string' ? t.trim() : '';
+  const source = parseListingOpenSource(src);
   const { session, profile, isAuthReady, isProfileReady } = useAuth();
   const { colors } = useTheme();
   const [ready, setReady] = useState(false);
@@ -27,6 +31,12 @@ export default function ApplicationDeepLinkScreen() {
     let cancelled = false;
 
     async function resolve() {
+      // Tokenized companion Accept — no auth redirect.
+      if (token) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+
       if (!applicationId || !isAuthReady) return;
 
       if (!session?.user?.id) {
@@ -64,10 +74,20 @@ export default function ApplicationDeepLinkScreen() {
     return () => {
       cancelled = true;
     };
-  }, [applicationId, isAuthReady, isProfileReady, profile?.role, session?.user?.id]);
+  }, [applicationId, isAuthReady, isProfileReady, profile?.role, session?.user?.id, token]);
 
   if (!applicationId) {
     return <Redirect href="/(onboarding)/welcome" />;
+  }
+
+  if (token) {
+    return (
+      <ClinicCoverDecisionPage
+        applicationId={applicationId}
+        token={token}
+        source={source}
+      />
+    );
   }
 
   if (!ready || !isAuthReady || (session && !isProfileReady)) {

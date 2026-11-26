@@ -779,6 +779,18 @@ export type Database = {
         Args: { application_id: string };
         Returns: ApplicationRow;
       };
+      create_fill_in_decision_token: {
+        Args: { p_application_id: string };
+        Returns: string;
+      };
+      get_fill_in_decision_preview: {
+        Args: { p_application_id: string; p_token: string };
+        Returns: Record<string, unknown> | null;
+      };
+      decide_fill_in_from_sms: {
+        Args: { p_application_id: string; p_token: string; p_decision: string };
+        Returns: Record<string, unknown>;
+      };
       cancel_confirmed_fill_in: {
         Args: { application_id: string; message?: string | null };
         Returns: ApplicationRow;

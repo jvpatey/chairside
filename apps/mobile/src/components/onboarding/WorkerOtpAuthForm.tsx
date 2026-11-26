@@ -28,6 +28,8 @@ type WorkerOtpAuthFormProps = {
   editable: boolean;
   onChangeContact?: () => void;
   onResendCode?: () => void | Promise<void>;
+  /** When false (clinic signup), hide first/last name fields. Default true. */
+  showPersonName?: boolean;
 };
 
 export function WorkerOtpAuthForm({
@@ -48,6 +50,7 @@ export function WorkerOtpAuthForm({
   editable,
   onChangeContact,
   onResendCode,
+  showPersonName = true,
 }: WorkerOtpAuthFormProps) {
   const [resendCooldown, setResendCooldown] = useState(OTP_RESEND_COOLDOWN_SECONDS);
   const [isResending, setIsResending] = useState(false);
@@ -193,7 +196,7 @@ export function WorkerOtpAuthForm({
 
   return (
     <View style={styles.form}>
-      {mode === 'sign-up' ? (
+      {mode === 'sign-up' && showPersonName ? (
         <>
           <AuthField
             label="First name"

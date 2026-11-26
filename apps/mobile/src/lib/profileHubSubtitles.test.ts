@@ -175,7 +175,7 @@ describe('getClinicLocationsSubtitle', () => {
     ).toBe('Add software to Downtown');
   });
 
-  it('shows location count when all locations are complete', () => {
+  it('prompts owners with one complete clinic to add another', () => {
     expect(
       getClinicLocationsSubtitle({
         isOwner: true,
@@ -190,9 +190,36 @@ describe('getClinicLocationsSubtitle', () => {
           },
         ],
       }),
-    ).toBe('1 location');
+    ).toBe('1 clinic · Add another anytime');
+  });
+
+  it('shows clinic count for multi-site owners', () => {
+    expect(
+      getClinicLocationsSubtitle({
+        isOwner: true,
+        locations: [
+          {
+            is_active: true,
+            name: 'Downtown',
+            address_line1: '1 Main St',
+            city: 'Halifax',
+            postal_code: 'B3H 1A1',
+            software_used: ['Dentrix'],
+          },
+          {
+            is_active: true,
+            name: 'Dartmouth',
+            address_line1: '2 Main St',
+            city: 'Dartmouth',
+            postal_code: 'B2Y 1A1',
+            software_used: ['Dentrix'],
+          },
+        ],
+      }),
+    ).toBe('2 clinics');
   });
 });
+
 
 describe('getClinicGroupProfileSubtitle', () => {
   it('prompts for the full group profile when name is missing', () => {

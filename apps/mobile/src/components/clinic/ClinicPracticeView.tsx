@@ -98,7 +98,7 @@ export function ClinicPracticeView({
         title="Contact"
         headerAccessory={sectionEditAccessory(onEditContact)}>
         <Text style={styles.hint}>
-          Your practice name and who candidates can reach.
+          Your practice name and phone — cover-request texts for fill-ins go to this number.
         </Text>
         <FieldBlock label="Clinic name">
           <FieldValue value={profile.clinic_name} />

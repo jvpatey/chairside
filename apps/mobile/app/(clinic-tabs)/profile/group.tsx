@@ -112,6 +112,7 @@ export default function ClinicGroupProfileScreen() {
             onChangeText={(text) => setPhone(formatPhoneNumber(text))}
             keyboardType="phone-pad"
             icon="call-outline"
+            hint="Cover-request texts for fill-ins go to this number."
           />
           <PracticeDoctorsInput
             value={practiceDoctors}

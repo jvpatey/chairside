@@ -1,5 +1,5 @@
 import type { ClinicProfile } from '@chairside/api';
-import { type ClinicProfileCompletenessLocation } from '@chairside/api';
+import { getMissingClinicProfileFields, type ClinicProfileCompletenessLocation } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -13,10 +13,11 @@ import {
   type GetStartedChecklistItem,
 } from '@/lib/getStartedChecklist';
 import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
+import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import {
   CLINIC_APPLICATIONS,
+  CLINIC_FINISH_PROFILE,
   CLINIC_PROFILE_TEAM,
-  CLINIC_SETUP_BASICS,
   getClinicMessagesRoute,
 } from '@/lib/routing';
 
@@ -94,8 +95,16 @@ export function ClinicReadinessChecklist({
             : 'Add your practice details so workers know who they are applying to.',
         complete: profileComplete,
         primary: !profileComplete,
-        onPress: () =>
-          router.push(managerNeedsAccess ? CLINIC_PROFILE_TEAM : CLINIC_SETUP_BASICS),
+        onPress: () => {
+          if (managerNeedsAccess) {
+            router.push(CLINIC_PROFILE_TEAM);
+            return;
+          }
+          const missing = getMissingClinicProfileFields(clinicProfile, { locations });
+          router.push(
+            missing.length > 0 ? getClinicPostingSetupHref(missing, isGroup) : CLINIC_FINISH_PROFILE,
+          );
+        },
       },
       {
         id: 'posting',
@@ -127,10 +136,13 @@ export function ClinicReadinessChecklist({
       },
     ],
     [
+      clinicProfile,
       hasEngagement,
       hasPosted,
       hasPostedFillIn,
       hasPostedRole,
+      isGroup,
+      locations,
       managerNeedsAccess,
       onPostFillIn,
       onPostRole,

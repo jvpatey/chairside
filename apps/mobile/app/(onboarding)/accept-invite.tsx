@@ -25,7 +25,7 @@ import {
   saveClinicInviteToken,
 } from '@/lib/clinicInviteSession';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
-import { CLINIC_HOME, CLINIC_SETUP_ACCOUNT_TYPE } from '@/lib/routing';
+import { CLINIC_FINISH_PROFILE, CLINIC_HOME } from '@/lib/routing';
 import {
   webHover,
   webPointer,
@@ -316,7 +316,7 @@ export default function AcceptClinicInviteScreen() {
   }, [preview]);
 
   if (!isClinicGroupsEnabled()) {
-    return <Redirect href={CLINIC_SETUP_ACCOUNT_TYPE} />;
+    return <Redirect href={CLINIC_FINISH_PROFILE} />;
   }
 
   if (!session) {

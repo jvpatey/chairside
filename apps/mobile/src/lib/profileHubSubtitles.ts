@@ -190,17 +190,21 @@ export function getClinicLocationsSubtitle(input: {
   const count = input.activeCount ?? active.length;
 
   if (count === 0) {
-    return input.isOwner ? 'Add clinic locations' : 'Clinics you manage';
+    return input.isOwner ? 'Add a clinic' : 'Clinics you manage';
   }
 
   const incomplete = active.find((location) => !isClinicLocationRecordComplete(location));
   if (incomplete) {
-    const label = incomplete.name?.trim() || 'a location';
+    const label = incomplete.name?.trim() || 'a clinic';
     if (!incomplete.software_used?.length) return `Add software to ${label}`;
     return `Finish address for ${label}`;
   }
 
-  return `${count} location${count === 1 ? '' : 's'}`;
+  if (count === 1 && input.isOwner) {
+    return '1 clinic · Add another anytime';
+  }
+
+  return `${count} clinic${count === 1 ? '' : 's'}`;
 }
 
 export function getClinicAboutSubtitle(

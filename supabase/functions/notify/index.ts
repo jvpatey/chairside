@@ -173,8 +173,29 @@ function buildFillInListingUrl(shiftId: string): string {
   return `${getPublicWebBaseUrl()}/f/${shiftId}?src=sms`;
 }
 
-function buildApplicationUrl(applicationId: string): string {
-  return `${getPublicWebBaseUrl()}/a/${applicationId}?src=sms`;
+function buildApplicationUrl(applicationId: string, decisionToken?: string | null): string {
+  const base = `${getPublicWebBaseUrl()}/a/${applicationId}?src=sms`;
+  const token = decisionToken?.trim();
+  if (!token) return base;
+  return `${base}&t=${encodeURIComponent(token)}`;
+}
+
+/** Mint a Companion Accept token for clinic cover-request SMS. */
+async function createFillInDecisionToken(
+  supabase: ReturnType<typeof createClient>,
+  applicationId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('create_fill_in_decision_token', {
+    p_application_id: applicationId,
+  });
+  if (error || typeof data !== 'string' || !data.trim()) {
+    console.error(
+      `[notify] create_fill_in_decision_token failed (applicationId=${applicationId})`,
+      error,
+    );
+    return null;
+  }
+  return data.trim();
 }
 
 /** Paid gate removed — fill-in SMS is core product while plans are revamped. */
@@ -1253,22 +1274,25 @@ async function handleApplicationInsert(
 
   let clinicSmsPhone: string | null = null;
   let clinicSmsMessage: string | null = null;
+  let clinicDecisionUrl = applicationUrl;
   if (isShiftRequest && shiftPostId) {
-    const [{ data: clinic }, { data: shift }] = await Promise.all([
+    const [{ data: clinic }, { data: shift }, decisionToken] = await Promise.all([
       supabase.from('clinic_profiles').select('phone').eq('id', clinicId).maybeSingle(),
       supabase
         .from('shift_posts')
         .select('shift_date, start_time, end_time')
         .eq('id', shiftPostId)
         .maybeSingle(),
+      createFillInDecisionToken(supabase, applicationId),
     ]);
     clinicSmsPhone = normalizeE164((clinic?.phone as string | null | undefined) ?? null);
+    clinicDecisionUrl = buildApplicationUrl(applicationId, decisionToken);
     clinicSmsMessage = buildClinicCoverRequestSms({
       workerName,
       shiftDate: (shift?.shift_date as string | null | undefined) ?? null,
       startTime: (shift?.start_time as string | null | undefined) ?? null,
       endTime: (shift?.end_time as string | null | undefined) ?? null,
-      decisionUrl: applicationUrl,
+      decisionUrl: clinicDecisionUrl,
     });
   }
 

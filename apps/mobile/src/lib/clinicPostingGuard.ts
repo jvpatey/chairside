@@ -54,8 +54,8 @@ export function guardClinicMemberAccess({
   isGroup,
   isOwner,
   assignedLocationIds = [],
-  ownerTitle = 'Complete your clinic profile',
-  ownerMessage = 'Finish your clinic profile to continue.',
+  ownerTitle = 'A few details first',
+  ownerMessage = 'Add your clinic name, phone, and address to post fill-ins.',
   onNavigate,
 }: GuardClinicMemberAccessInput): boolean {
   if (isProfileComplete) return true;
@@ -90,7 +90,7 @@ export function guardClinicMemberAccess({
       : ownerMessage;
   const setupHref = getClinicPostingSetupHref(missing, isGroup);
 
-  showPostingBlockedAlert(ownerTitle, message, 'Continue setup', setupHref, onNavigate);
+  showPostingBlockedAlert(ownerTitle, message, 'Continue', setupHref, onNavigate);
   return false;
 }
 

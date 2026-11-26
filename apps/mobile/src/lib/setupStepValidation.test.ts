@@ -89,6 +89,19 @@ describe('validateWorkerPlaceStep', () => {
 });
 
 describe('getClinicSetupStepGuard', () => {
+  it('keeps thin path on basics until name and phone are set', () => {
+    expect(
+      getClinicSetupStepGuard(
+        {
+          account_type: 'individual',
+          clinic_name: '',
+          phone: '',
+        } as never,
+        'location',
+      ),
+    ).toBe('/(clinic-setup)/basics');
+  });
+
   it('does not bounce group review to locations based on org profile address', () => {
     const group = {
       account_type: 'group' as const,

@@ -96,7 +96,30 @@ describe('getClinicSetupGateDecision', () => {
       }),
     ).toEqual({ type: 'redirect', href: '/(tabs)' });
   });
+
+  it('shows children for incomplete clinics after ready (soft gate)', () => {
+    expect(
+      getClinicSetupGateDecision({
+        isAuthReady: true,
+        session: {},
+        profile: { id: 'u1', role: 'clinic' } as never,
+        isProfileReady: true,
+        isClinicProfileReady: true,
+        clinicProfile: {
+          id: 'clinic-1',
+          account_type: 'individual',
+          clinic_name: null,
+          setup_completed_at: null,
+        } as never,
+        membership: null,
+        isOwner: true,
+        isClinicGroupsEnabled: false,
+        isClinicSetupComplete: () => false,
+      }),
+    ).toEqual({ type: 'children' });
+  });
 });
+
 
 describe('getWorkerSetupGateDecision', () => {
   it('stays loading while session exists but auth profile has not settled', () => {

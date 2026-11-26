@@ -5,6 +5,8 @@ import { getSignupEmailRedirectUrl } from './authSignup';
 import { getSupabaseClient } from './client';
 import type { PersonNameParts } from './authDisplayName';
 import { resolveFunctionErrorMessage } from './errors';
+import { setClinicAccountType } from './clinicOrganization';
+import { upsertClinicProfile } from './clinicProfile';
 import { updateProfileName, setProfileRole } from './profile';
 import type { UserRole } from './types';
 import { ensureWorkerProfileRow, upsertWorkerProfile } from './workerProfile';
@@ -351,5 +353,31 @@ export async function finishWorkerOtpAuth({
     if (storagePhone) {
       await upsertWorkerProfile(userId, { phone: storagePhone });
     }
+  }
+}
+
+type FinishClinicOtpAuthInput = {
+  userId: string;
+  phoneE164?: string | null;
+};
+
+/**
+ * After clinic OTP verify: set clinic role, bootstrap individual org, sync verified phone
+ * onto clinic_profiles for cover-request SMS.
+ */
+export async function finishClinicOtpAuth({
+  userId,
+  phoneE164,
+}: FinishClinicOtpAuthInput) {
+  await setProfileRole(userId, 'clinic');
+  await setClinicAccountType(userId, 'individual');
+
+  const storagePhone = phoneE164 ? authPhoneToStorageDigits(phoneE164) : null;
+  if (storagePhone) {
+    await upsertClinicProfile(userId, {
+      phone: storagePhone,
+      account_type: 'individual',
+      organization_id: userId,
+    });
   }
 }

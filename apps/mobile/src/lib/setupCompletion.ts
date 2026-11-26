@@ -32,3 +32,8 @@ export function isWorkerSetupComplete(profile: WorkerSetupProfile | null): boole
 export function canAccessWorkerTabs(profile: Pick<Profile, 'role'> | null | undefined): boolean {
   return profile?.role === 'worker';
 }
+
+/** Clinics may use the app immediately after choosing the clinic role (soft post gates). */
+export function canAccessClinicTabs(profile: Pick<Profile, 'role'> | null | undefined): boolean {
+  return profile?.role === 'clinic';
+}

@@ -38,6 +38,7 @@ import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionH
 import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { AnimateHeight } from '@/components/ui/AnimateHeight';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
 import { ResponsiveColumns } from '@/components/ui/ResponsiveLayout';
@@ -121,7 +122,7 @@ export default function ClinicFillInsScreen() {
   const { user } = useAuth();
   const { clinicId, scopedLocationIds, isGroup, isOwner, accessibleLocations } =
     useClinicActingContext();
-  const params = useLocalSearchParams<{ mode?: string; date?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; date?: string; posted?: string }>();
   const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const { refreshPending } = useFillInPending();
   const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
@@ -145,6 +146,9 @@ export default function ClinicFillInsScreen() {
   const [unreadMap, setUnreadMap] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [postedNotice, setPostedNotice] = useState(
+    () => params.posted === '1' || params.posted === 'true',
+  );
   const hasLoadedOnce = useRef(false);
   const { celebrationVisible, celebrationPayload, showCelebration, closeCelebration } =
     useHiringCelebration();
@@ -283,11 +287,23 @@ export default function ClinicFillInsScreen() {
     ],
     [activeFillInCount, historyFillInCount],
   );
+  useEffect(() => {
+    if (params.posted === '1' || params.posted === 'true') {
+      setPostedNotice(true);
+    }
+  }, [params.posted]);
+
+  useEffect(() => {
+    if (!postedNotice) return;
+    const timer = setTimeout(() => setPostedNotice(false), 8000);
+    return () => clearTimeout(timer);
+  }, [postedNotice]);
+
   const coveragePanelTabs = useMemo(
     () => [
       {
         value: 'requests' as const,
-        label: 'Requested',
+        label: 'Needs response',
         count: coverRequests.length,
         accent: 'secondary' as const,
         icon: 'mail-outline' as const,
@@ -435,7 +451,7 @@ export default function ClinicFillInsScreen() {
     return (
       <Screen
         title="Fill-ins"
-        subtitle="Open · Requested · Confirmed — coverage at a glance."
+        subtitle="Pros are texted when you post — you’ll get a text when someone requests."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -450,7 +466,7 @@ export default function ClinicFillInsScreen() {
       {upgradePrompt}
       <Screen
         title="Fill-ins"
-        subtitle="Open · Requested · Confirmed — coverage at a glance."
+        subtitle="Pros are texted when you post — you’ll get a text when someone requests."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -462,11 +478,14 @@ export default function ClinicFillInsScreen() {
               onRetry={() => void load()}
             />
           ) : null}
+          {postedNotice ? (
+            <FormSuccessBanner message="Fill-in posted — texts are going out to matching professionals." />
+          ) : null}
           <DashboardQuickActionsRow
             actions={[
               {
                 label: 'Post fill-in',
-                description: 'Temp or urgent shift',
+                description: 'We’ll text matching pros',
                 icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 dimmed: fillInLimitReached,
@@ -529,7 +548,7 @@ export default function ClinicFillInsScreen() {
                     fill={equalEmptyColumns}
                     icon={FILL_IN_ICON.outline}
                     title="No fill-ins yet"
-                    message="Post a fill-in when you need cover — matching professionals get a text right away."
+                    message="Post a fill-in and we’ll text matching professionals right away. Cover requests show up here — and in a text you can accept from."
                     ctaLabel={
                       isProfileComplete && !fillInLimitReached ? 'Post fill-in' : undefined
                     }
@@ -686,8 +705,8 @@ export default function ClinicFillInsScreen() {
                           embedded
                           fill={equalEmptyColumns}
                           icon="mail-outline"
-                          title="No requested cover yet"
-                          message="New requests from workers will appear here when they apply to cover a fill-in."
+                          title="No cover requests yet"
+                          message="When a professional replies YES or requests cover, they appear here. You’ll also get a text to accept or decline."
                         />
                       </View>
                     ) : (

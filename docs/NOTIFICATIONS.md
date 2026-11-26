@@ -40,8 +40,9 @@ Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API).
 
 **SMS handshake (fill-ins):**
 1. Fill-in posted → worker SMS with `Reply YES ####` (when `SMS_REPLY_ENABLED`) **and** a Details link to `/f/{shiftId}?src=sms`
-2. Cover requested → clinic SMS to `clinic_profiles.phone` with `/a/{applicationId}`
-3. Accept / decline / filled → worker SMS with `/a/{applicationId}` (or short filled notice)
+2. Cover requested → clinic SMS to `clinic_profiles.phone` with Companion Accept link `/a/{applicationId}?t={token}&src=sms` (“Accept or decline”)
+3. Clinic Accept/Decline on the companion page (token RPCs) — same rules as `confirm_fill_in_applicant` / reject; no clinic inbound SMS keywords
+4. Accept / decline / filled → worker SMS with `/a/{applicationId}` (or short filled notice)
 In-app + Expo push still fire alongside SMS.
 
 SMS send/reply funnels are also captured in PostHog (`sms_sent`, `sms_reply_yes`, etc.). See [ANALYTICS.md](./ANALYTICS.md).
@@ -53,9 +54,19 @@ Fill-in texts include a short HTTPS link to a **public listing companion page** 
 - Clinic-owned with replies on: `Reply YES 4821 to request. Details: https://chairside.app/f/{shiftId}?src=sms`
 - Clinic-owned with replies off: `Apply: https://chairside.app/f/{shiftId}` — preview + **Sign in to request cover**
 - Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login; never gets YES codes)
-- Application decision: `https://chairside.app/a/{applicationId}` — routes clinic/worker into the same detail screens used in-app
+- Clinic Companion Accept: `https://chairside.app/a/{applicationId}?t={token}&src=sms` — Accept/Decline without login ([`142_fill_in_decision_tokens.sql`](../supabase/migrations/142_fill_in_decision_tokens.sql))
+- Application deep link (no token): `https://chairside.app/a/{applicationId}` — signed-in clinic/worker routes into the same detail screens used in-app
 
 Permanent jobs use the same public preview at `/j/{id}` (push/in-app awareness; no SMS handshake). Live-only safe fields come from the `get_public_listing` RPC ([`136_public_listing.sql`](../supabase/migrations/136_public_listing.sql)). Universal links for `/f/*`, `/j/*`, and `/a/*` are registered in AASA + Android intent filters. Base URL comes from `APP_WEB_BASE_URL` / `EXPO_PUBLIC_WEB_BASE_URL` (fallback `https://chairsidedental.app`).
+
+### Companion Accept (clinic decide from SMS)
+
+When a fill-in cover request is created, `notify` mints a decision token via `create_fill_in_decision_token` (service role) and includes it on the clinic cover-request SMS. The companion page calls:
+
+- `get_fill_in_decision_preview(application_id, token)` — anon-safe preview
+- `decide_fill_in_from_sms(application_id, token, 'accept'|'decline')` — Accept reuses the same hire / auto-reject siblings / mark shift filled rules as `confirm_fill_in_applicant`; Decline rejects that application only
+
+Tokens are stored hashed, expire at the end of the shift day (Atlantic time), and are single-use after Accept or Decline.
 
 Android App Links: replace `REPLACE_WITH_PLAY_APP_SIGNING_SHA256` in [`apps/mobile/public/.well-known/assetlinks.json`](../apps/mobile/public/.well-known/assetlinks.json) with the Play App Signing certificate SHA-256 before shipping Android deep links from SMS.
 
@@ -202,7 +213,7 @@ eas build --profile production --platform ios
 
 | Event | Recipient | Type id | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
-| Application / cover request submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push; **+ SMS to clinic phone** for fill-in cover requests (`/a/{id}`) | `applications_interviews` |
+| Application / cover request submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push; **+ SMS to clinic phone** for fill-in cover requests (Companion Accept `/a/{id}?t=…`) | `applications_interviews` |
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push; **+ SMS** for fill-in hired/selected/rejected/filled (`/a/{id}`) | `applications_interviews` |
 | Clinic requests full application kit | Worker | `application_kit_requested` | in-app + Expo push | `applications_interviews` |
 | Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |

@@ -2,11 +2,14 @@
  * Product model: SMS-first fill-in coverage with a thin companion app.
  *
  * - SMS discovers and acts (offer → Reply YES → clinic Best Match confirm).
+ * - Clinic cover-request SMS uses Companion Accept: `/a/{id}?t={token}&src=sms`
+ *   (Accept/Decline without full app login). Signed-in `/a/{id}` still deep-links
+ *   into in-app detail. Same rules as `confirm_fill_in_applicant`.
  * - Web/mobile holds details, contact, map, and status — not a browse marketplace.
  * - Permanent roles stay lightweight awareness (`THIN_PERMANENT_ROLES`).
  *
- * YES means “request cover,” not auto-hire. Clinic confirms via
- * `confirm_fill_in_applicant`. Instant Fill (first YES wins) is out of scope.
+ * YES means “request cover,” not auto-hire. Instant Fill (first YES wins) is
+ * out of scope. Clinic inbound ACCEPT keywords are out of scope for now.
  */
 export const SMS_FIRST_FILL_INS = true;
 

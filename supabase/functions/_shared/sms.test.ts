@@ -211,15 +211,17 @@ Deno.test('outreach SMS fits one segment with and without shift details', () => 
   );
 });
 
-Deno.test('clinic cover-request SMS includes decision URL', () => {
+Deno.test('clinic cover-request SMS includes Accept or decline CTA', () => {
   const sms = buildClinicCoverRequestSms({
     workerName: 'Alex Chen',
     shiftDate: '2026-09-27',
     startTime: '08:00',
     endTime: '16:00',
-    decisionUrl: 'https://chairside.app/a/11111111-2222-3333-4444-555555555555?src=sms',
+    decisionUrl:
+      'https://chairside.app/a/11111111-2222-3333-4444-555555555555?src=sms&t=abc123',
   });
   assertStringIncludes(sms, 'Alex Chen requested');
+  assertStringIncludes(sms, 'Accept or decline:');
   assertStringIncludes(sms, 'chairside.app/a/');
   assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
   assert(isGsmOnly(sms));

@@ -17,6 +17,10 @@ import { consumePendingPublicListingHref } from '@/lib/pendingPublicListing';
 import { resolveAuthenticatedRoute } from '@/lib/resolveAuthenticatedRoute';
 import { WORKER_HOME } from '@/lib/routing';
 import {
+  getNextClinicPostAuthCaptureStep,
+  getClinicPostAuthCaptureHref,
+} from '@/lib/clinicPostAuthCapture';
+import {
   getNextWorkerPostAuthCaptureStep,
   getWorkerPostAuthCaptureHref,
 } from '@/lib/workerPostAuthCapture';
@@ -72,6 +76,14 @@ export async function handleAuthSuccess(
     const captureStep = await getNextWorkerPostAuthCaptureStep(userId);
     if (captureStep) {
       router.replace(getWorkerPostAuthCaptureHref(captureStep));
+      return;
+    }
+  }
+
+  if (role === 'clinic') {
+    const captureStep = await getNextClinicPostAuthCaptureStep(userId);
+    if (captureStep) {
+      router.replace(getClinicPostAuthCaptureHref(captureStep));
       return;
     }
   }

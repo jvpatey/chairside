@@ -33,6 +33,7 @@ export {
   authUserHasPhone,
   authUserHasVerifiedPhone,
   finishWorkerOtpAuth,
+  finishClinicOtpAuth,
   normalizeAuthPhone,
   clearAuthPhoneBind,
   reclaimAuthPhone,

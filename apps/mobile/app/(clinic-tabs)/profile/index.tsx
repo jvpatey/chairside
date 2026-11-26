@@ -164,10 +164,10 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
             />
           ) : null}
-          {groupsEnabled && isGroup ? (
+          {groupsEnabled && (isOwner || isGroup) ? (
             <ProfileSettingsRow
               icon="business-outline"
-              title="Locations"
+              title="Clinics"
               subtitle={getClinicLocationsSubtitle({
                 locations,
                 isOwner,

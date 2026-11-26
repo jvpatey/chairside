@@ -1,12 +1,18 @@
-# Auth (workers)
+# Auth
 
 ## Worker sign-up / sign-in
 
 Workers sign up with **name + phone or email**, verified by a one-time code (OTP). Google and Apple remain available. Existing accounts can still sign in with **email + password**.
 
-Clinic accounts (including invites) keep email/password for now.
-
 After auth, workers get focused capture screens only for what’s missing — **name → phone (if none) → role + area (city/province)** — then land in the main app. Phone and role/area are skippable (“Skip for now”); name is required. Apply / cover still soft-gate on a complete worker profile. Fill-in SMS still requires `setup_completed_at` (set automatically once core profile fields are saved).
+
+## Clinic sign-up / sign-in
+
+Clinic **owners** sign up with **phone or email OTP** (same stack as workers; Google/Apple remain). The clinic name screen asks **Single clinic** (default) or **Group of clinics**; a single clinic can add more clinics later under Settings → Clinics (auto-promotes to group).
+
+After auth, clinics get focused capture screens (same OnboardingShell pattern as workers — **no setup sidebar/wizard**) for what’s missing — **clinic name → phone (if none) → physical address** — then land in clinic tabs. Phone and address are skippable for browsing; posting soft-gates until clinic name + phone + complete address are saved (Continue → next capture screen). For groups the address screen collects each clinic as name + address with **Save and add another clinic** (Free: up to 2 clinics; a 3rd opens the upgrade prompt without losing entries); the group name is separate from clinic names. Verified Auth phones are copied onto `clinic_profiles.phone` for cover-request SMS.
+
+**Manager invites** still use email/password (or OAuth) with the invite email, then accept-invite — not the owner OTP path.
 
 **Phone must be linked on Supabase Auth** (not only `worker_profiles.phone`) for phone OTP sign-in to find the same account. Adding a number after email sign-up sends a verify SMS (`updateUser` + `phone_change` OTP). Sign-in phone OTP uses `shouldCreateUser: false` so unknown numbers do not mint empty accounts.
 
@@ -80,9 +86,10 @@ supabase secrets set SEND_SMS_HOOK_SECRET='v1,whsec_...'
 
 ### 5. Smoke test
 
-1. App → worker sign-up → phone → Send code
+1. App → worker or clinic sign-up → phone → Send code
 2. Text arrives via Pingram; code signs you in
 3. Confirm the send under Pingram Canada **Logs** (`auth_otp`)
+4. Clinic path: capture clinic name (+ phone if email-only) → address → clinic tabs; posting soft-gates until complete
 
 ## Email OTP / OAuth
 
@@ -95,7 +102,7 @@ Worker email auth calls `signInWithOtp` and the app asks for a **numeric code**.
 - **Existing / confirmed users** → **Magic Link** template
 - **Brand-new emails** while **Confirm email** is enabled → **Confirm signup** template (this was sending a link-only message)
 
-Both templates must include `{{ .Token }}`. Prefer **Confirm email** off (`mailer_autoconfirm`) so first-time OTP uses Magic Link like phone OTP. Clinic password signup still works; confirmation is implicit.
+Both templates must include `{{ .Token }}`. Prefer **Confirm email** off (`mailer_autoconfirm`) so first-time OTP uses Magic Link like phone OTP. Clinic owner signup uses the same email OTP path; manager invites may still use password.
 
 1. Supabase → **Authentication → Providers → Email** → turn **Confirm email** **Off** (or leave On only if you need link confirm for clinics)
 2. **Emails → Magic Link** → [`supabase/templates/magic-link.html`](../supabase/templates/magic-link.html) · subject `Your Chairside sign-in code`
@@ -110,6 +117,9 @@ Google / Apple OAuth are unchanged.
 
 - Hook: `supabase/functions/send-auth-sms/index.ts`
 - OTP helpers: `packages/api/src/authOtp.ts`
-- Worker signup/sign-in UI: `apps/mobile/app/(onboarding)/sign-up.tsx`, `sign-in.tsx`
-- Soft tab access: `apps/mobile/src/lib/setupCompletion.ts` (`canAccessWorkerTabs`)
+- Signup/sign-in UI: `apps/mobile/app/(onboarding)/sign-up.tsx`, `sign-in.tsx`
+- Soft tab access: `apps/mobile/src/lib/setupCompletion.ts` (`canAccessWorkerTabs`, `canAccessClinicTabs`)
+- Clinic post-auth capture: `apps/mobile/src/lib/clinicPostAuthCapture.ts`
+- Clinic completeness / soft post gate: `packages/api/src/clinicProfileValidation.ts`, `apps/mobile/src/lib/clinicPostingGuard.ts`
+- Multi-location later: [CLINIC_GROUPS.md](./CLINIC_GROUPS.md)
 - Product SMS (fill-ins): [NOTIFICATIONS.md](./NOTIFICATIONS.md)

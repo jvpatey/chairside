@@ -199,7 +199,7 @@ export function buildClinicCoverRequestSms(input: {
   const worker = input.workerName.trim() || 'A professional';
   const url = input.decisionUrl.trim();
   const build = (name: string) =>
-    `Chairside: ${name} requested your fill-in for ${details}. Review: ${url}`;
+    `Chairside: ${name} requested your fill-in for ${details}. Accept or decline: ${url}`;
 
   return fitSms(
     [build(worker), build(truncateName(worker, 24))],

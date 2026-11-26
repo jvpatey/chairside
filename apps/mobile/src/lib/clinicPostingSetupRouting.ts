@@ -1,25 +1,33 @@
 import type { Href } from 'expo-router';
 
 import {
-  CLINIC_PROFILE_GROUP,
-  CLINIC_PROFILE_LOCATIONS,
-  CLINIC_PROFILE_MEMBER,
-  CLINIC_SETUP_BASICS,
+  CLINIC_CAPTURE_ADDRESS,
+  CLINIC_CAPTURE_PHONE,
+  CLINIC_FINISH_PROFILE,
 } from '@/lib/routing';
 
-export function getClinicPostingSetupHref(missing: string[], isGroup: boolean): Href {
-  if (!isGroup) {
-    return CLINIC_SETUP_BASICS;
-  }
-
-  if (missing.some((field) => field.includes('location'))) {
-    return CLINIC_PROFILE_LOCATIONS;
-  }
+/**
+ * Soft post-gate destination — focused capture screens (no clinic-setup wizard).
+ * Mirrors worker soft-gate → finish profile, using the next missing capture step.
+ */
+export function getClinicPostingSetupHref(missing: string[], _isGroup?: boolean): Href {
   if (missing.includes('Clinic name')) {
-    return CLINIC_PROFILE_GROUP;
+    return CLINIC_FINISH_PROFILE;
   }
-  if (missing.includes('Phone') || missing.includes('Phone or contact name')) {
-    return CLINIC_PROFILE_MEMBER;
+  if (missing.includes('Phone')) {
+    return CLINIC_CAPTURE_PHONE;
   }
-  return CLINIC_PROFILE_LOCATIONS;
+  if (
+    missing.some(
+      (field) =>
+        field.includes('Street') ||
+        field.includes('City') ||
+        field.includes('Postal') ||
+        field.includes('location') ||
+        field.includes('address'),
+    )
+  ) {
+    return CLINIC_CAPTURE_ADDRESS;
+  }
+  return CLINIC_FINISH_PROFILE;
 }

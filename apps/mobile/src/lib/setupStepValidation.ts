@@ -21,19 +21,13 @@ export type WorkerSetupStepId = 'basics' | 'location' | 'fill-ins' | 'review';
 
 export function validateClinicBasicsStep(values: {
   clinicName: string;
-  contactName: string;
+  contactName?: string;
   phone: string;
-  /** Groups may satisfy contact via org phone or contact name. */
+  /** @deprecated Groups no longer relax the phone requirement. */
   isGroup?: boolean;
 }): SetupValidationResult {
   if (!values.clinicName.trim()) {
     return { ok: false, message: 'Enter your clinic name to continue.' };
-  }
-  if (values.isGroup) {
-    if (!values.contactName.trim() && !values.phone.trim()) {
-      return { ok: false, message: 'Enter a phone number or contact name to continue.' };
-    }
-    return { ok: true, message: null };
   }
   if (!normalizePhoneForStorage(values.phone)) {
     return { ok: false, message: 'Enter a clinic phone number to continue.' };
@@ -89,12 +83,9 @@ export function validateWorkerBasicsStep(values: {
 }
 
 export function isClinicBasicsComplete(profile: ClinicProfile | null): boolean {
-  const isGroup = profile?.account_type === 'group';
   return validateClinicBasicsStep({
     clinicName: profile?.clinic_name ?? '',
-    contactName: profile?.contact_name ?? '',
     phone: profile?.phone ?? '',
-    isGroup,
   }).ok;
 }
 
@@ -137,11 +128,11 @@ export function getClinicSetupStepGuard(
   if (step === 'basics') return null;
   if (!isClinicBasicsComplete(profile)) return CLINIC_SETUP_BASICS;
 
-  // Group addresses live on clinic_locations, not the org profile row.
-  if (profile?.account_type === 'group') return null;
-
   if (step === 'location') return null;
-  if (!isClinicLocationComplete(profile)) return CLINIC_SETUP_LOCATION;
+  // Address may live on clinic_locations for multi-site accounts; profile mirror is enough for the thin path.
+  if (!isClinicLocationComplete(profile) && profile?.account_type !== 'group') {
+    return CLINIC_SETUP_LOCATION;
+  }
   return null;
 }
 

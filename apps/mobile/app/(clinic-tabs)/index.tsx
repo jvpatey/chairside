@@ -5,6 +5,7 @@ import {
   getShiftPostApplicationCount,
   getShiftPostListingViewCountsMap,
   getShiftPostPendingApplicationCountsMap,
+  isClinicGroupsEnabled,
   listClinicApplications,
   listClinicInvitations,
   listClinicMemberships,
@@ -22,6 +23,7 @@ import { View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
 import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
+import { AddClinicNudge } from '@/components/clinic/AddClinicNudge';
 import { GroupLocationsGlanceWidget } from '@/components/clinic/GroupLocationsGlanceWidget';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
@@ -96,8 +98,14 @@ export default function ClinicDashboardScreen() {
   const { refreshUnread } = useMessageUnread();
   const { pendingCount: fillInUpdateCount } = useFillInPending();
   const { pendingCount: applicationUpdateCount } = useApplicationTabBadge();
-  const { clinicProfile, isProfileComplete, locations, organization, membership } =
-    useClinicProfile();
+  const {
+    clinicProfile,
+    isClinicProfileReady,
+    isProfileComplete,
+    locations,
+    organization,
+    membership,
+  } = useClinicProfile();
   const {
     clinicId,
     scopedLocationIds,
@@ -153,7 +161,30 @@ export default function ClinicDashboardScreen() {
   const [loadError, setLoadError] = useState(false);
   const hasLoadedOnce = useRef(false);
   const loadDashboard = useCallback(async () => {
-    if (!clinicId) return;
+    if (!clinicId) {
+      if (!isClinicProfileReady) return;
+      setCounts({
+        openRoles: 0,
+        fillInsPosted: 0,
+        totalApplications: 0,
+        newApplications: 0,
+        openRolesWeekDelta: 0,
+        fillInsWeekDelta: 0,
+        applicationsWeekDelta: 0,
+      });
+      setJobs([]);
+      setShifts([]);
+      setApplicantCounts({});
+      setJobViewCounts({});
+      setShiftPendingCounts({});
+      setShiftApplicationCounts({});
+      setShiftViewCounts({});
+      setApplications([]);
+      setTeamPulse({ pendingInvites: 0, unassignedManagers: 0 });
+      setLoadError(false);
+      setIsLoading(false);
+      return;
+    }
 
     if (!hasLoadedOnce.current) {
       setIsLoading(true);
@@ -239,7 +270,15 @@ export default function ClinicDashboardScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [clinicId, isGroup, isOwner, refreshBilling, refreshUnread, scopedLocationIds]);
+  }, [
+    clinicId,
+    isClinicProfileReady,
+    isGroup,
+    isOwner,
+    refreshBilling,
+    refreshUnread,
+    scopedLocationIds,
+  ]);
 
   useRefreshOnFocus(loadDashboard);
 
@@ -315,6 +354,13 @@ export default function ClinicDashboardScreen() {
     isGroup && isOwner && teamPulse.unassignedManagers > 0
       ? getOwnerUnassignedManagersCopy(teamPulse.unassignedManagers)
       : null;
+  const activeLocationCount = useMemo(
+    () => locations.filter((location) => location.is_active).length,
+    [locations],
+  );
+  // Single-clinic owners with a finished profile get a gentle prompt to add their other sites.
+  const showAddClinicNudge =
+    isOwner && isProfileComplete && isClinicGroupsEnabled() && activeLocationCount < 2;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
   const {
@@ -462,9 +508,10 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        managerAccessCopy || ownerUnassignedCopy || locationGlanceRows.length > 0 ? (
+        managerAccessCopy || ownerUnassignedCopy || locationGlanceRows.length > 0 || showAddClinicNudge ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
+              <AddClinicNudge visible={showAddClinicNudge} />
               {managerAccessCopy ? (
                 <CardInfoPanel
                   variant="info"
@@ -532,7 +579,7 @@ export default function ClinicDashboardScreen() {
                 <DashboardEmptyState
                   icon={FILL_IN_ICON.outline}
                   title="No open fill-ins"
-                  message="Post a fill-in and we’ll text matching professionals."
+                  message="Post a fill-in and we’ll text matching professionals. Cover requests show up here and by text."
                   accent="secondary"
                 />
               ) : (

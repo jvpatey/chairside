@@ -1,6 +1,6 @@
 # Clinic groups
 
-Clinic accounts can be **individual** (one location) or **group** (multiple locations with invited managers).
+Clinic accounts are either a **single clinic** (org + one location) or a **group** (org + named locations + optional managers). Owners choose at signup on the name screen (default: single clinic). A single clinic that later adds a second clinic under Settings → **Clinics** is auto-promoted to **group**.
 
 ## Feature flag
 
@@ -10,30 +10,42 @@ Enabled by default. Disable with:
 EXPO_PUBLIC_CLINIC_GROUPS_ENABLED=0
 ```
 
-When disabled, clinics use the existing single-location setup path.
+When disabled, clinics stay on the single-location path (no Clinics / Team settings).
 
-## Setup flow
+## Setup flow (one path)
 
-**Individual:** account type → basics → location → practice → about → review
+**OTP signup** (phone or email) → focused onboarding capture screens (no clinic-setup sidebar/wizard): **clinic or group name → phone → physical address** → clinic tabs (soft). No manager/dentist name requirement, no mandatory review.
 
-**Group:** account type → group basics (includes owner **Your profile**: name, title, optional bio + photo) → **locations** → team → about → review
+**Name screen:** a two-option control, **Single clinic** (default) or **Group of clinics**. Single asks “What’s your clinic called?”; group asks “What’s your group called?” (group name is the organization name, never a location). Choosing group sets `account_type = group` up front. The control is hidden once a clinic address has been saved.
 
-### Per location (Locations step)
+**Address screen**
+- **Single:** one address, saved on the practice profile (the DB mirrors it to the clinic’s only location). No add-another link; footnote points to Settings → Clinics for more clinics later.
+- **Group:** each clinic is a named location (**Clinic name** + address) created with `createClinicLocation`, with a list of saved clinics and **Save and add another clinic**. The group name is not reused as a location name. The DB trigger only auto-creates/renames locations for individual accounts, so group locations are managed entirely by the app.
+- Free group accounts include up to **2 clinics**; a 3rd opens the upgrade prompt and keeps the clinics already entered.
 
-Each site collects: name, optional **clinic photo**, address, phone, specialty, software, operatories, and team size. Locations are editable (add / edit / remove) during setup and later from **Profile → Locations**. The first / default location is mirrored onto `clinic_profiles` (including its photo) so marketplace completeness and browse stay compatible — this is internal, not a user-facing “primary” badge.
+After signup, single-clinic owners with a complete profile see an **Add a clinic** nudge on the dashboard (dismissible with “Not now”, remembered on device). A single clinic that adds a second clinic is promoted to group before the insert (so the plan limit trigger counts the right family; rolled back if the insert is rejected). In **Settings → Clinics**, once there are 2+ clinics, if the first site still uses the original clinic name, a **Rename first clinic** prompt appears.
 
-### Org-level (About step)
+Analytics: `clinic_signup_account_type_selected`, `clinic_signup_address_saved`, `clinic_signup_add_another_tapped`, `clinic_signup_address_skipped`, `clinic_signup_location_added`, `clinic_signup_location_limit_hit`, `clinic_add_clinic_nudge_tapped`, `clinic_add_clinic_nudge_dismissed`, `clinic_location_added_later` (`apps/mobile/src/lib/analytics/events.ts`).
 
-Shared across the group: practice doctors, description, and website. Specialty, software, and clinic photo are **not** collected again here for groups — those live on each location. Individual clinics still set their logo on About.
+Posting soft-gates until name + phone + complete address are present (Continue opens the next capture screen). Practice / about / team enrichment stay in Settings.
 
-Practice doctors stay on the org profile (`practice_doctors` JSON) and can be assigned to **one or more locations** (`location_ids`) during About — useful when a doctor works at multiple sites. When the group has active locations, at least one location is required per doctor.
+### Adding clinics later
 
-## Profile hub (group)
+Owners open **Settings → Clinics** to add another site (name + address + optional practice fields). The second active location promotes the account to group. When 2+ clinics exist, the fill-in post form shows a clinic picker.
 
-- **Your profile** — owners and managers edit their membership name, title, bio, and photo (`clinic_memberships`). Shown in sidebar / hero chrome when set.
-- **Practice details** — hidden for groups (use **Locations**).
-- **About** — owners only (group story, website, practice doctors).
-- Owners without a personal photo can still change the mirrored org logo from the profile hero; managers never edit the org logo.
+Each site can include: name, optional **clinic photo**, address, phone, specialty, software, operatories, and team size. The first / default location is mirrored onto `clinic_profiles` for marketplace compatibility — internal, not a user-facing “primary” badge.
+
+### Org-level (About / Group profile)
+
+Shared across multi-site accounts: practice doctors, description, and website. Specialty, software, and clinic photo live on each clinic row. Practice doctors (`practice_doctors` JSON) can be assigned to one or more `location_ids`.
+
+## Profile hub
+
+- **Clinics** — owners add/edit sites (individuals included so they can grow into a group). Managers see assigned clinics only.
+- **Your profile** — group owners/managers edit membership name, title, bio, photo.
+- **Practice details** — single-site clinics; multi-site uses Clinics.
+- **Team & access** — group owners invite managers after multi-location exists.
+- **About / Group profile** — owners only for story, website, doctors.
 
 ## Access model
 
@@ -46,7 +58,7 @@ Free group accounts (plan `free` + `account_type=group`) can use up to **2 locat
 
 ### Manager invitations
 
-Owners invite managers from setup **Team** or **Profile → Team & access**:
+Owners invite managers from **Settings → Team & access** after multi-location exists:
 
 1. Owner picks email, optional name/title, and **at least one location** (locations start unselected).
 2. Creating a pending invite INSERT triggers the `notify` edge function → Pingram email with link `https://chairside.app/accept-invite?token=…`.

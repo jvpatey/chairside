@@ -11,6 +11,7 @@ vi.mock('@chairside/api', () => ({
 }));
 
 import {
+  canAccessClinicTabs,
   canAccessWorkerTabs,
   isClinicSetupComplete,
   isWorkerSetupComplete,
@@ -51,6 +52,14 @@ describe('canAccessWorkerTabs', () => {
     expect(canAccessWorkerTabs({ role: 'worker' })).toBe(true);
     expect(canAccessWorkerTabs({ role: 'clinic' })).toBe(false);
     expect(canAccessWorkerTabs(null)).toBe(false);
+  });
+});
+
+describe('canAccessClinicTabs', () => {
+  it('is true only for the clinic role (soft gate; completeness not required)', () => {
+    expect(canAccessClinicTabs({ role: 'clinic' })).toBe(true);
+    expect(canAccessClinicTabs({ role: 'worker' })).toBe(false);
+    expect(canAccessClinicTabs(null)).toBe(false);
   });
 });
 

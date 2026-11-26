@@ -25,7 +25,7 @@ import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
-import { CLINIC_HOME_WELCOME } from '@/lib/routing';
+import { CLINIC_HOME, CLINIC_HOME_WELCOME } from '@/lib/routing';
 import { fontSemibold, useThemedStyles } from '@/theme';
 
 function specialtyLabel(specialty: string | null | undefined): string {
@@ -301,10 +301,10 @@ export default function ClinicReviewScreen() {
 
   if (!isClinicProfileReady || !clinicProfile) return null;
 
-  // Finishing stamps setup_completed_at, which would otherwise look like
-  // edit-mode and bounce to Profile instead of the dashboard welcome.
-  if (isEditMode && !isFinishing) {
-    return <Redirect href={exitHref} />;
+  // Signup no longer uses the review wizard — capture screens + soft post gates instead.
+  // Edit-mode deep links bounce to Profile; finishing stamps setup_completed_at first.
+  if (!isFinishing) {
+    return <Redirect href={isEditMode ? exitHref : CLINIC_HOME} />;
   }
 
   return (

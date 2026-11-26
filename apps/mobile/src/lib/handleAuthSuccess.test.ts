@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
   getNextWorkerPostAuthCaptureStep: vi.fn(),
   getWorkerPostAuthCaptureHref: vi.fn((step: string) => `/(onboarding)/capture-${step}`),
+  getNextClinicPostAuthCaptureStep: vi.fn(),
+  getClinicPostAuthCaptureHref: vi.fn((step: string) => `/(onboarding)/capture-clinic-${step}`),
 }));
 
 vi.mock('@chairside/api', () => ({
@@ -62,6 +64,11 @@ vi.mock('@/lib/workerPostAuthCapture', () => ({
   getWorkerPostAuthCaptureHref: mocks.getWorkerPostAuthCaptureHref,
 }));
 
+vi.mock('@/lib/clinicPostAuthCapture', () => ({
+  getNextClinicPostAuthCaptureStep: mocks.getNextClinicPostAuthCaptureStep,
+  getClinicPostAuthCaptureHref: mocks.getClinicPostAuthCaptureHref,
+}));
+
 import { handleAuthSuccess } from './handleAuthSuccess';
 
 describe('handleAuthSuccess invite resume', () => {
@@ -82,6 +89,16 @@ describe('handleAuthSuccess invite resume', () => {
       role: 'clinic',
     });
     mocks.getNextWorkerPostAuthCaptureStep.mockResolvedValue(null);
+    mocks.getNextClinicPostAuthCaptureStep.mockResolvedValue(null);
+  });
+
+  it('routes clinics into the next post-auth capture step', async () => {
+    mocks.readClinicInviteToken.mockResolvedValue(null);
+    mocks.getNextClinicPostAuthCaptureStep.mockResolvedValue('clinic-name');
+
+    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith('/(onboarding)/capture-clinic-clinic-name');
   });
 
   it('routes workers into the next post-auth capture step', async () => {

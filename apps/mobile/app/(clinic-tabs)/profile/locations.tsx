@@ -26,6 +26,7 @@ import {
   uploadPendingLocationPhoto,
 } from '@/components/clinic/ClinicLocationPhotoField';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
+import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import {
@@ -42,6 +43,8 @@ import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
+import { AnalyticsEvents } from '@/lib/analytics/events';
+import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatPhoneNumber } from '@/lib/phone';
@@ -229,10 +232,12 @@ export default function ClinicLocationsSettingsScreen() {
 
   useEffect(() => {
     if (!isClinicProfileReady) return;
-    if (!groupsEnabled || !isGroup) {
+    // Owners can add a second clinic from here (auto-promotes to group).
+    // Managers only use this when already on a group account.
+    if (!groupsEnabled || (!isOwner && !isGroup)) {
       navigateToClinicProfileHub(router);
     }
-  }, [groupsEnabled, isClinicProfileReady, isGroup]);
+  }, [groupsEnabled, isClinicProfileReady, isGroup, isOwner]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -296,15 +301,29 @@ export default function ClinicLocationsSettingsScreen() {
     [accessibleLocations, activeLocations, isOwner],
   );
 
+  // After a single clinic becomes a group, its first site still carries the group name.
+  const primaryLocation = useMemo(
+    () => activeLocations.find((location) => location.is_primary) ?? null,
+    [activeLocations],
+  );
+  const showRenamePrimaryHint = Boolean(
+    isOwner &&
+      primaryLocation &&
+      activeLocations.length >= 2 &&
+      clinicProfile?.clinic_name?.trim() &&
+      primaryLocation.name.trim().toLowerCase() ===
+        clinicProfile.clinic_name.trim().toLowerCase(),
+  );
+
   const listSubtitle = isOwner
-    ? `All clinics for ${groupName}.`
+    ? `Clinics under ${groupName}. Add another when you need a second site.`
     : `Clinics you manage for ${groupName}.`;
 
   const addressValidation = validateAddressStep(address);
   const practiceValidation = validateClinicPracticeStep(practice.softwareUsed);
   const canSave = Boolean(name.trim()) && addressValidation.ok && practiceValidation.ok;
   const formValidationMessage = !name.trim()
-    ? 'Enter a location name.'
+    ? 'Enter a clinic name.'
     : (addressValidation.message ?? practiceValidation.message);
 
   const resetForm = () => {
@@ -394,6 +413,7 @@ export default function ClinicLocationsSettingsScreen() {
           ...payload,
           is_primary: activeLocations.length === 0,
         });
+        captureAnalyticsEvent(AnalyticsEvents.clinicLocationAddedLater);
         if (pendingPhoto) {
           await uploadPendingLocationPhoto({
             organizationId: clinicId,
@@ -438,7 +458,7 @@ export default function ClinicLocationsSettingsScreen() {
     });
   };
 
-  if (!isClinicProfileReady || !groupsEnabled || !isGroup) {
+  if (!isClinicProfileReady || !groupsEnabled || (!isOwner && !isGroup)) {
     return null;
   }
 
@@ -447,8 +467,8 @@ export default function ClinicLocationsSettingsScreen() {
       <>
         {upgradePrompt}
         <ProfileDetailScreen
-          title={editingId ? 'Edit location' : 'Add location'}
-          subtitle="Use the same practice details candidates see on roles and fill-ins."
+          title={editingId ? 'Edit clinic' : 'Add clinic'}
+          subtitle="Name and address for this site — pick it when you post fill-ins."
           onBack={handleBack}>
           <View style={styles.form}>
             <AuthField
@@ -487,7 +507,7 @@ export default function ClinicLocationsSettingsScreen() {
             showValidation={showValidation}
             submitError={error}
             isSubmitting={isSubmitting}
-            continueLabel={editingId ? 'Save changes' : 'Add location'}
+            continueLabel={editingId ? 'Save changes' : 'Add clinic'}
             onContinue={() => void handleSave()}
           />
           <Pressable style={styles.cancel} onPress={resetForm}>
@@ -503,9 +523,9 @@ export default function ClinicLocationsSettingsScreen() {
     <>
       {upgradePrompt}
       <ProfileDetailScreen
-        title="Locations"
+        title="Clinics"
         subtitle={listSubtitle}
-        actionLabel={isOwner ? 'Add location' : undefined}
+        actionLabel={isOwner ? 'Add clinic' : undefined}
         onActionPress={isOwner ? startAdd : undefined}
         onBack={handleBack}>
         <View style={styles.content}>
@@ -513,16 +533,29 @@ export default function ClinicLocationsSettingsScreen() {
             <Text style={{ color: colors.destructive, fontWeight: '600' }}>{error}</Text>
         ) : null}
 
+        {showRenamePrimaryHint && primaryLocation ? (
+          <CardInfoPanel variant="info" icon="create-outline" title="Name your first clinic">
+            <CardInfoPanelText>
+              {`Your first site still uses the group name "${primaryLocation.name}". Give it a location name like Downtown so patients and workers can tell your clinics apart.`}
+            </CardInfoPanelText>
+            <Pressable onPress={() => startEdit(primaryLocation)} accessibilityRole="button">
+              <Text style={{ color: colors.primary, fontWeight: '700', marginTop: 4 }}>
+                Rename first clinic
+              </Text>
+            </Pressable>
+          </CardInfoPanel>
+        ) : null}
+
         {visibleLocations.length === 0 ? (
           <EmptyState
             icon="business-outline"
-            title={isOwner ? 'No locations yet' : 'No clinics assigned'}
+            title={isOwner ? 'No clinics yet' : 'No clinics assigned'}
             message={
               isOwner
-                ? `Add the clinics for ${groupName}.`
+                ? `Add a clinic under ${groupName}.`
                 : 'Ask the owner to assign you to one or more clinics.'
             }
-            ctaLabel={isOwner ? 'Add location' : undefined}
+            ctaLabel={isOwner ? 'Add clinic' : undefined}
             onCtaPress={isOwner ? startAdd : undefined}
           />
         ) : (

@@ -1,6 +1,4 @@
 import {
-  getClinicProfile,
-  getClinicProfileByOrganizationId,
   getClinicWorkspace,
   isClinicGroupsEnabled,
   resolveAuthProfile,
@@ -9,14 +7,10 @@ import {
 } from '@chairside/api';
 import type { Href } from 'expo-router';
 
-import {
-  CLINIC_SETUP_ACCOUNT_TYPE,
-  CLINIC_SETUP_BASICS,
-  getHomeRouteForRole,
-} from '@/lib/routing';
-import { isClinicSetupComplete } from '@/lib/setupCompletion';
+import { getHomeRouteForRole } from '@/lib/routing';
 
 export {
+  canAccessClinicTabs,
   canAccessWorkerTabs,
   isClinicSetupComplete,
   isWorkerSetupComplete,
@@ -35,34 +29,16 @@ type ResolveAuthenticatedRouteResult = {
 
 async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<Href> {
   if (role === 'clinic') {
+    // Soft tabs: incomplete clinics land in the app; capture + post gates handle gaps.
     if (isClinicGroupsEnabled()) {
       const workspace = await getClinicWorkspace(userId);
-      if (workspace) {
-        const clinicProfile = await getClinicProfileByOrganizationId(workspace.organization.id);
-        if (workspace.membership.role === 'manager') {
-          return getHomeRouteForRole('clinic');
-        }
-        if (!isClinicSetupComplete(clinicProfile)) {
-          if (!clinicProfile?.account_type) {
-            return CLINIC_SETUP_ACCOUNT_TYPE;
-          }
-          return CLINIC_SETUP_BASICS;
-        }
+      if (workspace?.membership.role === 'manager') {
         return getHomeRouteForRole('clinic');
       }
-    }
-
-    const clinicProfile = await getClinicProfile(userId);
-    if (!isClinicSetupComplete(clinicProfile)) {
-      if (isClinicGroupsEnabled() && !clinicProfile) {
-        return CLINIC_SETUP_ACCOUNT_TYPE;
-      }
-      return CLINIC_SETUP_BASICS;
     }
     return getHomeRouteForRole('clinic');
   }
 
-  // Incomplete workers land in tabs; apply/cover and SMS stay soft-gated.
   return getHomeRouteForRole('worker');
 }
 

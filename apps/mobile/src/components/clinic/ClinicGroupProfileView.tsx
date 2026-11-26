@@ -124,7 +124,9 @@ export function ClinicGroupProfileView({
       </CardInfoPanel>
 
       <SectionPanel icon="business-outline" title="Group identity">
-        <Text style={styles.hint}>The brand name and contact phone for your clinic group.</Text>
+        <Text style={styles.hint}>
+          The brand name and phone for your clinic group — cover-request texts for fill-ins go here.
+        </Text>
         <FieldBlock label="Group name">
           <FieldValue value={profile.clinic_name} />
         </FieldBlock>

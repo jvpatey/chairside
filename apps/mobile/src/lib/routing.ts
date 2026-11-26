@@ -176,6 +176,10 @@ export const CLINIC_SETUP_TEAM: Href = '/(clinic-setup)/team' as Href;
 export const CLINIC_SETUP_PRACTICE: Href = '/(clinic-setup)/practice' as Href;
 export const CLINIC_SETUP_ABOUT: Href = '/(clinic-setup)/about' as Href;
 export const CLINIC_SETUP_REVIEW: Href = '/(clinic-setup)/review' as Href;
+/** Soft finish-profile — focused capture (not the clinic-setup wizard). */
+export const CLINIC_FINISH_PROFILE: Href = '/(onboarding)/capture-clinic-name' as Href;
+export const CLINIC_CAPTURE_PHONE: Href = '/(onboarding)/capture-clinic-phone' as Href;
+export const CLINIC_CAPTURE_ADDRESS: Href = '/(onboarding)/capture-clinic-address' as Href;
 export const CLINIC_ACCEPT_INVITE: Href = '/(onboarding)/accept-invite' as Href;
 export const WORKER_SETUP_BASICS: Href = '/(worker-setup)/basics' as Href;
 export const WORKER_SETUP_EXPERIENCE: Href = '/(worker-setup)/experience' as Href;
@@ -1079,7 +1083,16 @@ export function getFillInReturnRoute(returnTo?: string): Href {
 export function navigateAfterFillInSave(
   router: { replace: (href: Href) => void },
   returnTo?: string,
+  options?: { posted?: boolean },
 ) {
+  if (options?.posted) {
+    // Always land on the Fill-ins hub after publish so the SMS status loop is visible.
+    router.replace({
+      pathname: '/(clinic-tabs)/fill-ins',
+      params: { posted: '1' },
+    } as Href);
+    return;
+  }
   router.replace(getFillInReturnRoute(returnTo));
 }
 
