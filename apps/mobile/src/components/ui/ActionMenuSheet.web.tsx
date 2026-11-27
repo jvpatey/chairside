@@ -14,13 +14,18 @@ import { radii } from '@/theme/tokens';
 import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
-// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
-import { ActionMenuSheetBottom, type ActionMenuSheetProps } from './ActionMenuSheet.tsx';
+import {
+  ActionMenuDetailList,
+  ActionMenuSheetBottom,
+  type ActionMenuSheetProps,
+  // @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+} from './ActionMenuSheet.tsx';
 
 function ActionMenuDialog({
   visible,
   title,
   message,
+  details,
   headerContent,
   actions,
   onClose,
@@ -179,6 +184,7 @@ function ActionMenuDialog({
             </View>
             {title ? <Text style={styles.title}>{title}</Text> : null}
             {message ? <Text style={styles.message}>{message}</Text> : null}
+            {details && details.length > 0 ? <ActionMenuDetailList items={details} /> : null}
           </View>
           <View
             style={[

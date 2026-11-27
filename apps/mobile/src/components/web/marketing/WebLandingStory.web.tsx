@@ -25,7 +25,7 @@ const BEATS = [
   {
     id: 'text',
     step: '02',
-    title: 'Pros get a text',
+    title: 'Professionals get a text',
     highlight: 'text',
     accent: 'secondary' as const,
   },

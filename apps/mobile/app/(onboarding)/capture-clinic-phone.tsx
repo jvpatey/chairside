@@ -191,7 +191,7 @@ export default function CaptureClinicPhoneScreen() {
             onPress={() => void handleSkip()}
           />
           <Text style={styles.footnote}>
-            You’ll need a clinic phone before posting fill-ins so pros’ cover requests can reach
+            You’ll need a clinic phone before posting fill-ins so dental professionals’ cover requests can reach
             you.
           </Text>
         </View>

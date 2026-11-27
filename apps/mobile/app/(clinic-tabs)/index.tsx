@@ -465,7 +465,6 @@ export default function ClinicDashboardScreen() {
       quickActions={
         <FadeInSection delayMs={100}>
           <DashboardQuickActionsRow
-            emphasizeFirst
             actions={[
               {
                 label: 'Post fill-in',

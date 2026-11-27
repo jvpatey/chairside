@@ -303,7 +303,7 @@ export default function PostShiftScreen() {
             : 'Publishing…'
           : isEditing
             ? 'Save changes'
-            : 'Post & text matching pros'
+            : 'Post & text matching professionals'
       }
       disabled={isSubmitting || fillInLimitReached || pickerOpen}
       accent={FILL_IN_ACCENT}
@@ -346,7 +346,7 @@ export default function PostShiftScreen() {
           <View style={styles.section}>
             <FormSectionHeader
               icon="chatbubble-ellipses-outline"
-              label="What pros will get"
+              label="What professionals will get"
               accent="secondary"
             />
             <FillInSmsPreview />
@@ -463,7 +463,7 @@ export default function PostShiftScreen() {
               <View style={styles.noticeTextBlock}>
                 <Text style={styles.noticeTitle}>Add a clinic phone for cover texts</Text>
                 <Text style={styles.noticeBody}>
-                  Pros will still get texted. Add your clinic phone so you get a text when someone
+                  Professionals will still get texted. Add your clinic phone so you get a text when someone
                   requests cover — you can accept from that message.
                 </Text>
                 <Pressable

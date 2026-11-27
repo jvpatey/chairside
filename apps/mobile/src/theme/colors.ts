@@ -42,15 +42,15 @@ export const lightColors: Colors = {
   labelTertiary: '#3C485C80',
   separator: '#0E1B2C0D',
   fillSubtle: '#3C485C14',
-  // Brand blue — roles / primary actions
+  // Brand blue — primary actions, roles, and fill-ins
   primary: '#1A6FD4',
   primaryPressed: '#155EB8',
   primarySubtle: '#D6E8FA',
   primaryOnPrimary: '#FFFFFF',
-  // Purple — fill-ins only
-  secondary: '#5856D6',
-  secondaryPressed: '#4A48B8',
-  secondarySubtle: '#E6E4FF',
+  // Alias of primary — unified brand blue across fill-ins and roles
+  secondary: '#1A6FD4',
+  secondaryPressed: '#155EB8',
+  secondarySubtle: '#D6E8FA',
   secondaryOnSecondary: '#FFFFFF',
   success: '#248A3D',
   // Amber warning (distinct from destructive red)
@@ -81,9 +81,9 @@ export const darkColors: Colors = {
   primaryPressed: '#3588F0',
   primarySubtle: '#1A2D47',
   primaryOnPrimary: '#FFFFFF',
-  secondary: '#9896FF',
-  secondaryPressed: '#7B79E6',
-  secondarySubtle: '#2A2650',
+  secondary: '#4A9AFF',
+  secondaryPressed: '#3588F0',
+  secondarySubtle: '#1A2D47',
   secondaryOnSecondary: '#FFFFFF',
   success: '#30D158',
   warning: '#FF9F0A',

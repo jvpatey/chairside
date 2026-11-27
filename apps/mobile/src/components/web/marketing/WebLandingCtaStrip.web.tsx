@@ -44,8 +44,8 @@ export function WebLandingCtaStrip() {
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 60% 120% at 8% 50%, rgba(152, 150, 255, 0.14) 0%, transparent 60%), radial-gradient(ellipse 50% 110% at 92% 50%, rgba(74, 154, 255, 0.1) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse 60% 120% at 8% 50%, rgba(88, 86, 214, 0.07) 0%, transparent 60%), radial-gradient(ellipse 50% 110% at 92% 50%, rgba(26, 111, 212, 0.06) 0%, transparent 55%)',
+          ? 'radial-gradient(ellipse 60% 120% at 8% 50%, rgba(74, 154, 255, 0.14) 0%, transparent 60%), radial-gradient(ellipse 50% 110% at 92% 50%, rgba(59, 138, 232, 0.1) 0%, transparent 55%)'
+          : 'radial-gradient(ellipse 60% 120% at 8% 50%, rgba(26, 111, 212, 0.07) 0%, transparent 60%), radial-gradient(ellipse 50% 110% at 92% 50%, rgba(59, 138, 232, 0.06) 0%, transparent 55%)',
       } as object),
     },
     copy: {
@@ -81,7 +81,7 @@ export function WebLandingCtaStrip() {
           <View style={styles.copy}>
             <Text style={styles.title}>Need someone today?</Text>
             <Text style={styles.subtitle}>
-              Post a fill-in, text nearby pros, and confirm when they Reply YES.
+              Post a fill-in, text nearby professionals, and confirm when they Reply YES.
             </Text>
           </View>
           <OnboardingButton

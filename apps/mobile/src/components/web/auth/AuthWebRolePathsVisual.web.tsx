@@ -59,8 +59,8 @@ function PathCard({
               ? 'radial-gradient(ellipse 90% 70% at 0% 0%, rgba(74, 154, 255, 0.16) 0%, transparent 62%)'
               : 'radial-gradient(ellipse 90% 70% at 0% 0%, rgba(26, 111, 212, 0.1) 0%, transparent 62%)'
             : isDark
-              ? 'radial-gradient(ellipse 90% 70% at 100% 0%, rgba(152, 150, 255, 0.16) 0%, transparent 62%)'
-              : 'radial-gradient(ellipse 90% 70% at 100% 0%, rgba(88, 86, 214, 0.1) 0%, transparent 62%)',
+              ? 'radial-gradient(ellipse 90% 70% at 100% 0%, rgba(74, 154, 255, 0.16) 0%, transparent 62%)'
+              : 'radial-gradient(ellipse 90% 70% at 100% 0%, rgba(26, 111, 212, 0.1) 0%, transparent 62%)',
       } as object),
     },
     content: {

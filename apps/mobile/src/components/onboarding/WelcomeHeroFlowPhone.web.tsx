@@ -29,7 +29,7 @@ const MOBILE_SCALE = 0.72;
 
 const BEAT_LABEL: Record<FlowPhase, string> = {
   post: 'Clinic posts a fill-in',
-  sms: 'Pros get a text — Reply YES',
+  sms: 'Professionals get a text — Reply YES',
   covered: 'Clinic confirms cover',
 };
 
@@ -192,11 +192,11 @@ function SmsScreen() {
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.secondary,
-      backgroundColor: isDark ? 'rgba(88, 86, 214, 0.2)' : 'rgba(88, 86, 214, 0.12)',
+      backgroundColor: isDark ? 'rgba(74, 154, 255, 0.2)' : 'rgba(26, 111, 212, 0.12)',
       ...webOnlyStyle({
         boxShadow: isDark
-          ? '0 0 28px rgba(152, 150, 255, 0.4)'
-          : '0 0 22px rgba(88, 86, 214, 0.28)',
+          ? '0 0 28px rgba(74, 154, 255, 0.4)'
+          : '0 0 22px rgba(26, 111, 212, 0.28)',
       } as object),
     },
     suggestionText: {
@@ -307,8 +307,8 @@ export function WelcomeHeroFlowPhone({ size = 'hero' }: WelcomeHeroFlowPhoneProp
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse at 45% 35%, rgba(152, 150, 255, 0.48) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(74, 154, 255, 0.22) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse at 45% 35%, rgba(88, 86, 214, 0.32) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(26, 111, 212, 0.16) 0%, transparent 55%)',
+          ? 'radial-gradient(ellipse at 45% 35%, rgba(74, 154, 255, 0.42) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(59, 138, 232, 0.22) 0%, transparent 55%)'
+          : 'radial-gradient(ellipse at 45% 35%, rgba(26, 111, 212, 0.28) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(59, 138, 232, 0.16) 0%, transparent 55%)',
       } as object),
     },
     frame: {

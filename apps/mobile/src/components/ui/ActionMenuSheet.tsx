@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import {
   Modal,
@@ -18,7 +19,14 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
+
+/** One line in a checklist-style confirm (e.g. missing profile fields). */
+export type ActionMenuSheetDetail = {
+  label: string;
+  /** Plain-language reason shown under the label. */
+  hint?: string;
+};
 
 export type ActionMenuSheetItem = {
   label: string;
@@ -35,17 +43,89 @@ export type ActionMenuSheetProps = {
   visible: boolean;
   title?: string;
   message?: string;
+  /** Checklist rows shown under the message (confirm dialogs). */
+  details?: ActionMenuSheetDetail[];
   /** Replaces title/message when set (e.g. account summary header). */
   headerContent?: ReactNode;
   actions: ActionMenuSheetItem[];
   onClose: () => void;
 };
 
+/** Checklist of details still needed; shared by the native sheet and web dialog. */
+export function ActionMenuDetailList({ items }: { items: ActionMenuSheetDetail[] }) {
+  const styles = useThemedStyles(({ colors }) => ({
+    list: {
+      marginTop: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.separator,
+      backgroundColor: colors.surface,
+      overflow: 'hidden' as const,
+    },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
+    rowDivider: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.separator,
+    },
+    bullet: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: colors.primarySubtle,
+      marginTop: 1,
+    },
+    copy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+    },
+    hint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
+  }));
+  const { colors } = useTheme();
+
+  return (
+    <View style={styles.list} accessibilityRole="list">
+      {items.map((item, index) => (
+        <View
+          key={item.label}
+          accessibilityRole="listitem"
+          style={[styles.row, index > 0 && styles.rowDivider]}>
+          <View style={styles.bullet}>
+            <Ionicons name="ellipse" size={7} color={colors.primary} />
+          </View>
+          <View style={styles.copy}>
+            <Text style={styles.label}>{item.label}</Text>
+            {item.hint ? <Text style={styles.hint}>{item.hint}</Text> : null}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Bottom-anchored action sheet — native and mobile web. */
 export function ActionMenuSheetBottom({
   visible,
   title,
   message,
+  details,
   headerContent,
   actions,
   onClose,
@@ -181,10 +261,11 @@ export function ActionMenuSheetBottom({
               <View style={styles.handle} />
               {headerContent ? (
                 <View style={styles.header}>{headerContent}</View>
-              ) : title || message ? (
+              ) : title || message || (details && details.length > 0) ? (
                 <View style={styles.header}>
                   {title ? <Text style={styles.title}>{title}</Text> : null}
                   {message ? <Text style={styles.message}>{message}</Text> : null}
+                  {details && details.length > 0 ? <ActionMenuDetailList items={details} /> : null}
                 </View>
               ) : null}
               <View style={styles.actions}>

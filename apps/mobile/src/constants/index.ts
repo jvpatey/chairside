@@ -11,7 +11,7 @@ export {
 export const APP_STORE_URL: string | null = null;
 
 export const ONBOARDING_SUBTITLE =
-  'Same-day fill-ins by text — clinics post, pros Reply YES, cover gets confirmed.';
+  'Same-day fill-ins by text — clinics post, professionals Reply YES, cover gets confirmed.';
 
 export const ROLE_OPTIONS = [
   {

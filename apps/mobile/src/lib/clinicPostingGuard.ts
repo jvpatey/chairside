@@ -6,6 +6,7 @@ import {
   getManagerAccessBannerCopy,
   getManagerAccessBlockReason,
 } from '@/lib/clinicManagerAccess';
+import { getClinicMissingDetails, type ClinicMissingDetail } from '@/lib/clinicProfileMissingCopy';
 import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 
@@ -33,10 +34,12 @@ function showPostingBlockedAlert(
   confirmLabel: string,
   setupHref: Href,
   onNavigate: (href: Href) => void,
+  details?: ClinicMissingDetail[],
 ) {
   showConfirmActionSheet({
     title,
     message,
+    details,
     confirmLabel,
     onConfirm: () => onNavigate(setupHref),
   });
@@ -82,13 +85,21 @@ export function guardClinicMemberAccess({
   }
 
   const missing = getMissingClinicProfileFields(clinicProfile, { locations });
-  const message =
-    missing.length > 0
-      ? `Add the following before continuing: ${missing.join(', ')}`
-      : ownerMessage;
   const setupHref = getClinicPostingSetupHref(missing, isGroup);
 
-  showPostingBlockedAlert(ownerTitle, message, 'Continue', setupHref, onNavigate);
+  if (missing.length > 0) {
+    showPostingBlockedAlert(
+      ownerTitle,
+      'Add these details first. Professionals use them to find and reach your clinic.',
+      'Finish profile',
+      setupHref,
+      onNavigate,
+      getClinicMissingDetails(missing),
+    );
+    return false;
+  }
+
+  showPostingBlockedAlert(ownerTitle, ownerMessage, 'Continue', setupHref, onNavigate);
   return false;
 }
 

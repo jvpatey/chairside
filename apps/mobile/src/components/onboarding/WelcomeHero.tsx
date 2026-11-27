@@ -72,7 +72,7 @@ export function WelcomeHero() {
       </Animated.View>
       <Animated.View entering={enterFadeUp(WELCOME_STAGGER.subtitle, reducedMotion)}>
         <Text style={styles.subtitle}>
-          Same-day <Text style={styles.fillIn}>fill-ins</Text> by text — clinics post, pros{' '}
+          Same-day <Text style={styles.fillIn}>fill-ins</Text> by text — clinics post, professionals{' '}
           <Text style={styles.yes}>Reply YES</Text>, cover gets confirmed.
         </Text>
       </Animated.View>

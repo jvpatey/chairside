@@ -850,13 +850,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             !pressed &&
             isFocused &&
             !isCollapsed &&
-            (tabAccent === 'secondary'
-              ? webOnlyStyle({
-                  boxShadow: isDark
-                    ? '0 4px 12px rgba(139, 92, 246, 0.12)'
-                    : '0 4px 12px rgba(88, 86, 214, 0.1)',
-                } as ViewStyle)
-              : styles.itemActiveHovered),
+            styles.itemActiveHovered,
           pressed && styles.itemPressed,
         ]}
       >

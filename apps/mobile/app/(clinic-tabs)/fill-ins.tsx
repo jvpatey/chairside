@@ -443,7 +443,7 @@ export default function ClinicFillInsScreen() {
     return (
       <Screen
         title="Fill-ins"
-        subtitle="Pros are texted when you post — you’ll get a text when someone requests."
+        subtitle="Dental professionals are texted when you post — you’ll get a text when someone requests."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -458,7 +458,7 @@ export default function ClinicFillInsScreen() {
       {upgradePrompt}
       <Screen
         title="Fill-ins"
-        subtitle="Pros are texted when you post — you’ll get a text when someone requests."
+        subtitle="Dental professionals are texted when you post — you’ll get a text when someone requests."
         refreshing={refreshing}
         onRefresh={onRefresh}
         refreshAccent="secondary"
@@ -477,7 +477,7 @@ export default function ClinicFillInsScreen() {
             actions={[
               {
                 label: 'Post fill-in',
-                description: 'We’ll text matching pros',
+                description: 'We’ll text matching professionals',
                 icon: FILL_IN_ICON.outline,
                 variant: 'secondary',
                 dimmed: fillInLimitReached,

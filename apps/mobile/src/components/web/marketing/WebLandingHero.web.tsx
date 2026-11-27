@@ -76,8 +76,8 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 80% 60% at 50% 12%, rgba(152, 150, 255, 0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 50% 0%, rgba(74, 154, 255, 0.12) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse 80% 60% at 50% 12%, rgba(88, 86, 214, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 50% 0%, rgba(26, 111, 212, 0.08) 0%, transparent 50%)',
+          ? 'radial-gradient(ellipse 80% 60% at 50% 12%, rgba(74, 154, 255, 0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 50% 0%, rgba(59, 138, 232, 0.12) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse 80% 60% at 50% 12%, rgba(26, 111, 212, 0.14) 0%, transparent 55%), radial-gradient(ellipse 60% 40% at 50% 0%, rgba(59, 138, 232, 0.08) 0%, transparent 50%)',
       } as object),
     },
     column: {
@@ -104,8 +104,8 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(circle at center, rgba(152, 150, 255, 0.2) 0%, transparent 70%)'
-          : 'radial-gradient(circle at center, rgba(88, 86, 214, 0.14) 0%, transparent 70%)',
+          ? 'radial-gradient(circle at center, rgba(74, 154, 255, 0.2) 0%, transparent 70%)'
+          : 'radial-gradient(circle at center, rgba(26, 111, 212, 0.14) 0%, transparent 70%)',
       } as object),
     },
     wordmarkWrap: {
@@ -249,8 +249,8 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(152, 150, 255, 0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(74, 154, 255, 0.14) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(88, 86, 214, 0.16) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(26, 111, 212, 0.1) 0%, transparent 50%)',
+          ? 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(74, 154, 255, 0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(59, 138, 232, 0.14) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse 80% 60% at 18% 0%, rgba(26, 111, 212, 0.16) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 82% 18%, rgba(59, 138, 232, 0.1) 0%, transparent 50%)',
       } as object),
     },
     inner: {
