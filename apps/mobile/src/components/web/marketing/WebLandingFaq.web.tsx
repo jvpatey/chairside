@@ -16,9 +16,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const FAQ_ITEMS = [
   {
     id: 'free-tier',
-    question: 'Is Chairside free to use?',
+    question: 'How much does Chairside cost?',
     answer:
-      'Yes. Chairside is currently free for both dental clinics and dental professionals — post fill-in shifts and permanent roles with no limits.',
+      'There is no subscription. Professionals use Chairside free. Clinics post roles for free. Each clinic gets 2 free fill-ins to start, then each fill-in is CA$7.99, charged only when it goes live.',
   },
   {
     id: 'who-can-join',
@@ -42,13 +42,13 @@ const FAQ_ITEMS = [
     id: 'roles',
     question: 'What about permanent roles?',
     answer:
-      'Permanent roles stay lightweight: clinics can post openings for awareness, and professionals can apply. Fill-ins are the SMS-first product; roles are not part of the text handshake.',
+      'Posting a permanent role is free, with no limits. Professionals can apply to roles. Fill-ins are the text-based product; roles are not part of the text handshake.',
   },
   {
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Dental groups can manage multiple clinic locations and coordinate coverage and hiring from one place.',
+      'Yes. Dental groups can manage multiple clinic locations from one login. Each location gets 2 free fill-ins, then each fill-in is CA$7.99, charged only when it goes live.',
   },
 ] as const;
 

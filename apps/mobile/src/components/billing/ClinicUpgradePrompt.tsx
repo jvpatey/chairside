@@ -2,10 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import {
-  openClinicBillingModal,
-  type ClinicBillingScrollFocus,
-} from '@/components/billing/ClinicBillingModal';
+import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useThemedStyles } from '@/theme';
 
 export type { ClinicUpgradeReason } from '@/components/billing/clinicUpgradePromptCopy';
@@ -31,9 +28,7 @@ type ClinicUpgradePromptProps = {
   title: string;
   message: string;
   onClose: () => void;
-  /** Scroll billing page to Group vs Clinic sections when opened. */
-  billingFocus?: ClinicBillingScrollFocus;
-  /** Replaces the default "View plans" action (e.g. buy a per-post fill-in credit). */
+  /** Replaces the default "View pricing" action (e.g. buy a per-post fill-in credit). */
   primaryAction?: { label: string; onPress: () => void };
 };
 
@@ -42,7 +37,6 @@ export function ClinicUpgradePrompt({
   title,
   message,
   onClose,
-  billingFocus = 'default',
   primaryAction,
 }: ClinicUpgradePromptProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -90,10 +84,10 @@ export function ClinicUpgradePrompt({
               />
             ) : (
               <OnboardingButton
-                label="View plans"
+                label="View pricing"
                 onPress={() => {
                   onClose();
-                  openClinicBillingModal({ focus: billingFocus });
+                  openClinicBillingModal();
                 }}
               />
             )}

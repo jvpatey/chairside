@@ -56,7 +56,7 @@ Mirrors the candidate hub: a short list of rows, no marketing/marketplace conten
 - **Notifications** — one category: cover requests & applicants.
 - **Account**, **Support**.
 
-Plans & billing is no longer in the hub while plans are being reworked (everything is unlimited; see Billing).
+The hub has a **Fill-ins & billing** row for owners (free fill-ins left, credit balance, buy one credit). Tiered plans are retired for fill-ins; see Billing.
 
 ## Access model
 
@@ -88,7 +88,7 @@ Host from web static assets (served without SPA rewrite):
 
 Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`). Only the owner login can purchase or restore.
 
-> **Interim — everything is unlimited.** Tiered plans are being reworked. Migration `143_unlimited_plans_interim.sql` redefines the limit helpers (`clinic_active_*_limit`, `clinic_max_locations`, `clinic_max_managers`, `clinic_custom_screening_limit`) as unlimited and `clinic_can_use_feature` as unlocked for all clinics (except `priority_listing`, which stays a paid placement perk). Posting, location and manager triggers, `get_clinic_billing_state` and the app all read through these helpers, so no app change is needed to re-enable limits — redefine them in the next migration. The matrices below describe the previous behaviour.
+> **Interim — everything is unlimited.** Tiered plans are being reworked. Migration `143_unlimited_plans_interim.sql` redefines the limit helpers (`clinic_active_*_limit`, `clinic_max_locations`, `clinic_custom_screening_limit`) as unlimited and `clinic_can_use_feature` as unlocked for all clinics (except `priority_listing`, which stays a paid placement perk). Posting, location triggers, `get_clinic_billing_state` and the app all read through these helpers, so no app change is needed to re-enable limits — redefine them in the next migration. Migration `146_drop_manager_limits.sql` removes the manager limit helpers and the manager fields from billing state. The matrices below describe the previous behaviour.
 
 ### Plan families
 
@@ -99,24 +99,24 @@ Chairside has two product lines:
 | **Clinic** | Free, Starter, Pro | Single-location clinics |
 | **Group** | Free trial, Group Starter, Group Pro | Multi-location orgs and DSOs |
 
-**Free group trial:** up to 2 locations, 1 manager per location (2 managers), 1 active role + 1 fill-in org-wide. Same hiring-tool gates as individual Free.
+**Free group trial:** up to 2 locations, 1 active role + 1 fill-in org-wide. Same hiring-tool gates as individual Free.
 
-**Clinic Starter / Pro on a group account** unlock hiring tools (screening, CRM, outreach, etc.) but **do not** increase location or manager limits. For more sites or managers, upgrade to **Group Starter** or **Group Pro**.
+**Clinic Starter / Pro on a group account** unlock hiring tools (screening, CRM, outreach, etc.) but **do not** increase the location limit. For more sites, upgrade to **Group Starter** or **Group Pro**.
 
 **Clinic Pro ≠ multi-location.** A single-location Pro subscriber who adds a second location must move to a Group plan (Free trial or paid).
 
 ### Group plan caps (paid)
 
-| Plan | Locations | Managers | Active roles / fill-ins |
-| ---- | --------- | -------- | ----------------------- |
-| Group Starter | 5 | 3 | 5 / 5 org-wide |
-| Group Pro | Unlimited | Unlimited | Unlimited org-wide |
+| Plan | Locations | Active roles / fill-ins |
+| ---- | --------- | ----------------------- |
+| Group Starter | 5 | 5 / 5 org-wide |
+| Group Pro | Unlimited | Unlimited org-wide |
 
 Group Pro also includes priority listing, hiring insights (with per-location breakdown), bulk fill-in outreach, and unlimited custom screening.
 
 ### Purchasing
 
-- Owners purchase from **Profile → Plans & billing** (or the billing modal during setup).
+- Owners buy fill-in credits from **Profile → Fill-ins & billing**, or from the upgrade prompt when a fill-in is blocked.
 - iOS: App Store IAP via RevenueCat. Web: Stripe via RevenueCat Web Billing.
 - Product IDs and entitlements: see [WEB_BILLING.md](./WEB_BILLING.md).
 

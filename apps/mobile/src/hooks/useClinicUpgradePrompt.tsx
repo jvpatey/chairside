@@ -8,7 +8,6 @@ import {
   getClinicUpgradePromptTitle,
   type ClinicUpgradeReason,
 } from '@/components/billing/ClinicUpgradePrompt';
-import type { ClinicBillingScrollFocus } from '@/components/billing/ClinicBillingScreenContent';
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 
 export function useClinicUpgradePrompt() {
@@ -81,19 +80,6 @@ export function useClinicUpgradePrompt() {
   const plan = billing?.plan ?? 'free';
   const planFamily = billing?.planFamily ?? 'clinic';
 
-  const billingFocus: ClinicBillingScrollFocus =
-    reason === 'add_location'
-      ? planFamily === 'group' || billing?.accountType === 'group'
-        ? 'group'
-        : 'clinic'
-      : reason === 'hiring_insights' ||
-          reason === 'bulk_outreach' ||
-          reason === 'screening_cap'
-        ? planFamily === 'group' || billing?.accountType === 'group'
-          ? 'group'
-          : 'clinic'
-        : 'default';
-
   const promptTitle = reason ? getClinicUpgradePromptTitle(reason) : 'Upgrade';
   const promptMessage = reason
     ? getClinicUpgradePromptMessage(reason, {
@@ -123,7 +109,6 @@ export function useClinicUpgradePrompt() {
       visible={reason != null}
       title={promptTitle}
       message={promptMessage}
-      billingFocus={billingFocus}
       onClose={closeUpgradePrompt}
       primaryAction={fillInPrimaryAction}
     />

@@ -243,132 +243,57 @@ function normalizeUuid(value: unknown): string | null {
 }
 
 /**
- * Clinic alert recipients: owner always + managers for location.
- * null locationId => all active managers (org-level / unlocated posts).
+ * Clinic alert recipients: the owner login only. Each clinic or group is one
+ * login with no manager roles, so every clinic alert goes to the owner.
  */
 async function listClinicAlertRecipientUserIds(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
-  locationId: string | null,
 ): Promise<string[]> {
-  const { data: memberships, error } = await supabase
+  const { data: owners, error } = await supabase
     .from('clinic_memberships')
-    .select('id, user_id, role')
+    .select('user_id')
     .eq('organization_id', organizationId)
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .eq('role', 'owner');
 
   if (error) throw error;
 
-  const rows = memberships ?? [];
-  if (rows.length === 0) return [organizationId];
-
-  const recipientIds = new Set<string>();
-  const managers: { id: string; user_id: string }[] = [];
-
-  for (const row of rows) {
-    const userId = row.user_id as string;
-    if (!userId) continue;
-    if (row.role === 'owner') {
-      recipientIds.add(userId);
-    } else if (row.role === 'manager') {
-      managers.push({ id: row.id as string, user_id: userId });
-    }
-  }
-
-  // Owner user id is the org id; include even if membership role missing.
-  recipientIds.add(organizationId);
-
-  if (locationId == null) {
-    for (const manager of managers) {
-      recipientIds.add(manager.user_id);
-    }
-    return [...recipientIds];
-  }
-
-  if (managers.length === 0) return [...recipientIds];
-
-  const managerMembershipIds = managers.map((manager) => manager.id);
-  const { data: assignments, error: assignmentsError } = await supabase
-    .from('clinic_member_location_assignments')
-    .select('membership_id')
-    .eq('location_id', locationId)
-    .in('membership_id', managerMembershipIds);
-
-  if (assignmentsError) throw assignmentsError;
-
-  const assignedMembershipIds = new Set(
-    (assignments ?? []).map((row) => row.membership_id as string),
-  );
-  for (const manager of managers) {
-    if (assignedMembershipIds.has(manager.id)) {
-      recipientIds.add(manager.user_id);
-    }
+  // Owner user id is the org id; include even if the owner membership row is missing.
+  const recipientIds = new Set<string>([organizationId]);
+  for (const row of owners ?? []) {
+    const userId = row.user_id as string | null;
+    if (userId) recipientIds.add(userId);
   }
 
   return [...recipientIds];
 }
 
-async function getPostLocationId(
-  supabase: ReturnType<typeof createClient>,
-  jobPostId: string | null | undefined,
-  shiftPostId: string | null | undefined,
-): Promise<string | null> {
-  if (jobPostId) {
-    const { data: job, error } = await supabase
-      .from('job_posts')
-      .select('location_id')
-      .eq('id', jobPostId)
-      .maybeSingle();
-    if (error) throw error;
-    return (job?.location_id as string | null | undefined) ?? null;
-  }
-
-  if (shiftPostId) {
-    const { data: shift, error } = await supabase
-      .from('shift_posts')
-      .select('location_id')
-      .eq('id', shiftPostId)
-      .maybeSingle();
-    if (error) throw error;
-    return (shift?.location_id as string | null | undefined) ?? null;
-  }
-
-  return null;
-}
-
-async function getApplicationClinicAndLocation(
+async function getApplicationClinicId(
   supabase: ReturnType<typeof createClient>,
   application: Record<string, unknown>,
-): Promise<{ clinicId: string; locationId: string | null } | null> {
+): Promise<string | null> {
   const jobPostId = application.job_post_id as string | null;
   const shiftPostId = application.shift_post_id as string | null;
 
   if (jobPostId) {
     const { data: job, error } = await supabase
       .from('job_posts')
-      .select('clinic_id, location_id')
+      .select('clinic_id')
       .eq('id', jobPostId)
       .maybeSingle();
     if (error) throw error;
-    if (!job?.clinic_id) return null;
-    return {
-      clinicId: job.clinic_id as string,
-      locationId: (job.location_id as string | null | undefined) ?? null,
-    };
+    return (job?.clinic_id as string | null | undefined) ?? null;
   }
 
   if (shiftPostId) {
     const { data: shift, error } = await supabase
       .from('shift_posts')
-      .select('clinic_id, location_id')
+      .select('clinic_id')
       .eq('id', shiftPostId)
       .maybeSingle();
     if (error) throw error;
-    if (!shift?.clinic_id) return null;
-    return {
-      clinicId: shift.clinic_id as string,
-      locationId: (shift.location_id as string | null | undefined) ?? null,
-    };
+    return (shift?.clinic_id as string | null | undefined) ?? null;
   }
 
   return null;
@@ -793,23 +718,8 @@ async function handleMessageInsert(
 
   let recipientIds: string[];
   if (senderIsWorker) {
-    let locationId: string | null = null;
-    if (conversation.conversation_type === 'application' && conversation.application_id) {
-      const { data: application, error: applicationError } = await supabase
-        .from('applications')
-        .select('job_post_id, shift_post_id')
-        .eq('id', conversation.application_id)
-        .maybeSingle();
-      if (applicationError) throw applicationError;
-      locationId = await getPostLocationId(
-        supabase,
-        application?.job_post_id as string | null | undefined,
-        application?.shift_post_id as string | null | undefined,
-      );
-    }
-    // general / outreach (and missing post location) => null => owner + all managers
     recipientIds = (
-      await listClinicAlertRecipientUserIds(supabase, conversation.clinic_id, locationId)
+      await listClinicAlertRecipientUserIds(supabase, conversation.clinic_id)
     ).filter((userId) => normalizeUuid(userId) !== normalizedSenderId);
   } else {
     recipientIds = [conversation.worker_id];
@@ -1155,12 +1065,11 @@ async function sendClinicApplicationNotification(
   application: Record<string, unknown>,
   template: { pingramType: string; title: string; message: string },
 ) {
-  const resolved = await getApplicationClinicAndLocation(supabase, application);
-  if (!resolved) return;
+  const clinicId = await getApplicationClinicId(supabase, application);
+  if (!clinicId) return;
 
-  const { clinicId, locationId } = resolved;
   const applicationId = application.id as string;
-  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId, locationId);
+  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId);
   if (recipientIds.length === 0) return;
 
   const jobPostId = application.job_post_id as string | null;
@@ -1217,31 +1126,27 @@ async function handleApplicationInsert(
   let postTitle = 'your posting';
   let postType = 'role';
 
-  let locationId: string | null = null;
-
   if (jobPostId) {
     const { data: job } = await supabase
       .from('job_posts')
-      .select('clinic_id, title, location_id')
+      .select('clinic_id, title')
       .eq('id', jobPostId)
       .maybeSingle();
     if (job) {
       clinicId = job.clinic_id;
       postTitle = job.title;
       postType = 'job';
-      locationId = (job.location_id as string | null | undefined) ?? null;
     }
   } else if (shiftPostId) {
     const { data: shift } = await supabase
       .from('shift_posts')
-      .select('clinic_id, shift_date, location_id')
+      .select('clinic_id, shift_date')
       .eq('id', shiftPostId)
       .maybeSingle();
     if (shift) {
       clinicId = shift.clinic_id;
       postTitle = `Fill-in · ${formatISODateLabel(shift.shift_date as string)}`;
       postType = 'fill-in';
-      locationId = (shift.location_id as string | null | undefined) ?? null;
     }
   }
 
@@ -1253,10 +1158,10 @@ async function handleApplicationInsert(
   }
 
   console.log(
-    `[notify] application INSERT: dispatching application_received (applicationId=${applicationId}, clinicId=${clinicId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId}, locationId=${locationId})`,
+    `[notify] application INSERT: dispatching application_received (applicationId=${applicationId}, clinicId=${clinicId}, jobPostId=${jobPostId}, shiftPostId=${shiftPostId})`,
   );
 
-  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId, locationId);
+  const recipientIds = await listClinicAlertRecipientUserIds(supabase, clinicId);
   if (recipientIds.length === 0) return;
 
   const workerName = (record.worker_display_name as string | null)?.trim() || 'A worker';
@@ -1631,7 +1536,7 @@ async function handleShiftPostLive(
   );
 
   // Cost monitoring: estimated billed SMS segments for this post, by role and location.
-  // Pingram bills per segment, so this is the number to watch against the CA$8 price.
+  // Pingram bills per segment, so this is the number to watch against the CA$7.99 price.
   if (clinicSmsAllowed) {
     const segmentsPerSms = smsSegmentCount(
       buildFillInSms({ ...fillInCopyInput, replyCode: null }),

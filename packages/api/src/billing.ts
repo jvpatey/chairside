@@ -43,9 +43,6 @@ export type ClinicBillingState = {
   locationCount: number;
   maxLocations: number | null;
   canAddLocation: boolean;
-  managerCount: number;
-  maxManagers: number | null;
-  canAddManager: boolean;
   currentPeriodEnd: string | null;
 };
 
@@ -82,9 +79,6 @@ type ClinicBillingStateRow = {
   location_count?: number;
   max_locations?: number | null;
   can_add_location?: boolean;
-  manager_count?: number;
-  max_managers?: number | null;
-  can_add_manager?: boolean;
   current_period_end: string | null;
 };
 
@@ -126,9 +120,6 @@ function mapClinicBillingState(row: ClinicBillingStateRow): ClinicBillingState {
     locationCount: row.location_count ?? 0,
     maxLocations: row.max_locations === undefined ? 1 : row.max_locations,
     canAddLocation: row.can_add_location ?? true,
-    managerCount: row.manager_count ?? 0,
-    maxManagers: row.max_managers === undefined ? 0 : row.max_managers,
-    canAddManager: row.can_add_manager ?? false,
     currentPeriodEnd: row.current_period_end,
   };
 }
@@ -142,7 +133,6 @@ export function isClinicBillingLimitError(message: string): boolean {
     normalized.includes('direct fill-in outreach requires a paid clinic plan') ||
     normalized.includes('sms fill-in alerts require a paid clinic plan') ||
     normalized.includes('location limit reached') ||
-    normalized.includes('manager limit reached') ||
     normalized.includes('screening questions require a paid clinic plan') ||
     normalized.includes('crm notes and follow-ups require a paid clinic plan') ||
     normalized.includes('application pdf export requires a paid clinic plan') ||

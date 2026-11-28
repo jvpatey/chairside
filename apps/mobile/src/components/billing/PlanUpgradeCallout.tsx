@@ -26,7 +26,7 @@ export function PlanUpgradeCallout({
   message,
   onUpgrade = openClinicBillingModal,
   accent = 'primary',
-  buttonLabel = 'View plans',
+  buttonLabel = 'View pricing',
   variant,
   compact = false,
 }: PlanUpgradeCalloutProps) {

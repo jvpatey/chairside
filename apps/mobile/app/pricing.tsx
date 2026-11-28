@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router';
+import { WebPricingPage } from '@/components/web/marketing/WebPricingPage';
 
 export default function PricingScreen() {
-  return <Redirect href="/" />;
+  return <WebPricingPage />;
 }

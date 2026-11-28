@@ -190,14 +190,14 @@ eas build --profile production --platform ios
 
 | Event | Recipient | Type id | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
-| Application / cover request submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push; **+ SMS to clinic phone** for fill-in cover requests (Companion Accept `/a/{id}?t=…`) | `applications_interviews` |
+| Application / cover request submitted | Clinic or group: the **owner login** (org id); each user’s prefs. | `application_received` | in-app + Expo push; **+ SMS to clinic phone** for fill-in cover requests (Companion Accept `/a/{id}?t=…`) | `applications_interviews` |
 | Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push; **+ SMS** for fill-in hired/selected/rejected/filled (`/a/{id}`) | `applications_interviews` |
 | Clinic requests full application kit | Worker | `application_kit_requested` | in-app + Expo push | `applications_interviews` |
 | Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |
 | Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS when worker opted in (`fill_in_sms` ungated) | `fill_in_alerts` |
 | Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if clinic has `fill_in_sms` and worker opted in | `fill_in_alerts` |
 | Job post → live | Eligible workers | `job_posted` | in-app + Expo push | `job_alerts` |
-| New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
+| New message | Worker ↔ clinic: clinic recipient is the **owner login** (org id); the owner’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no send) | — |
 | Worker replies `YES <code>` to a fill-in text (when `SMS_REPLY_ENABLED`) | Worker (SMS reply); clinic via the resulting `application_received` | `fill_in_sms_reply` | SMS reply | SMS uses worker opt-in |

@@ -7,6 +7,7 @@ import { SignOutHeaderButton } from '@/components/navigation/SignOutHeaderButton
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
 import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
+import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
@@ -14,6 +15,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
   getAccountSubtitle,
+  getClinicBillingSubtitle,
   getClinicLocationsSubtitle,
   getClinicNotificationsSubtitle,
   getClinicPracticeSubtitle,
@@ -23,6 +25,7 @@ import {
   CLINIC_ADMIN,
   CLINIC_HOME,
   CLINIC_PROFILE_ACCOUNT,
+  CLINIC_PROFILE_BILLING,
   CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
@@ -42,6 +45,7 @@ export default function ClinicAccountProfileScreen() {
     isOwner,
     locations,
   } = useClinicProfile();
+  const { fillInPricing } = useClinicBilling();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { isCompact, isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
@@ -102,6 +106,16 @@ export default function ClinicAccountProfileScreen() {
               iconColor={colors.primary}
               iconBackgroundColor={colors.primarySubtle}
               onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
+            />
+          ) : null}
+          {isOwner ? (
+            <ProfileSettingsRow
+              icon="card-outline"
+              title="Fill-ins & billing"
+              subtitle={getClinicBillingSubtitle(fillInPricing)}
+              iconColor={colors.primary}
+              iconBackgroundColor={colors.primarySubtle}
+              onPress={() => router.push(CLINIC_PROFILE_BILLING)}
             />
           ) : null}
           <ProfileSettingsRow

@@ -135,16 +135,6 @@ export function getClinicPlanTierLabel(plan: ClinicPlan): string {
   return `${CLINIC_PLAN_LABELS[plan]} plan`;
 }
 
-export function getRecommendedUpgradePlan(
-  plan: ClinicPlan,
-  planFamily: 'clinic' | 'group' = 'clinic',
-): ClinicPlan | null {
-  if (plan === 'free') return planFamily === 'group' ? 'group_starter' : 'starter';
-  if (plan === 'starter') return 'pro';
-  if (plan === 'group_starter') return 'group_pro';
-  return null;
-}
-
 export type ClinicPostingPublishType = 'role' | 'fill-in';
 
 export function isRolePostingLimitReached(
@@ -171,8 +161,7 @@ export type ClinicBillingEntitlementFlag =
   | 'canUseGeneralCandidateMessaging'
   | 'canUseBulkOutreach'
   | 'canUseHiringInsights'
-  | 'canAddLocation'
-  | 'canAddManager';
+  | 'canAddLocation';
 
 export function isClinicBillingFeatureUnlocked(
   billing: Pick<ClinicBillingState, ClinicBillingEntitlementFlag> | null | undefined,

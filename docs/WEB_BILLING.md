@@ -103,19 +103,18 @@ After checkout, the web app also calls `revenuecat-sync` for immediate UI refres
 
 ## Billing UI behavior
 
-- **Individual clinics** see Clinic plans only (Free / Starter / Pro).
-- **Group accounts** see Group plans first (locations & managers), then Clinic plans (hiring tools only).
-- Group plan cards become purchasable automatically when the default offering includes group packages.
+- Pricing is per post: the public pricing page shows the free fill-in allowance and the CA$7.99 fill-in credit for everyone. Tier cards are retired.
+- Owners buy fill-in credits from **Profile → Fill-ins & billing** on web. The purchase goes through RevenueCat Web Billing as a consumable (`fill_in_credit_single`), and the webhook grants the credit.
+- Legacy subscriptions (none expected) show a notice with **Manage subscription** on web.
 
 ## Testing checklist
 
-1. Clinic signs in on web → Plans & billing shows live prices for clinic and (for groups) group tiers.
-2. Purchase Clinic Starter monthly → `clinic_subscriptions` updates; posting limits unlock.
-3. Group account purchases Group Starter → plan `group_starter`; location/manager caps unlock.
-4. Same clinic account on TestFlight/iOS → plan matches without a new iOS build.
-5. iOS App Store purchase → web reflects the plan on refresh.
-6. Web **Manage subscription** opens RevenueCat/Stripe customer portal.
-7. Worker account cannot access clinic billing purchase flows.
+1. Clinic owner signs in on web → Fill-ins & billing shows free posts left, credit balance, and the CA$7.99 buy button.
+2. Buy one fill-in credit → the webhook grants it; the balance increases after the poll.
+3. Post a fill-in after the free allowance → the credit is spent when it goes live.
+4. Same clinic account on TestFlight/iOS → the credit balance matches without a new iOS build.
+5. iOS App Store credit purchase → web shows the new balance on refresh.
+6. Worker account cannot access clinic billing purchase flows.
 
 ## App Store review note
 

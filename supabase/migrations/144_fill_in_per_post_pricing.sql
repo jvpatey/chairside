@@ -3,7 +3,7 @@
 -- Replaces tier-based fill-in limits (see 143) with:
 --   * a free allowance of 2 fill-in posts per clinic (per location for group accounts),
 --     counted from launch (the ledger starts empty, so existing clinics start at 0), and
---   * paid credits (CA$8 each, sold as App Store / RevenueCat consumables).
+--   * paid credits (CA$7.99 each, sold as App Store / RevenueCat consumables).
 --
 -- A fill-in is charged once, on the transition to live. Edits to a live post never charge.
 -- A live post that is closed within 15 minutes of going live is refunded (credit returned to

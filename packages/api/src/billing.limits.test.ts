@@ -31,9 +31,6 @@ describe('isClinicBillingLimitError', () => {
       isClinicBillingLimitError('Location limit reached. Upgrade your plan to add more locations.'),
     ).toBe(true);
     expect(
-      isClinicBillingLimitError('Manager limit reached. Upgrade your plan to invite more managers.'),
-    ).toBe(true);
-    expect(
       isClinicBillingLimitError(
         'Custom screening question limit reached. Upgrade to Pro for unlimited custom questions.',
       ),

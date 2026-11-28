@@ -110,9 +110,6 @@ const DEFAULT_BILLING: ClinicBillingState = {
   locationCount: 0,
   maxLocations: null,
   canAddLocation: true,
-  managerCount: 0,
-  maxManagers: null,
-  canAddManager: true,
   currentPeriodEnd: null,
 };
 

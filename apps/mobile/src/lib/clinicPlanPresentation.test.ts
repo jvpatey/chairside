@@ -29,7 +29,6 @@ const starterFlags = {
   canUseBulkOutreach: false,
   canUseHiringInsights: false,
   canAddLocation: false,
-  canAddManager: false,
 } as const;
 
 const groupProFlags = {
@@ -39,7 +38,6 @@ const groupProFlags = {
   canUseBulkOutreach: true,
   canUseHiringInsights: true,
   canAddLocation: true,
-  canAddManager: true,
 } as const;
 
 describe('clinicPlanPresentation posting limits', () => {
@@ -68,7 +66,6 @@ describe('clinicPlanPresentation posting limits', () => {
     ).toBe(true);
     expect(isClinicBillingFeatureUnlocked(groupProFlags, true, 'canUseHiringInsights')).toBe(true);
     expect(isClinicBillingFeatureUnlocked(starterFlags, true, 'canAddLocation')).toBe(false);
-    expect(isClinicBillingFeatureUnlocked(groupProFlags, true, 'canAddManager')).toBe(true);
   });
 
   it('formats limit titles', () => {

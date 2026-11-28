@@ -9,7 +9,6 @@ import {
   getClinicActiveRoleLimit,
   getClinicCustomScreeningLimit,
   getClinicMaxLocations,
-  getClinicMaxManagers,
   getClinicPlanFamily,
   getClinicPlanRank,
   getPublicClinicProBadgePlan,
@@ -84,18 +83,12 @@ describe('billing config', () => {
     expect(getClinicActiveFillInLimit('group_pro')).toBeNull();
   });
 
-  it('applies free group trial location and manager caps', () => {
+  it('applies free group trial location caps', () => {
     expect(getClinicMaxLocations('free', 'individual')).toBe(1);
     expect(getClinicMaxLocations('free', 'group')).toBe(2);
     expect(getClinicMaxLocations('starter', 'individual')).toBe(1);
     expect(getClinicMaxLocations('group_starter')).toBe(5);
     expect(getClinicMaxLocations('group_pro')).toBeNull();
-
-    expect(getClinicMaxManagers('free', 'individual')).toBe(0);
-    expect(getClinicMaxManagers('free', 'group')).toBe(2);
-    expect(getClinicMaxManagers('group_starter')).toBe(3);
-    expect(getClinicMaxManagers('group_pro')).toBeNull();
-    expect(getClinicMaxManagers('pro', 'individual')).toBe(0);
   });
 
   it('caps custom screening on starter tiers', () => {

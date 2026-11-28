@@ -8,8 +8,9 @@
 -- What this keeps on purpose:
 --   - clinic_invitations and clinic_memberships tables and their data.
 --   - The 'manager' role check on clinic_memberships. Existing rows stay valid.
---   - transfer_clinic_organization_ownership and the clinic_max_managers helpers.
---   - get_clinic_manager_count, which billing reads.
+--   - transfer_clinic_organization_ownership. Migration 147 removes it.
+--   - The manager limit helpers (clinic_max_managers, get_clinic_manager_count). Migration
+--     146 removes them along with the manager fields from get_clinic_billing_state.
 
 update public.clinic_invitations
 set status = 'revoked', updated_at = now()

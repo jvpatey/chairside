@@ -542,15 +542,3 @@ export async function updateClinicMembershipProfile(
   if (error) throw error;
   return data as ClinicMembership;
 }
-
-export async function transferClinicOrganizationOwnership(
-  organizationId: string,
-  newOwnerMembershipId: string,
-): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.rpc('transfer_clinic_organization_ownership', {
-    p_organization_id: organizationId,
-    p_new_owner_membership_id: newOwnerMembershipId,
-  });
-  if (error) throw error;
-}

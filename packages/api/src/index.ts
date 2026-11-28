@@ -142,7 +142,6 @@ export {
   listClinicMemberships,
   setClinicAccountType,
   syncPrimaryLocationToClinicProfile,
-  transferClinicOrganizationOwnership,
   updateClinicLocation,
   updateClinicMembershipProfile,
   type ClinicAccountType,

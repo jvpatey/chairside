@@ -8,7 +8,7 @@ import { ChairsideWordmark } from '@/components/brand/ChairsideWordmark';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { CONTENT_MAX_WIDTH } from '@/lib/breakpoints';
-import { navigateToWelcome, navigateToWelcomeSection } from '@/lib/publicRoutes';
+import { navigateToPricing, navigateToWelcome, navigateToWelcomeSection } from '@/lib/publicRoutes';
 import {
   webHover,
   webPointer,
@@ -25,6 +25,7 @@ type WebMarketingNavProps = {
 
 const WELCOME_NAV_ITEMS = [
   { id: 'how-it-works', label: 'How it works', kind: 'section' as const },
+  { id: 'pricing', label: 'Pricing', kind: 'route' as const },
 ];
 
 function isPricingPath(pathname: string) {
@@ -176,6 +177,10 @@ export function WebMarketingNav({ scrollY, onSectionPress }: WebMarketingNavProp
                   key={item.id}
                   accessibilityRole="link"
                   onPress={() => {
+                    if (item.kind === 'route') {
+                      navigateToPricing();
+                      return;
+                    }
                     if (onSectionPress) {
                       onSectionPress(item.id);
                       return;

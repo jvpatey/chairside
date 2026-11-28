@@ -42,7 +42,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
       '1 active role and 1 active fill-in',
       'Review applications and message candidates',
       'Post permanent roles and fill-in shifts',
-      'Groups: try up to 2 locations and 1 manager per location',
+      'Groups: try up to 2 locations',
     ],
   },
   starter: {
@@ -71,7 +71,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     tagline: 'Multi-site hiring for dental groups',
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
-      'Up to 5 locations and 3 managers',
+      'Up to 5 locations',
       'Up to 5 active roles and 5 fill-ins across your group',
       'Screening questions, private candidate notes, and PDF export',
       'Direct fill-in outreach and SMS alerts',
@@ -83,7 +83,7 @@ export const CLINIC_PLAN_MARKETING: Record<ClinicPlan, ClinicPlanMarketing> = {
     fallbackPriceLabel: 'Billed monthly or annually',
     features: [
       'Everything in Group Starter, plus:',
-      'Unlimited locations, managers, and postings',
+      'Unlimited locations and postings',
       'Priority placement and Pro badge per location',
       'Hiring insights across your group with per-location breakdown',
       'Bulk fill-in outreach and unlimited screening',
@@ -129,18 +129,6 @@ export const CLINIC_MAX_LOCATIONS: Record<ClinicPlan, number | null> = {
 
 export const CLINIC_FREE_GROUP_MAX_LOCATIONS = 2;
 
-/** Free groups: one manager seat per free location slot. */
-export const CLINIC_FREE_GROUP_MAX_MANAGERS = CLINIC_FREE_GROUP_MAX_LOCATIONS;
-
-/** Max managers (excluding owner). Clinic plans = 0. */
-export const CLINIC_MAX_MANAGERS: Record<ClinicPlan, number | null> = {
-  free: CLINIC_FREE_GROUP_MAX_MANAGERS,
-  starter: 0,
-  pro: 0,
-  group_starter: 3,
-  group_pro: null,
-};
-
 /** Custom screening questions. `null` = unlimited. Free = 0. */
 export const CLINIC_CUSTOM_SCREENING_LIMITS: Record<ClinicPlan, number | null> = {
   free: 0,
@@ -159,7 +147,7 @@ export const FILL_IN_BULK_OUTREACH_MAX = 25;
  * fill-in spends one credit. Credits are sold as consumables.
  */
 export const FILL_IN_FREE_POSTS_PER_CLINIC = 2;
-export const FILL_IN_PRICE_CAD = 8;
+export const FILL_IN_PRICE_CAD = 7.99;
 /** App Store / RevenueCat consumable product for one fill-in credit. */
 export const FILL_IN_CREDIT_PRODUCT_ID = 'fill_in_credit_single';
 
@@ -341,17 +329,6 @@ export function getClinicMaxLocations(
   if (plan === 'group_starter') return CLINIC_MAX_LOCATIONS.group_starter;
   if (plan === 'free' && accountType === 'group') return CLINIC_FREE_GROUP_MAX_LOCATIONS;
   return CLINIC_MAX_LOCATIONS[plan];
-}
-
-export function getClinicMaxManagers(
-  plan: ClinicPlan,
-  accountType: 'individual' | 'group' = 'individual',
-): number | null {
-  if (plan === 'group_pro') return null;
-  if (plan === 'group_starter') return CLINIC_MAX_MANAGERS.group_starter;
-  if (plan === 'free' && accountType === 'group') return CLINIC_FREE_GROUP_MAX_MANAGERS;
-  if (accountType === 'individual') return 0;
-  return CLINIC_MAX_MANAGERS[plan];
 }
 
 export function getClinicCustomScreeningLimit(plan: ClinicPlan): number | null {

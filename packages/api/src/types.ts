@@ -904,9 +904,6 @@ export type Database = {
           location_count: number;
           max_locations: number | null;
           can_add_location: boolean;
-          manager_count: number;
-          max_managers: number | null;
-          can_add_manager: boolean;
           current_period_end: string | null;
         };
       };
@@ -930,13 +927,6 @@ export type Database = {
       get_clinic_organization_id_for_user: {
         Args: { p_user_id?: string };
         Returns: string | null;
-      };
-      transfer_clinic_organization_ownership: {
-        Args: {
-          p_organization_id: string;
-          p_new_owner_membership_id: string;
-        };
-        Returns: undefined;
       };
       request_application_kit: {
         Args: { application_id: string };

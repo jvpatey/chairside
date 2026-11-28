@@ -177,6 +177,17 @@ export function getClinicNotificationsSubtitle(): string {
   return 'Manage push alerts';
 }
 
+/** Subtitle for the Fill-ins & billing row. `fillIn` is null until pricing has loaded. */
+export function getClinicBillingSubtitle(
+  fillIn: { freeAllowance: number; freeRemaining: number; creditBalance: number } | null,
+): string {
+  if (!fillIn) return 'Free fill-in posts and credits';
+  const freeLabel = `${fillIn.freeRemaining} of ${fillIn.freeAllowance} free fill-ins left`;
+  const creditLabel =
+    fillIn.creditBalance === 1 ? '1 credit' : `${fillIn.creditBalance} credits`;
+  return `${freeLabel} · ${creditLabel}`;
+}
+
 export function getSupportSubtitle(): string {
   return 'Help topics and contact form';
 }
