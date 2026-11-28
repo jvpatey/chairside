@@ -14,7 +14,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { PracticeDoctorReviewSection } from '@/components/clinic/PracticeDoctorList';
-import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
@@ -430,15 +429,6 @@ export default function ClinicReviewScreen() {
           <ReviewRow label="Description" value={clinicProfile.description ?? ''} isLast />
         </SurfaceCard>
       )}
-
-      <SetupBillingUpsellLink
-        label={
-          isGroup
-            ? 'Need more locations, managers, or hiring tools? View plans'
-            : 'Want hiring tools on day one? View plans'
-        }
-        focus={isGroup ? 'group' : 'clinic'}
-      />
     </FormScreen>
   );
 }

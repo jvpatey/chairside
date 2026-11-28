@@ -26,7 +26,7 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
-import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
+import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -39,7 +39,6 @@ import {
   CLINIC_HOME,
   CLINIC_PROFILE,
   CLINIC_PROFILE_ACCOUNT,
-  CLINIC_PROFILE_BILLING,
   CLINIC_PROFILE_NOTIFICATIONS,
   getAdminRouteForRole,
   WORKER_HOME,
@@ -742,14 +741,6 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
             onPress: () => {
               router.push(CLINIC_PROFILE_NOTIFICATIONS);
-            },
-          },
-          {
-            label: 'Billing',
-            detail: billing ? getClinicPlanLabel(billing.plan) : undefined,
-            icon: <Ionicons name="card-outline" size={20} color={colors.labelSecondary} />,
-            onPress: () => {
-              router.push(CLINIC_PROFILE_BILLING);
             },
           },
         ]),

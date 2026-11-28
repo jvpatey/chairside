@@ -45,7 +45,6 @@ import { useFillInPending } from '@/contexts/FillInPendingContext';
 import { useMessageUnread } from '@/contexts/MessageUnreadContext';
 import { useDashboardWelcomeCelebration } from '@/hooks/useDashboardWelcomeCelebration';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
-import { openClinicBillingModal } from '@/components/billing/ClinicBillingModal';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useClinicLogo } from '@/hooks/useClinicLogo';

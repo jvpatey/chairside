@@ -33,7 +33,6 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -447,7 +446,6 @@ export default function ClinicLocationsSetupScreen() {
             <Text style={styles.addLabel}>Add another location</Text>
           </Pressable>
         )}
-        <SetupBillingUpsellLink label="Need more than 2 locations? View plans" />
       </View>
     </FormScreen>
     </>

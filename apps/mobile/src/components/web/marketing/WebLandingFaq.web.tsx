@@ -16,9 +16,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const FAQ_ITEMS = [
   {
     id: 'free-tier',
-    question: 'Is there really a free tier?',
+    question: 'Is Chairside free to use?',
     answer:
-      'Yes. Clinics can keep one live role and one live fill-in at no cost. Dental professionals — hygienists, assistants, receptionists, and others — always join free.',
+      'Yes. Chairside is currently free for both dental clinics and dental professionals — post fill-in shifts and permanent roles with no limits.',
   },
   {
     id: 'who-can-join',
@@ -48,7 +48,7 @@ const FAQ_ITEMS = [
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start free with up to two locations and one manager per location, plus one live role and one live fill-in across the group.',
+      'Yes. Dental groups can manage multiple clinic locations, invite managers, and coordinate coverage and hiring from one place.',
   },
 ] as const;
 
@@ -172,7 +172,7 @@ export function WebLandingFaq() {
         <WebMarketingSectionHeader
           eyebrow="FAQ"
           title="Common questions"
-          subtitle="Straight answers about pricing, coverage, and how Chairside works."
+          subtitle="Straight answers about coverage and how Chairside works."
         />
 
         <View style={styles.card}>
