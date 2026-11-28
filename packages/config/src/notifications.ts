@@ -1,7 +1,7 @@
 /**
  * Chairside notification type IDs — used for in-app inbox rows + Expo push payloads.
  * Pingram templates are only required for SMS/email types (`fill_in_posted`,
- * `fill_in_outreach_sms`, `auth_otp`, `clinic_manager_invitation`, `support_contact`).
+ * `fill_in_outreach_sms`, `auth_otp`, `support_contact`).
  */
 export const PINGRAM_NOTIFICATION_TYPES = {
   applicationReceived: 'application_received',
@@ -29,10 +29,6 @@ export const PINGRAM_NOTIFICATION_TYPES = {
   fillInOutreachSms: 'fill_in_outreach_sms',
   /** Auth phone OTP (Supabase Send SMS hook → Pingram). */
   authOtp: 'auth_otp',
-  /** Email-only (manager invites; invitee may not have an account yet). */
-  clinicManagerInvitation: 'clinic_manager_invitation',
-  /** Owner alert when a manager accepts an invite (in-app + Expo push). */
-  clinicManagerJoined: 'clinic_manager_joined',
 } as const;
 
 export type PingramNotificationType =

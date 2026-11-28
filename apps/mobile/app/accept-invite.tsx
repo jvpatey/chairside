@@ -1,19 +1,9 @@
-import { Redirect, useLocalSearchParams, type Href } from 'expo-router';
-
-import { CLINIC_ACCEPT_INVITE } from '@/lib/routing';
+import { Redirect } from 'expo-router';
 
 /**
- * Public HTTPS / app-link entry for manager invitations.
- * Forwards into the onboarding accept screen. Token persistence happens only
- * after that screen confirms the invite is still pending.
+ * Manager invitations are retired (one login per clinic or group).
+ * Old invite links land here and continue to the normal app entry.
  */
-export default function PublicAcceptInviteScreen() {
-  const params = useLocalSearchParams<{ token?: string }>();
-  const token = typeof params.token === 'string' ? params.token.trim() : '';
-
-  const href = token
-    ? (`${String(CLINIC_ACCEPT_INVITE)}?token=${encodeURIComponent(token)}` as const)
-    : CLINIC_ACCEPT_INVITE;
-
-  return <Redirect href={href as Href} />;
+export default function RetiredAcceptInviteScreen() {
+  return <Redirect href="/" />;
 }

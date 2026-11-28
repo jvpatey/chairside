@@ -24,9 +24,8 @@ export const TERMS_OF_SERVICE_CONTENT: LegalPageContent = {
       title: 'Accounts and team access',
       bullets: [
         'Keep your login credentials secure and notify us of unauthorized access.',
-        'You are responsible for activity under your account, including activity by group managers you invite.',
+        'You are responsible for activity under your account.',
         'Provide accurate profile, posting, and application information.',
-        'Group owners may invite managers and assign location access. Managers may use hiring tools for assigned locations but cannot purchase or restore billing for the organization.',
         'Only the clinic or group owner may manage paid subscriptions for that organization.',
       ],
     },
@@ -77,7 +76,7 @@ export const TERMS_OF_SERVICE_CONTENT: LegalPageContent = {
       title: 'Termination and account deletion',
       bullets: [
         'You may delete your account at any time from Profile → Account.',
-        'Deleting a clinic or group owner account removes the organization login and closes live postings. Deleting a manager account removes that person’s access; the organization continues under the owner.',
+        'Deleting a clinic or group account removes the organization login and closes live postings.',
         'Historical applications, messages, or closed postings may remain visible to counterparties as records marked no longer on Chairside, with personal details removed or masked where possible.',
         'We may suspend or terminate access for violations of these Terms or to protect the service and users.',
       ],

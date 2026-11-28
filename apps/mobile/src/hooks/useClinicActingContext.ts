@@ -1,18 +1,8 @@
-import type { ClinicMembershipRole } from '@chairside/api';
 import { formatPostedDateLabel } from '@/lib/dates';
 
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 
-/** Access-role label for chrome identity (not job title). */
-export function getClinicMembershipRoleLabel(
-  role?: ClinicMembershipRole | null,
-  isOwner?: boolean,
-): 'Owner' | 'Manager' {
-  if (role === 'owner' || isOwner) return 'Owner';
-  return 'Manager';
-}
-
-/** Resolve the organization clinic id and group identity for the signed-in member. */
+/** Resolve the organization clinic id and group identity for the signed-in account. */
 export function useClinicActingContext() {
   const {
     clinicId,
@@ -27,10 +17,7 @@ export function useClinicActingContext() {
     clinicProfile,
   } = useClinicProfile();
 
-  // Account name (captured at sign-up). Clinic identity is the group/clinic name.
-  const memberRoleLabel = isGroup
-    ? getClinicMembershipRoleLabel(membership?.role, isOwner)
-    : '';
+  // Clinic identity is the group/clinic name.
   const groupDisplayName = isGroup
     ? organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || 'Dental group'
     : '';
@@ -43,7 +30,6 @@ export function useClinicActingContext() {
     scopedLocationIds,
     locationScope,
     setLocationScope,
-    memberRoleLabel,
     groupDisplayName,
   };
 }

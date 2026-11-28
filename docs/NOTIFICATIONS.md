@@ -7,7 +7,7 @@ Chairside notification channels:
 | In-app bell / history | Supabase `user_notifications` |
 | Native mobile push | [Expo Push](https://docs.expo.dev/push-notifications/overview/) via `user_push_tokens` |
 | SMS (fill-ins / outreach) | [Pingram](https://www.pingram.io/) `POST /sms` |
-| Email (manager invites, support) | Pingram |
+| Email (support) | Pingram |
 
 Pingram is **not** used for in-app or mobile push.
 
@@ -20,13 +20,12 @@ Auth OTP SMS (sign-up / sign-in codes) **is** Pingram, but via the Supabase **Se
    - `fill_in_posted` (SMS template + opt-out text)
    - `fill_in_outreach_sms` (SMS-only outreach text alerts)
    - `auth_otp` (phone sign-in / sign-up OTP — Auth Send SMS hook; see [AUTH.md](./AUTH.md))
-   - `clinic_manager_invitation` (email)
    - `support_contact` (Support form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
 3. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
 4. Configure **APNs** in **EAS credentials** (not Pingram) — see [PUSH_IOS_PRODUCTION.md](./PUSH_IOS_PRODUCTION.md). **FCM** (Android) via EAS when you ship Android push.
 5. Register SMS sender / campaign with Pingram support if using fill-in SMS.
 6. Verify SMS channel: `export PINGRAM_API_KEY='pingram_sk_...' && ./scripts/verify-pingram-sms.sh` (add `TEST_PHONE='+1...'` to send a real test SMS). Pingram regions are separate accounts: `app.pingram.io` ↔ `https://api.pingram.io` (US), `app.ca.pingram.io` ↔ `https://api.ca.pingram.io` (Canada, the code default). `PINGRAM_API_URL` must match the region the key was created in, or every send returns 401 and nothing appears in the dashboard.
-   - **Production uses the Canada account.** The `PINGRAM_API_KEY` edge secret is a Canada-region key and `PINGRAM_API_URL=https://api.ca.pingram.io` is set explicitly. Fill-in SMS, manager invites, and support emails show up under **Logs** at [app.ca.pingram.io](https://app.ca.pingram.io), not `app.pingram.io`.
+   - **Production uses the Canada account.** The `PINGRAM_API_KEY` edge secret is a Canada-region key and `PINGRAM_API_URL=https://api.ca.pingram.io` is set explicitly. Fill-in SMS and support emails show up under **Logs** at [app.ca.pingram.io](https://app.ca.pingram.io), not `app.pingram.io`.
    - A separate US-region Pingram account also exists (`app.pingram.io`). The Cursor Pingram plugin is signed in to that US account, so its logs, numbers, and `sms_send` do not reflect production traffic.
 7. Run migrations:
    - [`121_user_push_tokens.sql`](../supabase/migrations/121_user_push_tokens.sql) — Expo push tokens
@@ -152,33 +151,11 @@ HTTP headers:
 | `shift_posts`   | INSERT, UPDATE      |
 | `job_posts`     | INSERT, UPDATE      |
 | `messages`      | INSERT              |
-| `clinic_invitations` | INSERT, UPDATE    |
-
 Use `application/json` body (default Supabase webhook payload). Shortlisting is an `applications` **UPDATE** (`applied`/`reviewed` → `in_progress`). If that webhook is INSERT-only, candidates never get a shortlist notification.
 
-#### Manager invitation emails
+#### Manager invitations (retired)
 
-`clinic_invitations` INSERT (pending only) sends a Pingram **email** (`POST /email`) with type `clinic_manager_invitation`. Invitees may not have a Chairside account yet, so this path is email-only.
-
-`clinic_invitations` UPDATE to `accepted` notifies the group owner (and the inviting user, if different) with **in-app + Expo push** (`clinic_manager_joined`). Clinic assignments from the invite are copied on accept — no further owner setup step is required when locations were selected at invite time.
-
-Required ops steps:
-
-1. Run migrations through `097_clinic_manager_invitation_preview_resend.sql`.
-2. Create Pingram notification type `clinic_manager_invitation` (`./scripts/setup-pingram-notification-types.sh`).
-3. Deploy `notify` and add the `clinic_invitations` **INSERT + UPDATE** webhook above.
-4. Set edge secrets as needed:
-   - `APP_WEB_BASE_URL` (defaults to `https://chairsidedental.app`) for accept links
-   - optional `INVITE_SENDER_EMAIL` / `INVITE_SENDER_NAME`
-
-Smoke test (token redacted from script stdout):
-
-```bash
-export NOTIFY_WEBHOOK_SECRET='...'
-./scripts/test-clinic-manager-invite-notify.sh [invitation_id] [organization_id] [email]
-```
-
-Idempotency key: `clinic_manager_invitation:{invitation_id}`. Invitation tokens must never appear in edge-function logs or analytics payloads.
+Manager invitations are retired, so `notify` no longer handles `clinic_invitations` events. Remove the `clinic_invitations` webhook in Supabase and the `clinic_manager_invitation` / `clinic_manager_joined` Pingram types.
 
 ## Mobile
 
@@ -224,8 +201,6 @@ eas build --profile production --platform ios
 | Clinic fill-in outreach (with optional text alert) | Worker | `message_received` + optional `fill_in_outreach_sms` | in-app/Expo push for message; SMS-only for text alert | `messages` (message); SMS uses worker opt-in |
 | Auto shift-details message in outreach thread | — | — | suppressed (no send) | — |
 | Worker replies `YES <code>` to a fill-in text (when `SMS_REPLY_ENABLED`) | Worker (SMS reply); clinic via the resulting `application_received` | `fill_in_sms_reply` | SMS reply | SMS uses worker opt-in |
-| Clinic manager invitation created | Invitee email | `clinic_manager_invitation` | email (`POST /email`) | — |
-| Clinic manager accepted invitation | Group owner (+ inviter if different) | `clinic_manager_joined` | in-app + Expo push | always on for this event |
 
 ### Deep links
 
@@ -235,7 +210,6 @@ eas build --profile production --platform ios
 | General / outreach message | `/(tabs)/conversation/{conversation_id}` or clinic equivalent |
 | Worker application update | `/(tabs)/application/{application_id}` |
 | Clinic new applicant | `/(clinic-tabs)/applications` |
-| Manager joined team | `/(clinic-tabs)/profile/team` |
 | Fill-in alert | `/(tabs)/shift/{shiftId}` (SMS/public: `/f/{shiftId}`) |
 | Job alert | `/(tabs)/browse` (public share: `/j/{jobId}`) |
 
@@ -251,7 +225,5 @@ Edge dispatch dedupes via `notification_dispatch_log.idempotency_key`. Common pa
 - `application_kit_requested:{applicationId}:kit_requested` (clinic requested full application)
 - `application_received:{applicationId}:{recipientUserId}` (clinic new applicant / cover request)
 - `application_interview_*:{applicationId}:{recipientUserId}` (clinic-side interview alerts)
-- `clinic_manager_invitation:{invitationId}` (manager invite email)
-- `clinic_manager_joined:{invitationId}:{ownerUserId}` (owner alert when manager accepts)
 
 Outreach SMS also has a DB-side 24h rate limit per clinic→worker pair before the message is inserted (`outreach_sms:{clinicId}:{workerId}:…`).

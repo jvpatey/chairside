@@ -1,6 +1,4 @@
 import {
-  getClinicWorkspace,
-  isClinicGroupsEnabled,
   resolveAuthProfile,
   type Profile,
   type UserRole,
@@ -27,19 +25,9 @@ type ResolveAuthenticatedRouteResult = {
   role: UserRole | null;
 };
 
-async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<Href> {
-  if (role === 'clinic') {
-    // Soft tabs: incomplete clinics land in the app; capture + post gates handle gaps.
-    if (isClinicGroupsEnabled()) {
-      const workspace = await getClinicWorkspace(userId);
-      if (workspace?.membership.role === 'manager') {
-        return getHomeRouteForRole('clinic');
-      }
-    }
-    return getHomeRouteForRole('clinic');
-  }
-
-  return getHomeRouteForRole('worker');
+function resolveHomeRouteForRole(role: UserRole): Href {
+  // Soft tabs: incomplete clinics land in the app; capture + post gates handle gaps.
+  return getHomeRouteForRole(role === 'clinic' ? 'clinic' : 'worker');
 }
 
 export async function resolveAuthenticatedRoute({
@@ -53,7 +41,7 @@ export async function resolveAuthenticatedRoute({
     if (!profile?.role) {
       await refreshProfile();
     }
-    const href = await resolveHomeRouteForRole(userId, resolved.role);
+    const href = resolveHomeRouteForRole(resolved.role);
     return { href, role: resolved.role };
   }
 

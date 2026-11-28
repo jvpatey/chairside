@@ -1,6 +1,10 @@
 import type { ClinicPlan } from '@chairside/config';
 
-import type { BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
+import type {
+  BillingOfferings,
+  BillingPackage,
+  FillInCreditPackage,
+} from '@/lib/billingOfferings';
 
 /**
  * Fallback implementation for tooling and non-platform runtimes.
@@ -21,6 +25,12 @@ export async function purchaseBillingPackage(_billingPackage: BillingPackage): P
 export async function restoreRevenueCatPurchases(): Promise<ClinicPlan> {
   return 'free';
 }
+
+export async function getFillInCreditPackage(): Promise<FillInCreditPackage | null> {
+  return null;
+}
+
+export async function purchaseFillInCredit(_creditPackage: FillInCreditPackage): Promise<void> {}
 
 export async function getCurrentClinicPlan(): Promise<ClinicPlan | null> {
   return null;

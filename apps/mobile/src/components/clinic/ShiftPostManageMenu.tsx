@@ -1,4 +1,5 @@
 import {
+  closeShiftPost,
   deleteShiftPost,
   getShiftPostApplicationCount,
   updateShiftPostStatus,
@@ -86,6 +87,15 @@ export function ShiftPostManageMenu({
 
   const handleStatusChange = async (status: ShiftPostStatus) => {
     try {
+      if (status === 'closed') {
+        // Closing goes through the RPC so a fill-in closed within the grace window is refunded.
+        const { shift: closed, refunded } = await closeShiftPost(clinicId, shift.id);
+        onUpdated(closed);
+        if (refunded) {
+          Alert.alert('Fill-in closed', 'Your fill-in credit has been returned to your balance.');
+        }
+        return;
+      }
       const updated = await updateShiftPostStatus(clinicId, shift.id, status);
       onUpdated(updated);
     } catch (error) {

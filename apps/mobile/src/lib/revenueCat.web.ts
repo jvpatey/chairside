@@ -11,10 +11,12 @@ import type { ClinicPlan } from '@chairside/config';
 import {
   getClinicPlanFromEntitlements,
   getProductIdFromActiveEntitlements,
+  isFillInCreditPackage,
   normalizeWebBillingPriceAmount,
   resolveBillingPackageMeta,
   type BillingOfferings,
   type BillingPackage,
+  type FillInCreditPackage,
 } from '@/lib/billingOfferings';
 import {
   getRevenueCatWebApiKey,
@@ -107,6 +109,38 @@ export async function purchaseBillingPackage(billingPackage: BillingPackage): Pr
     });
     updateManagementUrl(purchaseResult.customerInfo);
     return getClinicPlanFromCustomerInfo(purchaseResult.customerInfo);
+  } catch (error) {
+    if (error instanceof PurchasesError && error.errorCode === ErrorCode.UserCancelledError) {
+      throw new Error('Purchase cancelled.');
+    }
+    throw error;
+  }
+}
+
+export async function getFillInCreditPackage(): Promise<FillInCreditPackage | null> {
+  if (!isWebRevenueCatConfigured() || !Purchases.isConfigured()) return null;
+
+  const offerings = await getPurchasesInstance().getOfferings();
+  const pkg = (offerings.current?.availablePackages ?? []).find((candidate) =>
+    isFillInCreditPackage([candidate.identifier, candidate.webBillingProduct.identifier]),
+  );
+  if (!pkg) return null;
+
+  return {
+    productIdentifier: pkg.webBillingProduct.identifier,
+    priceLabel: pkg.webBillingProduct.price.formattedPrice,
+    source: pkg,
+  };
+}
+
+/** Consumable purchase on web. Credits are granted server-side by the RevenueCat webhook. */
+export async function purchaseFillInCredit(creditPackage: FillInCreditPackage): Promise<void> {
+  try {
+    const result = await getPurchasesInstance().purchase({
+      rcPackage: creditPackage.source as Package,
+      skipSuccessPage: true,
+    });
+    updateManagementUrl(result.customerInfo);
   } catch (error) {
     if (error instanceof PurchasesError && error.errorCode === ErrorCode.UserCancelledError) {
       throw new Error('Purchase cancelled.');

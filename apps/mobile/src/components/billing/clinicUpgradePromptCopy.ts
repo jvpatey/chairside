@@ -1,4 +1,9 @@
-import type { ClinicPlan, ClinicPlanFamily } from '@chairside/config';
+import {
+  FILL_IN_FREE_POSTS_PER_CLINIC,
+  FILL_IN_PRICE_CAD,
+  type ClinicPlan,
+  type ClinicPlanFamily,
+} from '@chairside/config';
 
 export type ClinicUpgradeReason =
   | 'publish_role'
@@ -12,7 +17,6 @@ export type ClinicUpgradeReason =
   | 'discover'
   | 'general_messaging'
   | 'add_location'
-  | 'add_manager'
   | 'hiring_insights'
   | 'bulk_outreach';
 
@@ -40,6 +44,11 @@ export function getClinicPublishLimitMessage(
   }
 
   return 'Upgrade your plan for unlimited active roles and fill-ins.';
+}
+
+/** Per-post fill-in pricing copy (free allowance, then a paid credit per fill-in). */
+export function getFillInPerPostMessage(): string {
+  return `Your first ${FILL_IN_FREE_POSTS_PER_CLINIC} fill-ins are free. Each fill-in after that is CA$${FILL_IN_PRICE_CAD}. Roles are always free.`;
 }
 
 export function getClinicOutreachUpgradeMessage(
@@ -111,28 +120,12 @@ export function getClinicAddLocationUpgradeMessage(
   maxLocations: number | null | undefined,
 ): string {
   if (planFamily === 'group' && maxLocations === 2) {
-    return 'Your free group trial includes up to 2 locations. Upgrade to Group Starter or Group Pro for more locations and managers.';
+    return 'Your free group trial includes up to 2 locations. Upgrade to Group Starter or Group Pro for more locations.';
   }
   if (planFamily === 'group') {
     return 'You have reached your location limit on your current Group plan. Upgrade to Group Pro for unlimited locations, or choose a higher Group tier when available.';
   }
-  return 'Single-clinic plans include one location. Upgrade to a Group plan to add more locations and invite managers.';
-}
-
-export function getClinicAddManagerUpgradeMessage(
-  maxManagers: number | null | undefined,
-  planFamily: ClinicPlanFamily = 'clinic',
-): string {
-  if (planFamily === 'group' && maxManagers === 2) {
-    return 'Your free group trial includes 1 manager per location (up to 2). Upgrade to Group Starter or Group Pro for more managers and locations.';
-  }
-  if (maxManagers === 0) {
-    return 'Manager invites require a Group plan. Upgrade to Group Starter to invite managers.';
-  }
-  if (planFamily === 'group') {
-    return 'You have reached your manager limit on your current Group plan. Upgrade to Group Pro for more managers, or choose a higher Group tier when available.';
-  }
-  return 'You have reached your manager limit. Upgrade your Group plan to invite more managers.';
+  return 'Single-clinic plans include one location. Upgrade to a Group plan to add more locations.';
 }
 
 export function getClinicUpgradePromptTitle(reason: ClinicUpgradeReason): string {
@@ -159,10 +152,9 @@ export function getClinicUpgradePromptTitle(reason: ClinicUpgradeReason): string
       return 'Upgrade for open inquiries';
     case 'add_location':
       return 'Upgrade to add locations';
-    case 'add_manager':
-      return 'Upgrade to invite managers';
-    case 'publish_role':
     case 'publish_fill_in':
+      return 'Buy a fill-in to publish';
+    case 'publish_role':
       return 'Upgrade to publish more';
   }
 }
@@ -173,10 +165,9 @@ export function getClinicUpgradePromptMessage(
     plan: ClinicPlan;
     planFamily: ClinicPlanFamily;
     maxLocations?: number | null;
-    maxManagers?: number | null;
   },
 ): string {
-  const { plan, planFamily, maxLocations, maxManagers } = options;
+  const { plan, planFamily, maxLocations } = options;
   switch (reason) {
     case 'outreach':
       return getClinicOutreachUpgradeMessage(planFamily);
@@ -200,10 +191,8 @@ export function getClinicUpgradePromptMessage(
       return getClinicGeneralMessagingUpgradeMessage(planFamily);
     case 'add_location':
       return getClinicAddLocationUpgradeMessage(planFamily, maxLocations);
-    case 'add_manager':
-      return getClinicAddManagerUpgradeMessage(maxManagers, planFamily);
     case 'publish_fill_in':
-      return getClinicPublishLimitMessage(plan, 'fill-in');
+      return getFillInPerPostMessage();
     case 'publish_role':
       return getClinicPublishLimitMessage(plan, 'role');
   }

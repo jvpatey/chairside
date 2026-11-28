@@ -80,10 +80,7 @@ create_type "fill_in_sms_reply" "Fill-in SMS reply" '["SMS"]' "$(sms_channel_opt
 echo ""
 create_type "auth_otp" "Auth OTP (phone sign-in)" '["SMS"]' "$(sms_channel_options)" || true
 echo ""
-create_type "clinic_manager_invitation" "Clinic manager invitation" '["EMAIL"]' "$(email_channel_options)" || true
-echo ""
 
 echo "Done. Re-run ./scripts/verify-pingram-sms.sh to confirm SMS types."
 echo "Auth OTP SMS uses type auth_otp via the send-auth-sms Auth hook (see docs/AUTH.md)."
-echo "Manager invites use Pingram POST /email with type clinic_manager_invitation."
 echo "Support form email uses type support_contact (see docs/SUPPORT_CONTACT.md)."

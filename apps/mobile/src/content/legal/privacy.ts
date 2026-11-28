@@ -9,7 +9,6 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       title: 'Who this applies to',
       bullets: [
         'Clinic owners — people who create and manage an individual clinic or multi-location group account.',
-        'Group managers — invited clinic logins with access limited to assigned locations.',
         'Workers (candidates) — dental professionals who browse roles and fill-ins, apply, and message clinics.',
       ],
     },
@@ -18,7 +17,6 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       bullets: [
         'Account information: name, email, role (clinic or worker), and a hashed password when you sign in with email and password. Apple or Google sign-in may be used instead of a password.',
         'Clinic and group profile information: practice or group name, locations, addresses, phone, website, practice details (for example specialties, software, team size), logos, and practice doctor photos.',
-        'Manager membership profiles: name, title, bio, and optional photo for invited group managers.',
         'Worker profile information: professional role type, experience, skills, availability, travel preferences, city and address you provide, and optional contact details.',
         'Application materials: resumes, profile photos, cover or application-kit materials, and answers to clinic screening questions.',
         'Hiring activity: role and fill-in postings, applications, interview scheduling, outreach and open-inquiry messages, and messages between clinics and workers.',
@@ -36,8 +34,8 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'Provide staffing features: post and browse roles and fill-ins, apply, message, schedule interviews, Discover candidates, send outreach, and manage hiring workflows.',
         'Match and display relevant opportunities based on role, location, plan features, and preferences.',
         'Show limited worker location context to clinics (typically city and province, not full street address) while storing the address you provide for matching and your profile.',
-        'Authenticate you, keep your account secure, and manage team invites for group accounts.',
-        'Send transactional notifications about applications, messages, interviews, invites, and fill-in alerts (including optional SMS when you opt in).',
+        'Authenticate you and keep your account secure.',
+        'Send transactional notifications about applications, messages, interviews, and fill-in alerts (including optional SMS when you opt in).',
         'Process clinic subscriptions and enforce plan limits.',
         'Respond to support messages you submit through the Support page.',
         'Understand product usage so we can improve reliability and the experience (via analytics events; we do not sell this data).',
@@ -52,7 +50,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       bullets: [
         'Supabase — authentication, database (including in-app notification history), file storage, and server functions.',
         'Mapbox — address search and map display.',
-        'Pingram — optional SMS and transactional email (including team invites and Support form delivery).',
+        'Pingram — optional SMS and transactional email (including Support form delivery).',
         'Expo — native push notification delivery on iOS and Android.',
         'RevenueCat — subscription entitlements and billing sync for clinic plans.',
         'Apple — Sign in with Apple, and App Store in-app purchases on iOS.',
@@ -68,8 +66,8 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
         'We do not sell your personal information. We share information only as needed to operate the service:',
       ],
       bullets: [
-        'Between clinics (including assigned group managers) and workers when you apply, message, appear in Discover or outreach workflows, or participate in hiring.',
-        'Within a group organization so owners and assigned managers can run hiring for their locations.',
+        'Between clinics and workers when you apply, message, appear in Discover or outreach workflows, or participate in hiring.',
+        'Within a group organization so the group account can run hiring for its locations.',
         'With service providers listed above.',
         'When required by law or to protect rights, safety, and security.',
       ],
@@ -78,8 +76,7 @@ export const PRIVACY_POLICY_CONTENT: LegalPageContent = {
       title: 'Retention and account deletion',
       paragraphs: [
         'You can delete your account from Profile → Account in the app.',
-        'When a worker or clinic owner deletes their account, we remove the login, profile, and uploaded files such as photos, resumes, and logos. For clinic owners, the organization, locations, memberships, and invites are removed, and live postings are closed.',
-        'When an invited group manager deletes their account, their membership and location access are removed. The group organization and its postings remain under the owner’s account.',
+        'When a worker or clinic owner deletes their account, we remove the login, profile, and uploaded files such as photos, resumes, and logos. For clinic owners, the organization and locations are removed, and live postings are closed.',
         'Some historical application and message records may remain visible to the other party as needed for hiring context, marked as no longer on Chairside. Personal details in those records are removed or masked where possible (for example, message bodies from the deleted account may be replaced with a removed placeholder). Clinic-side private notes tied to a deleted worker profile are removed with that profile.',
         'Apple, Stripe, and RevenueCat may retain billing records according to their own policies and applicable law.',
         'We retain other data only as long as needed for the purposes above, unless a longer period is required by law. Support emails delivered to our inbox may be retained outside the app to handle your request.',

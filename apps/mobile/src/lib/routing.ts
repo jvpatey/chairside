@@ -178,7 +178,6 @@ export const CLINIC_SETUP_REVIEW: Href = '/(clinic-setup)/review' as Href;
 export const CLINIC_FINISH_PROFILE: Href = '/(onboarding)/capture-clinic-name' as Href;
 export const CLINIC_CAPTURE_PHONE: Href = '/(onboarding)/capture-clinic-phone' as Href;
 export const CLINIC_CAPTURE_ADDRESS: Href = '/(onboarding)/capture-clinic-address' as Href;
-export const CLINIC_ACCEPT_INVITE: Href = '/(onboarding)/accept-invite' as Href;
 export const WORKER_SETUP_BASICS: Href = '/(worker-setup)/basics' as Href;
 export const WORKER_SETUP_EXPERIENCE: Href = '/(worker-setup)/experience' as Href;
 export const WORKER_SETUP_SKILLS: Href = '/(worker-setup)/skills' as Href;

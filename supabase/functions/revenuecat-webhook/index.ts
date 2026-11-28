@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { creditsForFillInProduct } from '../_shared/fillInCredits.ts';
 import {
   fetchRevenueCatSubscriber,
   mapWebhookStatus,
@@ -12,10 +13,13 @@ const corsHeaders = {
 };
 
 type RevenueCatWebhookEvent = {
+  id?: string;
   type?: string;
   app_user_id?: string;
   original_app_user_id?: string;
   expiration_at_ms?: number | null;
+  product_id?: string | null;
+  transaction_id?: string | null;
 };
 
 type RevenueCatWebhookBody = {
@@ -81,6 +85,44 @@ Deno.serve(async (req) => {
 
     if (profile?.role !== 'clinic') {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Consumable purchase: grant fill-in credits. Idempotent on the RevenueCat event/transaction id.
+    if (eventType === 'NON_RENEWING_PURCHASE') {
+      const credits = creditsForFillInProduct(event?.product_id);
+      if (credits == null) {
+        return new Response(JSON.stringify({ ok: true, ignored: true, product: event?.product_id ?? null }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const externalRef = event?.id ?? event?.transaction_id;
+      if (!externalRef) {
+        return new Response(JSON.stringify({ error: 'Missing purchase reference' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { error: grantError } = await adminClient.rpc('grant_fill_in_credits', {
+        p_clinic_id: clinicId,
+        p_quantity: credits,
+        p_external_ref: `rc:${externalRef}`,
+      });
+
+      if (grantError) {
+        console.error('[revenuecat-webhook] credit grant failed', grantError.message);
+        return new Response(JSON.stringify({ error: 'Could not grant fill-in credits' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true, credits }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

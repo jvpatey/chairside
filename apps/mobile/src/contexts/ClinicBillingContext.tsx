@@ -1,10 +1,12 @@
 import {
   ensureClinicBillingSession,
   getClinicBillingState,
+  getFillInPricingState,
   isAlreadySubscribedPurchaseError,
   isPaidClinicPlan,
   syncClinicSubscriptionFromRevenueCat,
   type ClinicBillingState,
+  type FillInPricingState,
 } from '@chairside/api';
 import {
   CLINIC_PLAN_LABELS,
@@ -22,7 +24,12 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 
-import type { BillingCycle, BillingOfferings, BillingPackage } from '@/lib/billingOfferings';
+import type {
+  BillingCycle,
+  BillingOfferings,
+  BillingPackage,
+  FillInCreditPackage,
+} from '@/lib/billingOfferings';
 import { resolveActiveBillingDetails } from '@/lib/billingOfferings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
@@ -31,9 +38,11 @@ import {
   getActiveSubscriptionProductId,
   getBillingOfferings,
   getCurrentClinicPlan,
+  getFillInCreditPackage,
   logOutRevenueCat,
   openSubscriptionManagement,
   purchaseBillingPackage,
+  purchaseFillInCredit as purchaseFillInCreditPackage,
   restoreRevenueCatPurchases,
 } from '@/lib/revenueCat';
 import { isRevenueCatConfigured, isWebRevenueCatConfigured } from '@/lib/revenueCatEnv';
@@ -49,6 +58,12 @@ type ClinicBillingContextValue = {
   activePriceLabel: string | null;
   refreshBilling: (options?: { forceSubscriptionSync?: boolean }) => Promise<void>;
   purchasePackage: (purchasePackage: BillingPackage) => Promise<ClinicPlan | null>;
+  /** Per-post fill-in state: free posts left and paid credit balance. Owners only. */
+  fillInPricing: FillInPricingState | null;
+  fillInCreditPackage: FillInCreditPackage | null;
+  refreshFillInPricing: () => Promise<FillInPricingState | null>;
+  /** Buys one fill-in credit and waits (briefly) for the webhook to grant it. */
+  purchaseFillInCredit: () => Promise<void>;
   restorePurchases: () => Promise<void>;
   manageSubscription: () => Promise<void>;
   isPurchasing: boolean;
@@ -105,11 +120,13 @@ function isPaidBillingState(state: ClinicBillingState | null | undefined): boole
   return Boolean(state && isPaidClinicPlan(state.plan) && state.status !== 'expired');
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
   const { clinicId: organizationClinicId, isClinicProfileReady, isOwner } = useClinicProfile();
   const isClinic = profile?.role === 'clinic';
-  /** Billing attaches to the organization (owner) id, not invited managers. */
+  /** Billing attaches to the organization id (one login per clinic or group). */
   const clinicId = isClinic ? organizationClinicId ?? undefined : undefined;
 
   const [billing, setBilling] = useState<ClinicBillingState | null>(null);
@@ -125,6 +142,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [canManageSubscription, setCanManageSubscription] = useState(false);
+  const [fillInPricing, setFillInPricing] = useState<FillInPricingState | null>(null);
+  const [fillInCreditPackage, setFillInCreditPackage] = useState<FillInCreditPackage | null>(null);
   const refreshGenerationRef = useRef(0);
   const billingRef = useRef<ClinicBillingState | null>(null);
   /** Avoid hammering revenuecat-sync on every visibility refresh for the same desync. */
@@ -133,6 +152,27 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
   const isNativeBillingAvailable = Platform.OS !== 'web' && isRevenueCatConfigured();
   const isWebBillingAvailable = Platform.OS === 'web' && isWebRevenueCatConfigured();
   const isPurchaseBillingAvailable = isNativeBillingAvailable || isWebBillingAvailable;
+
+  const refreshFillInPricing = useCallback(async (): Promise<FillInPricingState | null> => {
+    if (!clinicId || !isOwner) {
+      setFillInPricing(null);
+      setFillInCreditPackage(null);
+      return null;
+    }
+
+    try {
+      const [pricing, creditPackage] = await Promise.all([
+        getFillInPricingState(),
+        isPurchaseBillingAvailable ? getFillInCreditPackage() : Promise.resolve(null),
+      ]);
+      setFillInPricing(pricing);
+      setFillInCreditPackage(creditPackage);
+      return pricing;
+    } catch (error) {
+      setBillingError(error instanceof Error ? error.message : 'Could not load fill-in pricing.');
+      return null;
+    }
+  }, [clinicId, isOwner, isPurchaseBillingAvailable]);
 
   useEffect(() => {
     billingRef.current = billing;
@@ -288,7 +328,42 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
     }
     setIsBillingReady(false);
     void refreshBilling();
-  }, [isClinic, isClinicProfileReady, refreshBilling]);
+    void refreshFillInPricing();
+  }, [isClinic, isClinicProfileReady, refreshBilling, refreshFillInPricing]);
+
+  const purchaseFillInCredit = useCallback(async () => {
+    if (!clinicId || !isOwner || !isPurchaseBillingAvailable || !fillInCreditPackage) return;
+
+    setIsPurchasing(true);
+    setBillingError(null);
+    try {
+      await ensureClinicBillingSession();
+      const balanceBefore = fillInPricing?.creditBalance ?? 0;
+      await purchaseFillInCreditPackage(fillInCreditPackage);
+
+      // The RevenueCat webhook grants the credit asynchronously, so poll briefly.
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const latest = await refreshFillInPricing();
+        if (latest && latest.creditBalance > balanceBefore) break;
+        await sleep(1500);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Purchase failed.';
+      if (!message.toLowerCase().includes('cancel')) {
+        setBillingError(message);
+      }
+      throw error;
+    } finally {
+      setIsPurchasing(false);
+    }
+  }, [
+    clinicId,
+    fillInCreditPackage,
+    fillInPricing?.creditBalance,
+    isOwner,
+    isPurchaseBillingAvailable,
+    refreshFillInPricing,
+  ]);
 
   useEffect(() => {
     if (!clinicId) {
@@ -420,6 +495,10 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       activePriceLabel: isOwner ? activePriceLabel : null,
       refreshBilling,
       purchasePackage,
+      fillInPricing: isOwner ? fillInPricing : null,
+      fillInCreditPackage: isOwner ? fillInCreditPackage : null,
+      refreshFillInPricing,
+      purchaseFillInCredit,
       restorePurchases,
       manageSubscription,
       isPurchasing,
@@ -437,6 +516,8 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       billing,
       billingError,
       canManageSubscription,
+      fillInCreditPackage,
+      fillInPricing,
       isBillingReady,
       isHealingSubscription,
       isManagingSubscription,
@@ -449,8 +530,10 @@ export function ClinicBillingProvider({ children }: { children: ReactNode }) {
       isWebBillingAvailable,
       manageSubscription,
       offerings,
+      purchaseFillInCredit,
       purchasePackage,
       refreshBilling,
+      refreshFillInPricing,
       restorePurchases,
       revenueCatPlan,
     ],

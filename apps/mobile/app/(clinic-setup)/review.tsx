@@ -2,13 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   completeClinicSetup,
   getMissingClinicProfileFields,
-  listClinicInvitations,
-  type ClinicInvitation,
   type ClinicLocation,
 } from '@chairside/api';
 import { SPECIALTY_OPTIONS, getTeamSizeRangeLabel, type TeamSizeRange } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -137,53 +135,6 @@ function LocationReviewCard({ location }: { location: ClinicLocation }) {
   );
 }
 
-function ManagerReviewCard({
-  invite,
-  locations,
-}: {
-  invite: ClinicInvitation;
-  locations: ClinicLocation[];
-}) {
-  const locationsById = new Map(locations.map((location) => [location.id, location.name]));
-  const locationNames = invite.location_ids
-    .map((id) => locationsById.get(id))
-    .filter((name): name is string => Boolean(name));
-
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
-    card: {
-      gap: spacing.xs,
-      padding: spacing.md,
-      borderRadius: 12,
-      backgroundColor: colors.fillSubtle,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.separator,
-    },
-    title: {
-      ...typography.body,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-      color: colors.labelPrimary,
-    },
-    meta: {
-      ...typography.subtitle,
-      fontSize: 13,
-      lineHeight: 18,
-    },
-  }));
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{invite.display_name?.trim() || invite.email}</Text>
-      {invite.display_name?.trim() ? <Text style={styles.meta}>{invite.email}</Text> : null}
-      <Text style={styles.meta}>
-        {[invite.title?.trim() || 'Manager', locationNames.join(' · ') || 'Locations TBD']
-          .filter(Boolean)
-          .join(' · ')}
-      </Text>
-    </View>
-  );
-}
-
 function ReviewSection({
   icon,
   label,
@@ -208,7 +159,6 @@ function ReviewSection({
 export default function ClinicReviewScreen() {
   const { user } = useAuth();
   const {
-    clinicId,
     clinicProfile,
     isClinicProfileReady,
     refreshClinicProfile,
@@ -220,28 +170,10 @@ export default function ClinicReviewScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [pendingInvites, setPendingInvites] = useState<ClinicInvitation[]>([]);
   const progress = useSetupStepProgress('review', { role: 'clinic' });
   const activeLocations = locations.filter((location) => location.is_active);
 
   useClinicSetupStepGuard('review', clinicProfile, isClinicProfileReady, isEditMode);
-
-  const loadPendingInvites = useCallback(async () => {
-    if (!isGroup || !clinicId) {
-      setPendingInvites([]);
-      return;
-    }
-    try {
-      const invites = await listClinicInvitations(clinicId);
-      setPendingInvites(invites.filter((invite) => invite.status === 'pending'));
-    } catch {
-      setPendingInvites([]);
-    }
-  }, [clinicId, isGroup]);
-
-  useEffect(() => {
-    void loadPendingInvites();
-  }, [loadPendingInvites]);
 
   const missingFields = getMissingClinicProfileFields(clinicProfile, {
     locations: activeLocations,
@@ -354,26 +286,6 @@ export default function ClinicReviewScreen() {
               ) : (
                 activeLocations.map((location) => (
                   <LocationReviewCard key={location.id} location={location} />
-                ))
-              )}
-            </View>
-          </ReviewSection>
-
-          <ReviewSection icon="people-outline" label="Managers">
-            <View style={styles.cardStack}>
-              {pendingInvites.length === 0 ? (
-                <SurfaceCard padding="lg">
-                  <Text style={styles.mutedNote}>
-                    No managers invited yet. You can invite your team from Profile later.
-                  </Text>
-                </SurfaceCard>
-              ) : (
-                pendingInvites.map((invite) => (
-                  <ManagerReviewCard
-                    key={invite.id}
-                    invite={invite}
-                    locations={activeLocations}
-                  />
                 ))
               )}
             </View>

@@ -12,8 +12,6 @@ Clinic **owners** sign up with **phone or email OTP** (same stack as workers; Go
 
 After auth, clinics get focused capture screens (same OnboardingShell pattern as workers — **no setup sidebar/wizard**) for what’s missing — **clinic name → phone (if none) → physical address** — then land in clinic tabs. Phone and address are skippable for browsing; posting soft-gates until clinic name + phone + complete address are saved (Continue → next capture screen). For groups the address screen collects each clinic as name + address with **Save and add another clinic** (Free: up to 2 clinics; a 3rd opens the upgrade prompt without losing entries); the group name is separate from clinic names. Verified Auth phones are copied onto `clinic_profiles.phone` for cover-request SMS.
 
-**Manager invites** still use email/password (or OAuth) with the invite email, then accept-invite — not the owner OTP path.
-
 **Phone must be linked on Supabase Auth** (not only `worker_profiles.phone`) for phone OTP sign-in to find the same account. Adding a number after email sign-up sends a verify SMS (`updateUser` + `phone_change` OTP). Sign-in phone OTP uses `shouldCreateUser: false` so unknown numbers do not mint empty accounts.
 
 If a phone-only **shell** Auth user was created before linking existed, `reclaim-auth-phone` deletes that empty user when the real account binds the number, and phone sign-in into a shell that belongs to another profile is rejected with a sign-in-with-email message.
@@ -102,7 +100,7 @@ Worker email auth calls `signInWithOtp` and the app asks for a **numeric code**.
 - **Existing / confirmed users** → **Magic Link** template
 - **Brand-new emails** while **Confirm email** is enabled → **Confirm signup** template (this was sending a link-only message)
 
-Both templates must include `{{ .Token }}`. Prefer **Confirm email** off (`mailer_autoconfirm`) so first-time OTP uses Magic Link like phone OTP. Clinic owner signup uses the same email OTP path; manager invites may still use password.
+Both templates must include `{{ .Token }}`. Prefer **Confirm email** off (`mailer_autoconfirm`) so first-time OTP uses Magic Link like phone OTP. Clinic signup uses the same email OTP path.
 
 1. Supabase → **Authentication → Providers → Email** → turn **Confirm email** **Off** (or leave On only if you need link confirm for clinics)
 2. **Emails → Magic Link** → [`supabase/templates/magic-link.html`](../supabase/templates/magic-link.html) · subject `Your Chairside sign-in code`

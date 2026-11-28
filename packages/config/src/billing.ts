@@ -153,6 +153,16 @@ export const CLINIC_CUSTOM_SCREENING_LIMITS: Record<ClinicPlan, number | null> =
 /** Max workers a clinic can include in one bulk fill-in outreach send. */
 export const FILL_IN_BULK_OUTREACH_MAX = 25;
 
+/**
+ * Per-post fill-in pricing (see supabase/migrations/144_fill_in_per_post_pricing.sql).
+ * Free posts are per clinic, or per location for group accounts. After that, each live
+ * fill-in spends one credit. Credits are sold as consumables.
+ */
+export const FILL_IN_FREE_POSTS_PER_CLINIC = 2;
+export const FILL_IN_PRICE_CAD = 8;
+/** App Store / RevenueCat consumable product for one fill-in credit. */
+export const FILL_IN_CREDIT_PRODUCT_ID = 'fill_in_credit_single';
+
 export const REVENUECAT_ENTITLEMENT_STARTER = 'clinic_starter';
 export const REVENUECAT_ENTITLEMENT_PRO = 'clinic_pro';
 export const REVENUECAT_ENTITLEMENT_GROUP_STARTER = 'clinic_group_starter';
@@ -167,6 +177,7 @@ export const REVENUECAT_PRODUCT_IDS = {
   groupStarterYearly: 'group_starter_yearly_v2',
   groupProMonthly: 'group_pro_monthly',
   groupProYearly: 'group_pro_yearly',
+  fillInCredit: FILL_IN_CREDIT_PRODUCT_ID,
 } as const;
 
 /** Package / product identifiers used when resolving offerings on native and web. */
@@ -215,6 +226,10 @@ export const REVENUECAT_PACKAGE_LOOKUP = {
     'group_pro_yearly',
     REVENUECAT_PRODUCT_IDS.groupProYearly,
     '$rc_annual_group_pro',
+  ],
+  fillInCredit: [
+    'fill_in_credit',
+    REVENUECAT_PRODUCT_IDS.fillInCredit,
   ],
 } as const;
 

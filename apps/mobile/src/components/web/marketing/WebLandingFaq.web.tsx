@@ -48,7 +48,7 @@ const FAQ_ITEMS = [
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Dental groups can manage multiple clinic locations, invite managers, and coordinate coverage and hiring from one place.',
+      'Yes. Dental groups can manage multiple clinic locations and coordinate coverage and hiring from one place.',
   },
 ] as const;
 

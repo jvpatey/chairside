@@ -28,6 +28,18 @@ export type BillingOfferings = {
   packages: BillingPackage[];
 };
 
+/** One-off consumable that adds a fill-in credit (per-post pricing). */
+export type FillInCreditPackage = {
+  productIdentifier: string;
+  priceLabel: string;
+  /** Platform-specific package object passed to purchaseFillInCredit. */
+  source: unknown;
+};
+
+export function isFillInCreditPackage(identifiers: string[]): boolean {
+  return matchesLookup(identifiers, REVENUECAT_PACKAGE_LOOKUP.fillInCredit);
+}
+
 function matchesLookup(identifiers: string[], candidates: readonly string[]): boolean {
   const normalized = new Set(identifiers.map((id) => id.toLowerCase()));
   return candidates.some((candidate) => normalized.has(candidate.toLowerCase()));

@@ -4,6 +4,7 @@ import {
   getClinicProfileByOrganizationId,
   getClinicWorkspace,
   isClinicGroupsEnabled,
+  isClinicProfileComplete,
   type ClinicLocation,
   type ClinicMembership,
   type ClinicOrganization,
@@ -22,7 +23,6 @@ import {
 } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { isClinicMemberReadyToPost } from '@/lib/clinicManagerAccess';
 import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import {
   loadStoredLocationScope,
@@ -234,13 +234,9 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => {
     const isGroup = Boolean(workspace?.isGroup ?? clinicProfile?.account_type === 'group');
     const membershipRole = workspace?.membership?.role;
-    // Never default group members to owner — that sends managers down the owner setup path.
+    // A group account is one login; it is the owner membership when present.
     const isOwner = isGroup ? membershipRole === 'owner' : true;
     const locations = workspace?.locations ?? [];
-    const assignedLocationIds =
-      workspace?.membership?.location_ids?.length
-        ? workspace.membership.location_ids
-        : locations.map((location) => location.id).filter(Boolean);
 
     return {
       clinicProfile,
@@ -257,13 +253,7 @@ export function ClinicProfileProvider({ children }: { children: ReactNode }) {
       setLocationScope,
       scopedLocationIds,
       isClinicProfileReady,
-      isProfileComplete: isClinicMemberReadyToPost({
-        isGroup,
-        isOwner,
-        clinicProfile,
-        locations,
-        assignedLocationIds,
-      }),
+      isProfileComplete: isClinicProfileComplete(clinicProfile, { locations }),
       refreshClinicProfile,
     };
   }, [

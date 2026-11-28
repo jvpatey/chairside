@@ -1,6 +1,5 @@
 import { getSupabaseClient } from './client';
-import { getPublicClinicProBadgePlan, normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
-import { getClinicPlanMap } from './billing';
+import { normalizePracticeDoctors, type PracticeDoctor } from '@chairside/config';
 import {
   getJobPostScreeningQuestions,
   type ScreeningQuestion,
@@ -119,10 +118,8 @@ export async function getPublicClinicProfile(
   if (error) throw error;
   if (!data) return null;
 
-  const planMap = await getClinicPlanMap([clinicId]);
-  const proBadgePlan = getPublicClinicProBadgePlan(planMap.get(clinicId));
-
-  return mapPublicClinicProfile(data, proBadgePlan);
+  // Priority listings and the Pro badge are removed: no clinic is shown as featured.
+  return mapPublicClinicProfile(data, null);
 }
 
 export async function getPublicClinicPostings(
@@ -154,7 +151,7 @@ export async function getPublicClinicPostings(
   if (jobsResult.error) throw jobsResult.error;
   if (shiftsResult.error) throw shiftsResult.error;
 
-  const hasPriorityListing = profile.is_pro_clinic;
+  const hasPriorityListing = false;
 
   const jobs = await Promise.all(
     ((jobsResult.data ?? []) as JobPost[]).map(async (job) => {

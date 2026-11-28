@@ -17,11 +17,10 @@ import {
 } from '@chairside/api';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { DashboardWelcomeCelebration } from '@/components/celebration/DashboardWelcomeCelebration';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
 import { AddClinicNudge } from '@/components/clinic/AddClinicNudge';
 import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { DashboardBodyLayout } from '@/components/dashboard/DashboardBodyLayout';
@@ -55,10 +54,6 @@ import {
   summarizeJobApplicantPreviews,
 } from '@/lib/dashboardAttention';
 import { getClinicDashboardHeroNaming } from '@/lib/clinicDashboardHeroNaming';
-import {
-  getManagerAccessBannerCopy,
-  getManagerAccessBlockReason,
-} from '@/lib/clinicManagerAccess';
 import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
@@ -97,7 +92,6 @@ export default function ClinicDashboardScreen() {
     isProfileComplete,
     locations,
     organization,
-    membership,
   } = useClinicProfile();
   const {
     clinicId,
@@ -292,35 +286,18 @@ export default function ClinicDashboardScreen() {
     [loadDashboard, refreshBilling],
   );
 
-  const assignedLocationIds =
-    membership?.location_ids?.length
-      ? membership.location_ids
-      : locations.map((location) => location.id).filter(Boolean);
-
   const guardPosting = (target: Href) => {
     guardClinicPosting({
       isProfileComplete,
       clinicProfile,
       locations,
       isGroup,
-      isOwner,
-      assignedLocationIds,
       target,
       onAllowed: (href) => router.push(href),
     });
   };
 
   const clinicName = clinicProfile?.clinic_name?.trim() || null;
-  const managerAccessReason = getManagerAccessBlockReason({
-    isGroup,
-    isOwner,
-    clinicProfile,
-    locations,
-    assignedLocationIds,
-  });
-  const managerAccessCopy = managerAccessReason
-    ? getManagerAccessBannerCopy(managerAccessReason)
-    : null;
   const activeLocationCount = useMemo(
     () => locations.filter((location) => location.is_active).length,
     [locations],
@@ -329,7 +306,6 @@ export default function ClinicDashboardScreen() {
   const showAddClinicNudge =
     isOwner && isProfileComplete && isClinicGroupsEnabled() && activeLocationCount < 2;
   // Owners with an unfinished profile get a prompt (phone first — SMS is the core feature).
-  // Group managers see the "waiting for clinic access" panel instead.
   const profileNudge =
     isClinicProfileReady && isOwner && !isProfileComplete
       ? getClinicProfileNudge(getMissingClinicProfileFields(clinicProfile, { locations }), {
@@ -456,21 +432,13 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        managerAccessCopy || showAddClinicNudge || profileNudge ? (
+        showAddClinicNudge || profileNudge ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
               {profileNudge ? (
                 <ProfileCompletionNudgeCard nudge={profileNudge} role="clinic" />
               ) : null}
               <AddClinicNudge visible={showAddClinicNudge} />
-              {managerAccessCopy ? (
-                <CardInfoPanel
-                  variant="info"
-                  icon="information-circle-outline"
-                  title={managerAccessCopy.title}>
-                  <CardInfoPanelText>{managerAccessCopy.message}</CardInfoPanelText>
-                </CardInfoPanel>
-              ) : null}
             </View>
           </FadeInSection>
         ) : null

@@ -13,7 +13,6 @@ export default function OnboardingLayout() {
       <Stack.Screen name="capture-clinic-name" />
       <Stack.Screen name="capture-clinic-phone" />
       <Stack.Screen name="capture-clinic-address" />
-      <Stack.Screen name="accept-invite" />
     </Stack>
   );
 }

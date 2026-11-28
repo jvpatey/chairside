@@ -151,14 +151,13 @@ export function getClinicPracticeSubtitle(profile: ClinicProfile | null): string
 
 export function getClinicLocationsSubtitle(input: {
   locations: Array<ClinicProfileCompletenessLocation & { name?: string | null }>;
-  isOwner: boolean;
   activeCount?: number;
 }): string {
   const active = input.locations.filter((location) => location.is_active !== false);
   const count = input.activeCount ?? active.length;
 
   if (count === 0) {
-    return input.isOwner ? 'Add a clinic' : 'Clinics you manage';
+    return 'Add a clinic';
   }
 
   const incomplete = active.find((location) => !isClinicLocationRecordComplete(location));
@@ -167,19 +166,14 @@ export function getClinicLocationsSubtitle(input: {
     return `Finish address for ${label}`;
   }
 
-  if (count === 1 && input.isOwner) {
+  if (count === 1) {
     return '1 clinic · Add another anytime';
   }
 
   return `${count} clinic${count === 1 ? '' : 's'}`;
 }
 
-export function getClinicNotificationsSubtitle(options?: {
-  isGroupOwner?: boolean;
-}): string {
-  if (options?.isGroupOwner) {
-    return 'Mute alerts when managers handle day-to-day';
-  }
+export function getClinicNotificationsSubtitle(): string {
   return 'Manage push alerts';
 }
 

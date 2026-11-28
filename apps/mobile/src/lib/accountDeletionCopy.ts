@@ -9,7 +9,7 @@ export const ACCOUNT_DELETION_DESCRIPTION =
 
 export const ACCOUNT_DATA_PRIVACY_POINTS = [
   'Deleting your account removes your login, profile, and uploaded files such as photos, resumes, and logos.',
-  'If you are a clinic or group owner, live postings are closed and the organization is removed. If you are an invited manager, only your membership access is removed.',
+  'If you are a clinic or group account, live postings are closed and the organization is removed.',
   'Applications and conversations are marked as no longer on Chairside. Other users may still see historical records needed for hiring context, with personal details removed or masked where possible.',
   'Billing records may be retained by Apple, Stripe, or RevenueCat under their policies. This action cannot be undone.',
 ] as const;

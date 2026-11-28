@@ -152,7 +152,8 @@ export function isClinicBillingLimitError(message: string): boolean {
     normalized.includes('open inquiries require a pro plan') ||
     normalized.includes('custom screening question limit reached') ||
     normalized.includes('hiring insights require a pro plan') ||
-    normalized.includes('bulk fill-in outreach requires a pro plan')
+    normalized.includes('bulk fill-in outreach requires a pro plan') ||
+    normalized.includes('no fill-in credits left')
   );
 }
 
@@ -247,6 +248,39 @@ export async function getClinicBillingState(
 
   if (error) throwWithMessage(error, 'Could not load billing state.');
   return mapClinicBillingState(data as ClinicBillingStateRow);
+}
+
+/** Per-post fill-in state (free posts left and paid credit balance). See migration 144. */
+export type FillInPricingState = {
+  freeAllowance: number;
+  freeRemaining: number;
+  creditBalance: number;
+  canPublishFillIn: boolean;
+};
+
+type FillInPricingStateRow = {
+  free_allowance: number;
+  free_remaining: number;
+  credit_balance: number;
+  can_publish_fill_in: boolean;
+};
+
+export async function getFillInPricingState(
+  locationId?: string | null,
+): Promise<FillInPricingState> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_fill_in_pricing_state', {
+    p_location_id: locationId ?? null,
+  });
+
+  if (error) throwWithMessage(error, 'Could not load fill-in pricing.');
+  const row = data as FillInPricingStateRow;
+  return {
+    freeAllowance: row.free_allowance,
+    freeRemaining: row.free_remaining,
+    creditBalance: row.credit_balance,
+    canPublishFillIn: row.can_publish_fill_in,
+  };
 }
 
 export async function getClinicPlanMap(

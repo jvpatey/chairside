@@ -45,6 +45,13 @@ export function gsmLength(text: string): number {
   return length;
 }
 
+/** Segments Pingram bills for a GSM-7 message: 1 up to 160 septets, then 153 per segment. */
+export function smsSegmentCount(text: string): number {
+  const length = gsmLength(text);
+  if (length <= SMS_SEGMENT_LIMIT) return 1;
+  return Math.ceil(length / 153);
+}
+
 /** First candidate that fits within maxLength after sanitizing; otherwise the last (shortest) one. */
 export function fitSms(candidates: string[], maxLength = SMS_SEGMENT_LIMIT): string {
   const safe = candidates.map(toGsmSafeSms);
@@ -104,8 +111,8 @@ function shiftDetails(input: {
 /**
  * Fill-in alert SMS. Drops location, then compensation, then shortens the clinic name to fit.
  * Never drops the brand prefix, clinic, date, call to action, or opt-out text.
- * With a listing URL (alone or with a YES code), allows up to two GSM-7 segments.
- * When both replyCode and listingUrl are set, ships YES + Details link (companion pattern).
+ * A listing URL alone targets one GSM-7 segment: the link is ~74 characters, so the compact
+ * fallback drops the "posted a" wording. A YES code plus link still allows two segments.
  */
 export function buildFillInSms(input: {
   clinicName: string;
@@ -150,13 +157,25 @@ export function buildFillInSms(input: {
     callToAction = 'Open Chairside to apply.';
   }
 
-  const maxLength = listingUrl ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT;
-
   const build = (clinicName: string, withLocation: boolean, withCompensation: boolean) => {
     const locationPart = withLocation && location ? ` (${location})` : '';
     const payPart = withCompensation ? compensationPart : '';
     return `Chairside: ${clinicName}${locationPart} ${verb} a fill-in for ${details}.${payPart} ${callToAction} Reply STOP to opt out.`;
   };
+
+  // Link without a YES code: aim for one segment, dropping copy before the link.
+  if (listingUrl && !replyCode) {
+    const compact = `Chairside: ${truncateName(input.clinicName, 20)} fill-in ${details}. ${callToAction} Reply STOP to opt out.`;
+    return fitSms([
+      build(input.clinicName, true, true),
+      build(input.clinicName, false, true),
+      build(input.clinicName, false, false),
+      build(truncateName(input.clinicName, 20), false, false),
+      compact,
+    ]);
+  }
+
+  const maxLength = listingUrl ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT;
 
   return fitSms(
     [

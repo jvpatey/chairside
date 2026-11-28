@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getClinicAddLocationUpgradeMessage,
-  getClinicAddManagerUpgradeMessage,
   getClinicCrmUpgradeMessage,
   getClinicDiscoverUpgradeMessage,
   getClinicGeneralMessagingUpgradeMessage,
@@ -23,7 +22,6 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
     expect(getClinicUpgradePromptTitle('discover')).toBe('Upgrade for Discover');
     expect(getClinicUpgradePromptTitle('general_messaging')).toBe('Upgrade for open inquiries');
     expect(getClinicUpgradePromptTitle('add_location')).toBe('Upgrade to add locations');
-    expect(getClinicUpgradePromptTitle('add_manager')).toBe('Upgrade to invite managers');
     expect(getClinicUpgradePromptTitle('hiring_insights')).toBe('Upgrade for hiring insights');
     expect(getClinicUpgradePromptTitle('bulk_outreach')).toBe('Upgrade for bulk outreach');
     expect(getClinicUpgradePromptTitle('screening_cap')).toBe(
@@ -46,15 +44,11 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
     expect(getClinicBulkOutreachUpgradeMessage('clinic')).toContain('Clinic Pro');
   });
 
-  it('explains Free group location and manager caps', () => {
+  it('explains Free group location caps', () => {
     expect(getClinicAddLocationUpgradeMessage('group', 2)).toContain('2 locations');
     expect(getClinicAddLocationUpgradeMessage('group', 2)).toContain('Group Starter or Group Pro');
     expect(getClinicAddLocationUpgradeMessage('group', 2)).not.toContain('hiring tools only');
     expect(getClinicAddLocationUpgradeMessage('clinic', 1)).toContain('Group plan');
-    expect(getClinicAddManagerUpgradeMessage(2, 'group')).toContain('1 manager per location');
-    expect(getClinicAddManagerUpgradeMessage(2, 'group')).toContain('Group Starter or Group Pro');
-    expect(getClinicAddManagerUpgradeMessage(2, 'group')).not.toContain('hiring tools only');
-    expect(getClinicAddManagerUpgradeMessage(0, 'clinic')).toContain('Group plan');
   });
 
   it('routes messages through getClinicUpgradePromptMessage', () => {
@@ -65,13 +59,6 @@ describe('ClinicUpgradePrompt Phase B helpers', () => {
         maxLocations: 2,
       }),
     ).toContain('2 locations');
-    expect(
-      getClinicUpgradePromptMessage('add_manager', {
-        plan: 'free',
-        planFamily: 'group',
-        maxManagers: 2,
-      }),
-    ).toContain('1 manager per location');
     expect(
       getClinicUpgradePromptMessage('screening', {
         plan: 'free',

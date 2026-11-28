@@ -1,6 +1,6 @@
 # Clinic groups
 
-Clinic accounts are either a **single clinic** (org + one location) or a **group** (org + named locations + optional managers). Owners choose at signup on the name screen (default: single clinic). A single clinic that later adds a second clinic under Settings → **Clinics** is auto-promoted to **group**.
+Clinic accounts are either a **single clinic** (org + one location) or a **group** (org + named locations). Owners choose at signup on the name screen (default: single clinic). A single clinic that later adds a second clinic under Settings → **Clinics** is auto-promoted to **group**.
 
 ## Feature flag
 
@@ -14,7 +14,7 @@ When disabled, clinics stay on the single-location path (no Clinics / Team setti
 
 ## Setup flow (one path)
 
-**OTP signup** (phone or email) → focused onboarding capture screens (no clinic-setup sidebar/wizard): **clinic or group name → phone → physical address** → clinic tabs (soft). No manager/dentist name requirement, no mandatory review.
+**OTP signup** (phone or email) → focused onboarding capture screens (no clinic-setup sidebar/wizard): **clinic or group name → phone → physical address** → clinic tabs (soft). No dentist name requirement, no mandatory review.
 
 **Name screen:** a two-option control, **Single clinic** (default) or **Group of clinics**. Single asks “What’s your clinic called?”; group asks “What’s your group called?” (group name is the organization name, never a location). Choosing group sets `account_type = group` up front. The control is hidden once a clinic address has been saved.
 
@@ -49,10 +49,10 @@ Shared across multi-site accounts: group name and the phone that receives cover-
 
 Mirrors the candidate hub: a short list of rows, no marketing/marketplace content.
 
-- **Group & clinics** (groups; "Clinics" for single-site owners) — one screen: the group name and cover-request phone (owners), your profile photo, and the list of clinics (owners add/edit/delete; managers see assigned clinics only). Group fields save with one "Save changes" button.
+- **Group & clinics** (groups; "Clinics" for single-site owners) — one screen: the group name and cover-request phone (owners), your profile photo, and the list of clinics (add, edit, or delete). Group fields save with one "Save changes" button.
 - **Identity** — the clinic/group name is the public identity. Personal names and titles are no longer entered in Settings; posts are not attributed to a person in the UI. The `posted_by_*` columns and the membership `display_name`/`title` still exist in the database and are filled by triggers; they are not shown.
 - **Practice details** — single-site clinics: contact, location, specialty, software.
-- **Team & access** — hidden in the app (no owner invites, manager role changes or team list). Existing memberships, locations and the database are unchanged, and the invite RPCs still exist. Pending invite links still open `/accept-invite`.
+- **Team & access** — removed. Each clinic or group uses one login; manager invitations were retired in `145_retire_manager_invitations.sql`.
 - **Notifications** — one category: cover requests & applicants.
 - **Account**, **Support**.
 
@@ -60,38 +60,22 @@ Plans & billing is no longer in the hub while plans are being reworked (everythi
 
 ## Access model
 
-- **Owner** — one primary login with full org access, billing, locations, and invitations.
-- **Manager** — invited individual login with location assignments only. Sets a profile photo via **Group & clinics**.
+- **Owner** — the one login for a clinic or group, with full org access, billing, and locations.
 
 ## Free group trial caps
 
-Free group accounts (plan `free` + `account_type=group`) can use up to **2 locations** and **1 manager per location** (2 managers). Hitting either cap shows an upgrade prompt toward Group Starter / Group Pro. Paid hiring tools (screening, CRM follow-ups, PDF export, Discover, general candidate messaging) stay locked on Free the same as individual Free clinics.
+Free group accounts (plan `free` + `account_type=group`) can use up to **2 locations**. Hitting that cap shows an upgrade prompt toward Group Starter / Group Pro. Paid hiring tools (screening, CRM follow-ups, PDF export, Discover, general candidate messaging) stay locked on Free the same as individual Free clinics.
 
-### Manager invitations (hidden in app)
+### Manager invitations (retired)
 
-No owner UI creates or manages invitations as of the team-hide change. The flow below describes the database/RPC behaviour that still exists for previously sent invites.
-
-Owners previously invited managers from **Settings → Team & access** after multi-location exists:
-
-Owners invite managers from **Settings → Team & access** after multi-location exists:
-
-1. Owner picks email, optional name/title, and **at least one location** (locations start unselected).
-2. Creating a pending invite INSERT triggers the `notify` edge function → Pingram email with link `https://chairside.app/accept-invite?token=…`.
-3. Invitee signs in or signs up as a clinic user; the token is preserved through email/password, OAuth, email confirm, and app restarts.
-4. Accept screen shows a safe preview (group, inviter, locations, invited email, expiry). Acceptance is explicit (no silent auto-join) and requires an exact email match. Wrong email → **Switch account**.
-5. On accept, assigned locations from the invite are copied to the membership — **that’s the full setup**. The group owner gets an in-app + push notification (`clinic_manager_joined`) linking to Team & access.
-6. Owner actions on pending invites: **Resend** (fresh token + expiry + new email), **Copy invite link**, **Revoke**. If email delivery is delayed, copy-link remains available.
-
-Manual code entry remains a secondary fallback on the accept screen.
-
-Security rules (SQL RPC): exact invited-email match, 7-day expiry, one-time accept, revoke, and preview that never returns raw tokens. See `096_fix_manager_invitation_rpc.sql` and `097_clinic_manager_invitation_preview_resend.sql`.
+Manager invitations are retired. Migration `145_retire_manager_invitations.sql` revokes pending invites and drops the invite RPCs. Existing invitation rows remain for history. No emails or push alerts are sent for invites, and the `clinic_invitations` database webhook should be removed in Supabase.
 
 ## Universal / App Links
 
 Installed apps should open invitation HTTPS links via:
 
 - iOS Associated Domains: `applinks:chairside.app`
-- Android verified intent filters for `https://chairside.app/accept-invite`, `/f` (fill-in listings), and `/j` (job listings)
+- Android verified intent filters for `/accept-invite` (retired; redirects home), `/f` (fill-in listings), and `/j` (job listings)
 
 Host from web static assets (served without SPA rewrite):
 
@@ -102,7 +86,7 @@ Host from web static assets (served without SPA rewrite):
 
 ## Billing
 
-Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`). Managers can read billing state but cannot purchase or restore.
+Subscriptions and posting limits remain organization-scoped (owner / `clinic_id`). Only the owner login can purchase or restore.
 
 > **Interim — everything is unlimited.** Tiered plans are being reworked. Migration `143_unlimited_plans_interim.sql` redefines the limit helpers (`clinic_active_*_limit`, `clinic_max_locations`, `clinic_max_managers`, `clinic_custom_screening_limit`) as unlimited and `clinic_can_use_feature` as unlocked for all clinics (except `priority_listing`, which stays a paid placement perk). Posting, location and manager triggers, `get_clinic_billing_state` and the app all read through these helpers, so no app change is needed to re-enable limits — redefine them in the next migration. The matrices below describe the previous behaviour.
 
@@ -138,4 +122,4 @@ Group Pro also includes priority listing, hiring insights (with per-location bre
 
 ## Schema
 
-See `supabase/migrations/092_clinic_organizations.sql` (and follow-ups `093`–`100`) for organizations, locations, memberships (including bio/photo), invitations, preview/resend RPCs, and post attribution columns.
+See `supabase/migrations/092_clinic_organizations.sql` (and follow-ups `093`–`100`) for organizations, locations, memberships (including bio/photo), the invitation table (invite RPCs retired in `145`), and post attribution columns.

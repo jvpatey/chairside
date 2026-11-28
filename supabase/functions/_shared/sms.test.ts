@@ -164,6 +164,23 @@ Deno.test('fill-in SMS with listing URL uses Details CTA for sourced listings', 
   assert(gsmLength(sms) <= SMS_TWO_SEGMENT_LIMIT);
 });
 
+Deno.test('fill-in SMS with a production-length link stays one segment for short clinic names', () => {
+  // Production links are https://chairsidedental.app/f/{uuid}?src=sms (~74 characters).
+  const listingUrl = 'https://chairsidedental.app/f/11111111-2222-3333-4444-555555555555?src=sms';
+  const sms = buildFillInSms({
+    clinicName: 'Bayview Dental',
+    locationLabel: 'Halifax, NS',
+    shiftDate: '2026-09-27',
+    startTime: '08:00',
+    endTime: '16:00',
+    compensation: '$45/hr',
+    listingUrl,
+  });
+  assertStringIncludes(sms, `Apply: ${listingUrl}`);
+  assert(sms.endsWith('Reply STOP to opt out.'));
+  assert(gsmLength(sms) <= SMS_SEGMENT_LIMIT);
+});
+
 Deno.test('fill-in SMS keeps listing URL when reply code is also set', () => {
   const listingUrl = 'https://chairside.app/f/11111111-2222-3333-4444-555555555555';
   const sms = buildFillInSms({

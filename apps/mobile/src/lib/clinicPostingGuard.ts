@@ -2,10 +2,6 @@ import type { ClinicProfile, ClinicProfileCompletenessLocation } from '@chairsid
 import { getMissingClinicProfileFields } from '@chairside/api';
 import type { Href } from 'expo-router';
 
-import {
-  getManagerAccessBannerCopy,
-  getManagerAccessBlockReason,
-} from '@/lib/clinicManagerAccess';
 import { getClinicMissingDetails, type ClinicMissingDetail } from '@/lib/clinicProfileMissingCopy';
 import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
@@ -15,9 +11,7 @@ type GuardClinicMemberAccessInput = {
   clinicProfile: ClinicProfile | null;
   locations: ClinicProfileCompletenessLocation[];
   isGroup: boolean;
-  isOwner?: boolean;
-  assignedLocationIds?: string[];
-  /** Owner-facing incomplete-profile copy. Managers never see this. */
+  /** Incomplete-profile copy shown before the user is sent to setup. */
   ownerTitle?: string;
   ownerMessage?: string;
   onNavigate: (href: Href) => void;
@@ -46,43 +40,18 @@ function showPostingBlockedAlert(
 }
 
 /**
- * Shared incomplete-access sheet for posting, outreach, and open inquiries.
- * Group managers never get the owner "Continue setup" path.
+ * Shared incomplete-profile sheet for posting, outreach, and open inquiries.
  */
 export function guardClinicMemberAccess({
   isProfileComplete,
   clinicProfile,
   locations,
   isGroup,
-  isOwner,
-  assignedLocationIds = [],
   ownerTitle = 'A few details first',
   ownerMessage = 'Add your clinic name, phone, and address to post fill-ins.',
   onNavigate,
 }: GuardClinicMemberAccessInput): boolean {
   if (isProfileComplete) return true;
-
-  // Group managers must never fall through to the owner "Continue setup" sheet.
-  const treatAsOwner = isGroup ? isOwner === true : true;
-
-  const managerReason = getManagerAccessBlockReason({
-    isGroup,
-    isOwner: treatAsOwner,
-    clinicProfile,
-    locations,
-    assignedLocationIds,
-  });
-
-  if (managerReason || (isGroup && !treatAsOwner)) {
-    const copy = getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
-    showConfirmActionSheet({
-      title: copy.title,
-      message: copy.message,
-      confirmLabel: 'OK',
-      onConfirm: () => {},
-    });
-    return false;
-  }
 
   const missing = getMissingClinicProfileFields(clinicProfile, { locations });
   const setupHref = getClinicPostingSetupHref(missing, isGroup);
@@ -108,8 +77,6 @@ export function guardClinicPosting({
   clinicProfile,
   locations,
   isGroup,
-  isOwner,
-  assignedLocationIds = [],
   onAllowed,
   target,
 }: GuardClinicPostingInput): void {
@@ -118,8 +85,6 @@ export function guardClinicPosting({
     clinicProfile,
     locations,
     isGroup,
-    isOwner,
-    assignedLocationIds,
     ownerTitle: 'Complete your clinic profile',
     ownerMessage: 'Finish your clinic profile to start posting.',
     onNavigate: onAllowed,

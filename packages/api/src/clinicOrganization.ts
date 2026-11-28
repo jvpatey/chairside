@@ -2,8 +2,6 @@ import { getSupabaseClient } from './client';
 import type { Database } from './types';
 import type {
   ClinicAccountType,
-  ClinicInvitation,
-  ClinicInvitationPreview,
   ClinicLocation,
   ClinicLocationInput,
   ClinicMembership,
@@ -13,10 +11,6 @@ import type {
 
 export type {
   ClinicAccountType,
-  ClinicInvitation,
-  ClinicInvitationPreview,
-  ClinicInvitationPreviewStatus,
-  ClinicInvitationStatus,
   ClinicLocation,
   ClinicLocationInput,
   ClinicMembership,
@@ -514,31 +508,6 @@ export async function listClinicMemberships(organizationId: string): Promise<Cli
   }));
 }
 
-export async function setManagerLocationAssignments(
-  membershipId: string,
-  locationIds: string[],
-): Promise<void> {
-  const supabase = getSupabaseClient();
-
-  const { error: deleteError } = await supabase
-    .from('clinic_member_location_assignments')
-    .delete()
-    .eq('membership_id', membershipId);
-
-  if (deleteError) throw deleteError;
-
-  if (locationIds.length === 0) return;
-
-  const { error: insertError } = await supabase.from('clinic_member_location_assignments').insert(
-    locationIds.map((locationId) => ({
-      membership_id: membershipId,
-      location_id: locationId,
-    })),
-  );
-
-  if (insertError) throw insertError;
-}
-
 export async function updateClinicMembershipProfile(
   membershipId: string,
   input: {
@@ -572,97 +541,6 @@ export async function updateClinicMembershipProfile(
 
   if (error) throw error;
   return data as ClinicMembership;
-}
-
-export async function listClinicInvitations(
-  organizationId: string,
-): Promise<ClinicInvitation[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('clinic_invitations')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as ClinicInvitation[];
-}
-
-export async function createClinicManagerInvitation(input: {
-  organizationId: string;
-  email: string;
-  displayName?: string | null;
-  title?: string | null;
-  locationIds?: string[];
-}): Promise<ClinicInvitation> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc('create_clinic_manager_invitation', {
-    p_organization_id: input.organizationId,
-    p_email: input.email.trim().toLowerCase(),
-    p_display_name: input.displayName?.trim() || null,
-    p_title: input.title?.trim() || null,
-    p_location_ids: input.locationIds ?? [],
-  });
-
-  if (error) {
-    throw new Error(error.message || 'Could not send invitation.');
-  }
-  return data as ClinicInvitation;
-}
-
-export async function revokeClinicManagerInvitation(invitationId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.rpc('revoke_clinic_manager_invitation', {
-    p_invitation_id: invitationId,
-  });
-  if (error) throw error;
-}
-
-export async function resendClinicManagerInvitation(
-  invitationId: string,
-): Promise<ClinicInvitation> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc('resend_clinic_manager_invitation', {
-    p_invitation_id: invitationId,
-  });
-  if (error) {
-    throw new Error(error.message || 'Could not resend invitation.');
-  }
-  return data as ClinicInvitation;
-}
-
-export async function previewClinicManagerInvitation(
-  token: string,
-): Promise<ClinicInvitationPreview> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc('preview_clinic_manager_invitation', {
-    p_token: token.trim(),
-  });
-  if (error) {
-    throw new Error(error.message || 'Could not load invitation.');
-  }
-  const preview = (data ?? { status: 'not_found' }) as ClinicInvitationPreview;
-  return {
-    ...preview,
-    location_names: Array.isArray(preview.location_names) ? preview.location_names : [],
-  };
-}
-
-export async function acceptClinicManagerInvitation(token: string): Promise<ClinicMembership> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.rpc('accept_clinic_manager_invitation', {
-    p_token: token,
-  });
-  if (error) throw new Error(error.message || 'Could not accept invitation.');
-  return data as ClinicMembership;
-}
-
-export async function removeClinicManager(membershipId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.rpc('remove_clinic_manager', {
-    p_membership_id: membershipId,
-  });
-  if (error) throw error;
 }
 
 export async function transferClinicOrganizationOwnership(

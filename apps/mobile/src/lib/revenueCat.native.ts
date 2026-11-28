@@ -8,9 +8,11 @@ import Purchases, {
 import {
   getClinicPlanFromEntitlements,
   getProductIdFromActiveEntitlements,
+  isFillInCreditPackage,
   resolveBillingPackageMeta,
   type BillingOfferings,
   type BillingPackage,
+  type FillInCreditPackage,
 } from '@/lib/billingOfferings';
 import { getRevenueCatApiKey, isRevenueCatConfigured } from '@/lib/revenueCatEnv';
 
@@ -68,6 +70,27 @@ export async function purchaseBillingPackage(billingPackage: BillingPackage): Pr
   const nativePackage = billingPackage.source as PurchasesPackage;
   const { customerInfo } = await Purchases.purchasePackage(nativePackage);
   return getClinicPlanFromCustomerInfo(customerInfo);
+}
+
+export async function getFillInCreditPackage(): Promise<FillInCreditPackage | null> {
+  if (!isRevenueCatConfigured()) return null;
+
+  const offerings = await Purchases.getOfferings();
+  const pkg = (offerings.current?.availablePackages ?? []).find((candidate) =>
+    isFillInCreditPackage([candidate.identifier, candidate.product.identifier]),
+  );
+  if (!pkg) return null;
+
+  return {
+    productIdentifier: pkg.product.identifier,
+    priceLabel: pkg.product.priceString,
+    source: pkg,
+  };
+}
+
+/** Consumable purchase. Credits are granted server-side by the RevenueCat webhook. */
+export async function purchaseFillInCredit(creditPackage: FillInCreditPackage): Promise<void> {
+  await Purchases.purchasePackage(creditPackage.source as PurchasesPackage);
 }
 
 export async function restoreRevenueCatPurchases(): Promise<ClinicPlan> {

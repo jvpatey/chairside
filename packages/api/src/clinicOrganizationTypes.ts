@@ -1,8 +1,6 @@
 export type ClinicAccountType = 'individual' | 'group';
 export type ClinicMembershipRole = 'owner' | 'manager';
 export type ClinicMembershipStatus = 'active' | 'removed';
-export type ClinicInvitationStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
-
 export type ClinicOrganization = {
   id: string;
   account_type: ClinicAccountType;
@@ -50,42 +48,6 @@ export type ClinicMembership = {
   created_at: string;
   updated_at: string;
   location_ids?: string[];
-};
-
-export type ClinicInvitation = {
-  id: string;
-  organization_id: string;
-  email: string;
-  display_name: string | null;
-  title: string | null;
-  role: 'manager';
-  token: string;
-  location_ids: string[];
-  status: ClinicInvitationStatus;
-  invited_by_user_id: string | null;
-  expires_at: string;
-  accepted_by_user_id: string | null;
-  accepted_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ClinicInvitationPreviewStatus =
-  | 'pending'
-  | 'accepted'
-  | 'revoked'
-  | 'expired'
-  | 'not_found';
-
-export type ClinicInvitationPreview = {
-  status: ClinicInvitationPreviewStatus;
-  email?: string;
-  display_name?: string | null;
-  title?: string | null;
-  organization_name?: string;
-  inviter_name?: string;
-  location_names?: string[];
-  expires_at?: string;
 };
 
 export type ClinicLocationInput = {

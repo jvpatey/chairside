@@ -97,7 +97,6 @@ export default function ClinicAccountProfileScreen() {
               title={isGroup ? 'Group & clinics' : 'Clinics'}
               subtitle={getClinicLocationsSubtitle({
                 locations,
-                isOwner,
                 activeCount: locations.filter((location) => location.is_active).length,
               })}
               iconColor={colors.primary}
@@ -119,9 +118,7 @@ export default function ClinicAccountProfileScreen() {
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
-            subtitle={getClinicNotificationsSubtitle({
-              isGroupOwner: isGroup && isOwner,
-            })}
+            subtitle={getClinicNotificationsSubtitle()}
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}

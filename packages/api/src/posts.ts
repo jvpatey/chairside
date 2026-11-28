@@ -487,6 +487,39 @@ export async function updateShiftPostStatus(
   return updateShiftPost(clinicId, shiftId, { status });
 }
 
+export type CloseShiftPostResult = {
+  shift: ShiftPost;
+  /** True when a live fill-in was closed within the grace window and its credit returned. */
+  refunded: boolean;
+};
+
+/**
+ * Close a fill-in. Uses the close_shift_post RPC (migration 144), which returns the charge
+ * when the fill-in was closed within 15 minutes of going live.
+ */
+export async function closeShiftPost(
+  clinicId: string,
+  shiftId: string,
+): Promise<CloseShiftPostResult> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('close_shift_post', {
+    p_shift_post_id: shiftId,
+  });
+
+  if (error) throw error;
+  const refunded = Boolean((data as { refunded?: boolean } | null)?.refunded);
+
+  const { data: shift, error: shiftError } = await supabase
+    .from('shift_posts')
+    .select('*')
+    .eq('id', shiftId)
+    .eq('clinic_id', clinicId)
+    .single();
+
+  if (shiftError) throw shiftError;
+  return { shift: shift as ShiftPost, refunded };
+}
+
 export async function deleteShiftPost(clinicId: string, shiftId: string): Promise<void> {
   const supabase = getSupabaseClient();
   const { error } = await supabase
@@ -813,14 +846,14 @@ function attachSourcedClinic<T extends SourcedListingFields & { id: string }>(
   return { ...post, clinic };
 }
 
+/** Priority listings are removed: no post is featured, whatever the clinic's plan. */
 function attachPriorityListing<T extends { clinic_id: string | null }>(
   post: T,
-  planMap: Map<string, ClinicPlan>,
+  _planMap: Map<string, ClinicPlan>,
 ): T & { has_priority_listing: boolean } {
-  const plan = post.clinic_id ? planMap.get(post.clinic_id) : undefined;
   return {
     ...post,
-    has_priority_listing: plan === 'pro' || plan === 'group_pro',
+    has_priority_listing: false,
   };
 }
 

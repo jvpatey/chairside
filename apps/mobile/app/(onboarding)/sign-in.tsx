@@ -30,7 +30,6 @@ import { WorkerOtpAuthForm } from '@/components/onboarding/WorkerOtpAuthForm';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
-import { saveClinicInviteToken } from '@/lib/clinicInviteSession';
 import { handleAuthSuccess } from '@/lib/handleAuthSuccess';
 import { PASSWORD_RESET_SENT_MESSAGE } from '@/lib/passwordResetCopy';
 import {
@@ -51,17 +50,10 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export default function SignInScreen() {
   const { refreshProfile } = useAuth();
   const { completeOnboarding } = useOnboarding();
-  const { authError, inviteToken } = useLocalSearchParams<{
-    authError?: string;
-    inviteToken?: string;
-  }>();
+  const { authError } = useLocalSearchParams<{ authError?: string }>();
   const reducedMotion = useReducedMotion();
-  const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
-  const preferPassword = Boolean(pendingInviteToken);
 
-  const [authMode, setAuthMode] = useState<'otp' | 'password'>(
-    preferPassword ? 'password' : 'otp',
-  );
+  const [authMode, setAuthMode] = useState<'otp' | 'password'>('otp');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -169,13 +161,6 @@ export default function SignInScreen() {
       setFormError(message);
     }
   }, [authError]);
-
-  useEffect(() => {
-    if (pendingInviteToken) {
-      void saveClinicInviteToken(pendingInviteToken);
-      setAuthMode('password');
-    }
-  }, [pendingInviteToken]);
 
   const runSocialSignIn = async (action: () => Promise<unknown>) => {
     if (isSubmitting || isSendingReset) return;
@@ -390,60 +375,48 @@ export default function SignInScreen() {
               }}
             />
           </Animated.View>
-          {!preferPassword ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setAuthMode((current) => (current === 'otp' ? 'password' : 'otp'));
-                setOtpStep('contact');
-                setOtpCode('');
-                setFormError(null);
-                setFormSuccess(null);
-              }}
-              style={({ pressed, hovered }) => [
-                styles.modeSwitch,
-                webHover(hovered, pressed, styles.modeSwitchHovered),
-                pressed && { opacity: 0.75 },
-              ]}>
-              <Text style={styles.modeSwitchLabel}>
-                {authMode === 'otp' ? 'Use password instead' : 'Use a phone or email code'}
-              </Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setAuthMode((current) => (current === 'otp' ? 'password' : 'otp'));
+              setOtpStep('contact');
+              setOtpCode('');
+              setFormError(null);
+              setFormSuccess(null);
+            }}
+            style={({ pressed, hovered }) => [
+              styles.modeSwitch,
+              webHover(hovered, pressed, styles.modeSwitchHovered),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.modeSwitchLabel}>
+              {authMode === 'otp' ? 'Use password instead' : 'Use a phone or email code'}
+            </Text>
+          </Pressable>
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>New to Chairside?</Text>
             <Pressable
               accessibilityRole="link"
-              onPress={() =>
-                router.replace(
-                  pendingInviteToken
-                    ? (`/(onboarding)/sign-up?role=clinic&inviteToken=${encodeURIComponent(pendingInviteToken)}` as const)
-                    : '/(onboarding)/role',
-                )
-              }
+              onPress={() => router.replace('/(onboarding)/role')}
               style={({ pressed, hovered }) => [
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
               ]}>
-              <Text style={styles.switchLink}>
-                {pendingInviteToken ? 'Create clinic account' : 'Get started'}
-              </Text>
+              <Text style={styles.switchLink}>Get started</Text>
             </Pressable>
           </View>
         </View>
       }>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
-          title={pendingInviteToken ? 'Join your clinic team' : 'Welcome back'}
+          title="Welcome back"
           subtitle={
-            pendingInviteToken
-              ? 'Sign in with the email your invitation was sent to. You’ll review the invite next.'
-              : authMode === 'otp'
-                ? otpStep === 'code'
-                  ? 'Enter the code we just sent you.'
-                  : 'Sign in with a phone or email code.'
-                : 'Sign in with your email and password.'
+            authMode === 'otp'
+              ? otpStep === 'code'
+                ? 'Enter the code we just sent you.'
+                : 'Sign in with a phone or email code.'
+              : 'Sign in with your email and password.'
           }
           onBack={() => {
             if (authMode === 'otp' && otpStep === 'code') {

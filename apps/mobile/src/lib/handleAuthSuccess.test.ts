@@ -3,12 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   resolveAuthProfile: vi.fn(),
   setProfileRole: vi.fn(),
-  previewClinicManagerInvitation: vi.fn(),
   routerReplace: vi.fn(),
   isPasswordRecoveryPending: vi.fn(),
-  readClinicInviteToken: vi.fn(),
-  clearClinicInviteToken: vi.fn(),
-  buildClinicInviteAcceptHref: vi.fn((token: string) => `/accept-invite?token=${token}`),
   resolveAuthenticatedRoute: vi.fn(),
   consumePendingSignupRole: vi.fn(),
   clearPendingSignupRole: vi.fn(),
@@ -24,7 +20,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@chairside/api', () => ({
   resolveAuthProfile: mocks.resolveAuthProfile,
   setProfileRole: mocks.setProfileRole,
-  previewClinicManagerInvitation: mocks.previewClinicManagerInvitation,
 }));
 
 vi.mock('expo-router', () => ({
@@ -33,12 +28,6 @@ vi.mock('expo-router', () => ({
 
 vi.mock('@/lib/authRecoveryState', () => ({
   isPasswordRecoveryPending: mocks.isPasswordRecoveryPending,
-}));
-
-vi.mock('@/lib/clinicInviteSession', () => ({
-  readClinicInviteToken: mocks.readClinicInviteToken,
-  clearClinicInviteToken: mocks.clearClinicInviteToken,
-  buildClinicInviteAcceptHref: mocks.buildClinicInviteAcceptHref,
 }));
 
 vi.mock('@/lib/pendingSignupRole', () => ({
@@ -71,7 +60,7 @@ vi.mock('@/lib/clinicPostAuthCapture', () => ({
 
 import { handleAuthSuccess } from './handleAuthSuccess';
 
-describe('handleAuthSuccess invite resume', () => {
+describe('handleAuthSuccess', () => {
   const refreshProfile = vi.fn(async () => ({ role: 'clinic' as const }));
   const completeOnboarding = vi.fn(async () => undefined);
 
@@ -83,7 +72,6 @@ describe('handleAuthSuccess invite resume', () => {
     mocks.clearPendingSignupRole.mockResolvedValue(undefined);
     mocks.consumePendingPublicListingHref.mockResolvedValue(null);
     mocks.clearPendingPublicListingHref.mockResolvedValue(undefined);
-    mocks.clearClinicInviteToken.mockResolvedValue(undefined);
     mocks.resolveAuthenticatedRoute.mockResolvedValue({
       href: '/(clinic-tabs)',
       role: 'clinic',
@@ -93,7 +81,6 @@ describe('handleAuthSuccess invite resume', () => {
   });
 
   it('routes clinics into the next post-auth capture step', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue(null);
     mocks.getNextClinicPostAuthCaptureStep.mockResolvedValue('clinic-name');
 
     await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
@@ -102,7 +89,6 @@ describe('handleAuthSuccess invite resume', () => {
   });
 
   it('routes workers into the next post-auth capture step', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue(null);
     mocks.resolveAuthProfile.mockResolvedValue({ id: 'user-1', role: 'worker' });
     mocks.resolveAuthenticatedRoute.mockResolvedValue({
       href: '/(tabs)',
@@ -118,49 +104,9 @@ describe('handleAuthSuccess invite resume', () => {
     expect(completeOnboarding).not.toHaveBeenCalled();
   });
 
-  it('returns to accept-invite when a pending invite token is stored', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue('invite-token');
-    mocks.previewClinicManagerInvitation.mockResolvedValue({ status: 'pending' });
-
+  it('uses normal routing for signed-in clinics', async () => {
     await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
 
-    expect(mocks.previewClinicManagerInvitation).toHaveBeenCalledWith('invite-token');
-    expect(mocks.routerReplace).toHaveBeenCalledWith('/accept-invite?token=invite-token');
-    expect(mocks.clearClinicInviteToken).not.toHaveBeenCalled();
-    expect(mocks.resolveAuthenticatedRoute).not.toHaveBeenCalled();
-    expect(completeOnboarding).not.toHaveBeenCalled();
-  });
-
-  it('clears stale invite tokens and uses normal routing', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue('stale-token');
-    mocks.previewClinicManagerInvitation.mockResolvedValue({ status: 'revoked' });
-
-    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
-
-    expect(mocks.clearClinicInviteToken).toHaveBeenCalled();
-    expect(refreshProfile).toHaveBeenCalledWith('user-1');
-    expect(mocks.resolveAuthenticatedRoute).toHaveBeenCalled();
-    expect(completeOnboarding).toHaveBeenCalledWith('clinic');
-    expect(mocks.routerReplace).toHaveBeenCalledWith('/(clinic-tabs)');
-  });
-
-  it('keeps the invite flow when preview fails transiently', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue('invite-token');
-    mocks.previewClinicManagerInvitation.mockRejectedValue(new Error('network'));
-
-    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
-
-    expect(mocks.clearClinicInviteToken).not.toHaveBeenCalled();
-    expect(mocks.routerReplace).toHaveBeenCalledWith('/accept-invite?token=invite-token');
-    expect(mocks.resolveAuthenticatedRoute).not.toHaveBeenCalled();
-  });
-
-  it('uses normal routing when no invite token is stored', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue(null);
-
-    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
-
-    expect(mocks.previewClinicManagerInvitation).not.toHaveBeenCalled();
     expect(mocks.clearPendingSignupRole).toHaveBeenCalled();
     expect(refreshProfile).toHaveBeenCalledWith('user-1');
     expect(mocks.resolveAuthenticatedRoute).toHaveBeenCalled();
@@ -169,7 +115,6 @@ describe('handleAuthSuccess invite resume', () => {
   });
 
   it('applies a pending signup role when the profile has none', async () => {
-    mocks.readClinicInviteToken.mockResolvedValue(null);
     mocks.resolveAuthProfile.mockResolvedValue({ id: 'user-1', role: null });
     mocks.consumePendingSignupRole.mockResolvedValue('worker');
     mocks.setProfileRole.mockResolvedValue({ id: 'user-1', role: 'worker' });

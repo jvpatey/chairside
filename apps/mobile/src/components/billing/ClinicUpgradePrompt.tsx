@@ -11,7 +11,6 @@ import { useThemedStyles } from '@/theme';
 export type { ClinicUpgradeReason } from '@/components/billing/clinicUpgradePromptCopy';
 export {
   getClinicAddLocationUpgradeMessage,
-  getClinicAddManagerUpgradeMessage,
   getClinicCrmUpgradeMessage,
   getClinicDiscoverUpgradeMessage,
   getClinicGeneralMessagingUpgradeMessage,
@@ -34,6 +33,8 @@ type ClinicUpgradePromptProps = {
   onClose: () => void;
   /** Scroll billing page to Group vs Clinic sections when opened. */
   billingFocus?: ClinicBillingScrollFocus;
+  /** Replaces the default "View plans" action (e.g. buy a per-post fill-in credit). */
+  primaryAction?: { label: string; onPress: () => void };
 };
 
 export function ClinicUpgradePrompt({
@@ -42,6 +43,7 @@ export function ClinicUpgradePrompt({
   message,
   onClose,
   billingFocus = 'default',
+  primaryAction,
 }: ClinicUpgradePromptProps) {
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     overlay: {
@@ -81,13 +83,20 @@ export function ClinicUpgradePrompt({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           <View style={styles.actions}>
-            <OnboardingButton
-              label="View plans"
-              onPress={() => {
-                onClose();
-                openClinicBillingModal({ focus: billingFocus });
-              }}
-            />
+            {primaryAction ? (
+              <OnboardingButton
+                label={primaryAction.label}
+                onPress={primaryAction.onPress}
+              />
+            ) : (
+              <OnboardingButton
+                label="View plans"
+                onPress={() => {
+                  onClose();
+                  openClinicBillingModal({ focus: billingFocus });
+                }}
+              />
+            )}
             <Pressable style={styles.close} onPress={onClose}>
               <Text style={styles.closeText}>Not now</Text>
             </Pressable>

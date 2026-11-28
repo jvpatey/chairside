@@ -1,4 +1,5 @@
 import { getErrorMessage, isClinicBillingLimitError } from '@chairside/api';
+import { FILL_IN_PRICE_CAD } from '@chairside/config';
 import { useCallback, useState } from 'react';
 
 import {
@@ -11,8 +12,15 @@ import type { ClinicBillingScrollFocus } from '@/components/billing/ClinicBillin
 import { useClinicBilling } from '@/contexts/ClinicBillingContext';
 
 export function useClinicUpgradePrompt() {
-  const { billing, isBillingReady, refreshBilling, isHealingSubscription, revenueCatPlan } =
-    useClinicBilling();
+  const {
+    billing,
+    isBillingReady,
+    refreshBilling,
+    isHealingSubscription,
+    revenueCatPlan,
+    fillInCreditPackage,
+    purchaseFillInCredit,
+  } = useClinicBilling();
   const [reason, setReason] = useState<ClinicUpgradeReason | null>(null);
 
   const closeUpgradePrompt = useCallback(() => setReason(null), []);
@@ -31,7 +39,6 @@ export function useClinicUpgradePrompt() {
   const showDiscoverUpgrade = useCallback(() => setReason('discover'), []);
   const showGeneralMessagingUpgrade = useCallback(() => setReason('general_messaging'), []);
   const showAddLocationUpgrade = useCallback(() => setReason('add_location'), []);
-  const showAddManagerUpgrade = useCallback(() => setReason('add_manager'), []);
 
   const handleBillingError = useCallback((error: unknown): boolean => {
     const message = getErrorMessage(error, '');
@@ -63,9 +70,7 @@ export function useClinicUpgradePrompt() {
       setReason('general_messaging');
     } else if (normalized.includes('location limit')) {
       setReason('add_location');
-    } else if (normalized.includes('manager limit')) {
-      setReason('add_manager');
-    } else if (normalized.includes('fill-in limit')) {
+    } else if (normalized.includes('fill-in limit') || normalized.includes('no fill-in credits left')) {
       setReason('publish_fill_in');
     } else {
       setReason('publish_role');
@@ -77,7 +82,7 @@ export function useClinicUpgradePrompt() {
   const planFamily = billing?.planFamily ?? 'clinic';
 
   const billingFocus: ClinicBillingScrollFocus =
-    reason === 'add_location' || reason === 'add_manager'
+    reason === 'add_location'
       ? planFamily === 'group' || billing?.accountType === 'group'
         ? 'group'
         : 'clinic'
@@ -95,9 +100,23 @@ export function useClinicUpgradePrompt() {
         plan,
         planFamily,
         maxLocations: billing?.maxLocations,
-        maxManagers: billing?.maxManagers,
       })
     : '';
+
+  // Fill-ins are pay-per-post: the primary action buys one credit instead of opening plans.
+  const fillInPrimaryAction =
+    reason === 'publish_fill_in' && fillInCreditPackage
+      ? {
+          label: `Buy a fill-in (CA$${FILL_IN_PRICE_CAD})`,
+          onPress: () => {
+            void purchaseFillInCredit()
+              .then(() => setReason(null))
+              .catch(() => {
+                // Errors (and cancellations) are surfaced through billingError.
+              });
+          },
+        }
+      : undefined;
 
   const upgradePrompt = (
     <ClinicUpgradePrompt
@@ -106,6 +125,7 @@ export function useClinicUpgradePrompt() {
       message={promptMessage}
       billingFocus={billingFocus}
       onClose={closeUpgradePrompt}
+      primaryAction={fillInPrimaryAction}
     />
   );
 
@@ -129,7 +149,6 @@ export function useClinicUpgradePrompt() {
     showDiscoverUpgrade,
     showGeneralMessagingUpgrade,
     showAddLocationUpgrade,
-    showAddManagerUpgrade,
     handleBillingError,
   };
 }

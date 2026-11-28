@@ -30,7 +30,6 @@ import {
 } from '@/lib/routing';
 import { hasActiveListSearch, matchesOpenInquiryWorkerSearch } from '@/lib/clinicListSearch';
 import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
-import { getManagerAccessBannerCopy, getManagerAccessBlockReason } from '@/lib/clinicManagerAccess';
 import { guardClinicMemberAccess } from '@/lib/clinicPostingGuard';
 import { useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -49,18 +48,7 @@ const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
 export default function OpenInquiryCandidatesScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const {
-    clinicProfile,
-    isProfileComplete,
-    locations,
-    isGroup,
-    isOwner,
-    membership,
-  } = useClinicProfile();
-  const assignedLocationIds =
-    membership?.location_ids?.length
-      ? membership.location_ids
-      : locations.map((location) => location.id).filter(Boolean);
+  const { clinicProfile, isProfileComplete, locations, isGroup } = useClinicProfile();
   const { billing, isBillingReady, upgradePrompt, showGeneralMessagingUpgrade, handleBillingError } =
     useClinicUpgradePrompt();
 
@@ -149,22 +137,10 @@ export default function OpenInquiryCandidatesScreen() {
     router.replace(getClinicMessagesRoute());
   };
 
-  const incompleteAccessCopy = (() => {
-    const managerReason = getManagerAccessBlockReason({
-      isGroup,
-      isOwner,
-      clinicProfile,
-      locations,
-      assignedLocationIds,
-    });
-    if (managerReason || (isGroup && !isOwner)) {
-      return getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
-    }
-    return {
-      title: 'Complete your profile',
-      message: 'Finish your clinic profile to browse candidates.',
-    };
-  })();
+  const incompleteAccessCopy = {
+    title: 'Complete your profile',
+    message: 'Finish your clinic profile to browse candidates.',
+  };
 
   const handleMessage = async (worker: OpenInquiryWorker) => {
     if (
@@ -173,8 +149,6 @@ export default function OpenInquiryCandidatesScreen() {
         clinicProfile,
         locations,
         isGroup,
-        isOwner,
-        assignedLocationIds,
         ownerTitle: 'Complete your clinic profile',
         ownerMessage: 'Finish your clinic profile before messaging candidates.',
         onNavigate: (href) => router.push(href),

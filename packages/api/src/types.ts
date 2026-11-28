@@ -931,37 +931,6 @@ export type Database = {
         Args: { p_user_id?: string };
         Returns: string | null;
       };
-      create_clinic_manager_invitation: {
-        Args: {
-          p_organization_id: string;
-          p_email: string;
-          p_display_name?: string | null;
-          p_title?: string | null;
-          p_location_ids?: string[];
-          p_expires_in_hours?: number;
-        };
-        Returns: Database['public']['Tables']['clinic_invitations']['Row'];
-      };
-      preview_clinic_manager_invitation: {
-        Args: { p_token: string };
-        Returns: Record<string, unknown>;
-      };
-      resend_clinic_manager_invitation: {
-        Args: { p_invitation_id: string };
-        Returns: Database['public']['Tables']['clinic_invitations']['Row'];
-      };
-      accept_clinic_manager_invitation: {
-        Args: { p_token: string };
-        Returns: Database['public']['Tables']['clinic_memberships']['Row'];
-      };
-      revoke_clinic_manager_invitation: {
-        Args: { p_invitation_id: string };
-        Returns: undefined;
-      };
-      remove_clinic_manager: {
-        Args: { p_membership_id: string };
-        Returns: undefined;
-      };
       transfer_clinic_organization_ownership: {
         Args: {
           p_organization_id: string;
@@ -1075,6 +1044,23 @@ export type Database = {
       get_public_listing: {
         Args: { p_kind: string; p_id: string };
         Returns: Record<string, unknown> | null;
+      };
+      get_fill_in_pricing_state: {
+        Args: { p_location_id?: string | null };
+        Returns: {
+          free_allowance: number;
+          free_remaining: number;
+          credit_balance: number;
+          can_publish_fill_in: boolean;
+        };
+      };
+      close_shift_post: {
+        Args: { p_shift_post_id: string };
+        Returns: { refunded: boolean };
+      };
+      grant_fill_in_credits: {
+        Args: { p_clinic_id: string; p_quantity: number; p_external_ref: string };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;
