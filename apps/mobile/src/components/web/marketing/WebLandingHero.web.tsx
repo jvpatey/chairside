@@ -21,8 +21,6 @@ import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
 
-const TRUST_LINE = 'Built for Canadian dental teams';
-
 function LandingHeroSubtitle({ align = 'left' }: { align?: 'left' | 'center' }) {
   const styles = useThemedStyles(({ colors }) => ({
     text: {
@@ -120,14 +118,6 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
       width: '100%' as const,
       alignItems: 'center' as const,
     },
-    trust: {
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: '500' as const,
-      color: colors.labelTertiary,
-      textAlign: 'center' as const,
-      maxWidth: 320,
-    },
     actions: {
       width: '100%' as const,
       gap: spacing.sm,
@@ -215,7 +205,6 @@ function MobileWebLandingHero({ windowHeight }: { windowHeight: number }) {
         <View style={styles.phoneWrap}>
           <WelcomeHeroFlowPhone size="default" />
         </View>
-        <Text style={styles.trust}>{TRUST_LINE}</Text>
       </WebPageEnter>
     </View>
   );
@@ -265,12 +254,6 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       ...webTypography.displaySm,
       color: colors.labelPrimary,
     },
-    trust: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '500' as const,
-      color: colors.labelTertiary,
-    },
     ctaRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -311,7 +294,6 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
               style={styles.ctaButton}
             />
           </View>
-          <Text style={styles.trust}>{TRUST_LINE}</Text>
         </WebPageEnter>
         <WebPageEnter delayMs={180} style={styles.visual}>
           <WelcomeHeroFlowPhone size="hero" />

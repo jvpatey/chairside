@@ -9,7 +9,6 @@ export const WELCOME_STAGGER = {
   wordmark: 0,
   headline: STAGGER_MS,
   subtitle: STAGGER_MS * 2,
-  trust: STAGGER_MS * 3,
   cards: STAGGER_MS * 3,
   primaryCta: STAGGER_MS * 4 + 40,
   secondaryCta: STAGGER_MS * 5 + 40,

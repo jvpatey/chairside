@@ -9,7 +9,6 @@ import {
 import { fontExtraBold, fontSemibold, useThemedStyles } from '@/theme';
 
 const MOBILE_HEADLINE = 'Fill the chair today.';
-const TRUST_LINE = 'Built for Canadian dental teams';
 export function WelcomeHero() {
   const reducedMotion = useReducedMotion();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -46,13 +45,6 @@ export function WelcomeHero() {
       fontFamily: fontSemibold,
       fontWeight: '600' as const,
     },
-    trust: {
-      fontSize: 13,
-      lineHeight: 18,
-      textAlign: 'center',
-      color: colors.labelTertiary,
-      maxWidth: 300,
-    },
   }));
 
   return (
@@ -70,9 +62,6 @@ export function WelcomeHero() {
           Post a fill-in and nearby professionals get it by text.{' '}
           <Text style={styles.yes}>You choose who covers.</Text>
         </Text>
-      </Animated.View>
-      <Animated.View entering={enterFadeUp(WELCOME_STAGGER.trust, reducedMotion)}>
-        <Text style={styles.trust}>{TRUST_LINE}</Text>
       </Animated.View>
     </View>
   );
