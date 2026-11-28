@@ -27,7 +27,9 @@ import {
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
   CLINIC_PROFILE_SUPPORT,
+  CLINIC_PROFILE_TEXT_ALERTS,
 } from '@/lib/routing';
+import { getClinicTextAlertsSubtitle, isClinicTextPhoneVerified } from '@/lib/clinicTextAlerts';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 import { isClinicGroupsEnabled } from '@chairside/api';
 
@@ -103,6 +105,17 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
             />
           ) : null}
+          <ProfileSettingsRow
+            icon="chatbubble-ellipses-outline"
+            title="Text alerts"
+            subtitle={getClinicTextAlertsSubtitle({
+              storedPhone: clinicProfile?.phone,
+              verified: isClinicTextPhoneVerified(user, clinicProfile?.phone),
+            })}
+            iconColor={colors.primary}
+            iconBackgroundColor={colors.primarySubtle}
+            onPress={() => router.push(CLINIC_PROFILE_TEXT_ALERTS)}
+          />
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"

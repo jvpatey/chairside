@@ -200,6 +200,7 @@ export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
 export const CLINIC_PROFILE_LOCATIONS: Href = '/(clinic-tabs)/profile/locations' as Href;
 export const CLINIC_PROFILE_NOTIFICATIONS: Href = '/(clinic-tabs)/profile/notifications' as Href;
+export const CLINIC_PROFILE_TEXT_ALERTS: Href = '/(clinic-tabs)/profile/text-alerts' as Href;
 export const CLINIC_PROFILE_ACCOUNT: Href = '/(clinic-tabs)/profile/account' as Href;
 export const CLINIC_PROFILE_BILLING: Href = '/(clinic-tabs)/profile/billing' as Href;
 export const CLINIC_PROFILE_SUPPORT: Href = '/(clinic-tabs)/profile/support' as Href;
