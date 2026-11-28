@@ -81,7 +81,7 @@ export function WebLandingCtaStrip() {
           <View style={styles.copy}>
             <Text style={styles.title}>Need someone today?</Text>
             <Text style={styles.subtitle}>
-              Post a fill-in, text nearby professionals, and confirm when they Reply YES.
+              Post a fill-in and nearby professionals get it by text. You choose who covers.
             </Text>
           </View>
           <OnboardingButton

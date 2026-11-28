@@ -11,12 +11,13 @@ import {
   webPointer,
 } from '@/lib/webPressableStyles';
 import { radii } from '@/theme/tokens';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
 import {
   ActionMenuDetailList,
   ActionMenuSheetBottom,
+  groupActionItems,
   type ActionMenuSheetProps,
   // @ts-expect-error TS5097 — explicit extension required to avoid web circular import
 } from './ActionMenuSheet.tsx';
@@ -30,7 +31,7 @@ function ActionMenuDialog({
   actions,
   onClose,
 }: ActionMenuSheetProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const isConfirmDialog = Boolean(title && actions.length === 1);
   const confirmAction = actions[0];
   const isDestructiveConfirm = Boolean(confirmAction?.destructive);
@@ -39,7 +40,7 @@ function ActionMenuDialog({
     isConfirmDialog && confirmAction && confirmAction.label.trim().length > 18,
   );
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     header: {
       gap: spacing.sm,
     },
@@ -85,6 +86,9 @@ function ActionMenuDialog({
     },
     actionCard: {
       overflow: 'hidden',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.14 : 0.12),
     },
     action: {
       flexDirection: 'row',
@@ -138,19 +142,12 @@ function ActionMenuDialog({
     },
     menuHeaderWithTitle: {
       borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
-      paddingBottom: spacing.sm,
+      borderBottomColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.12 : 0.1),
+      paddingBottom: spacing.md,
+      marginBottom: spacing.md,
     },
-    sectionEyebrow: {
-      fontSize: 11,
-      lineHeight: 14,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
-      paddingHorizontal: spacing.xs,
-      marginBottom: spacing.xs,
+    actionGroups: {
+      gap: spacing.sm,
     },
     menuTitle: {
       fontSize: 16,
@@ -231,17 +228,17 @@ function ActionMenuDialog({
       ) : (
         <>
           {headerContent ? (
-            <View style={styles.menuHeaderRich}>{headerContent}</View>
+            <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>{headerContent}</View>
           ) : title || message ? (
             <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>
               {title ? <Text style={styles.menuTitle}>{title}</Text> : null}
               {message ? <Text style={styles.menuMessage}>{message}</Text> : null}
             </View>
           ) : null}
-          <View>
-            {hasRichHeader ? <Text style={styles.sectionEyebrow}>Menu</Text> : null}
-            <SurfaceCard padding="none" style={styles.actionCard} elevationLevel="subtle">
-              {actions.map((action, index) => (
+          <View style={styles.actionGroups}>
+            {groupActionItems(actions).map((group, groupIndex) => (
+              <SurfaceCard key={groupIndex} padding="none" style={styles.actionCard} elevationLevel="subtle">
+                {group.map((action, index) => (
                 <Pressable
                   key={action.label}
                   accessibilityRole="button"
@@ -251,7 +248,7 @@ function ActionMenuDialog({
                   }}
                   style={({ pressed, hovered }) => [
                     styles.actionRow,
-                    index === actions.length - 1 && styles.actionRowLast,
+                    index === group.length - 1 && styles.actionRowLast,
                     webHover(hovered, pressed, styles.actionHovered),
                     pressed && styles.actionPressed,
                   ]}
@@ -278,8 +275,9 @@ function ActionMenuDialog({
                     ) : null}
                   </View>
                 </Pressable>
-              ))}
-            </SurfaceCard>
+                ))}
+              </SurfaceCard>
+            ))}
           </View>
         </>
       )}

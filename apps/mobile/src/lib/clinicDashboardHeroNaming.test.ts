@@ -59,6 +59,23 @@ describe('getClinicDashboardHeroNaming', () => {
     expect(naming.displayName).toBe('Dental Group Test');
   });
 
+  it('shows the saved clinic name even while setup is incomplete', () => {
+    const naming = getClinicDashboardHeroNaming({
+      isGroup: false,
+      isProfileComplete: false,
+      clinicName: 'Practice Clinic',
+      contactName: 'Jeffrey Patey',
+      locationScope: 'all',
+      accessibleLocations: [],
+      clinicCity: 'Upper Tantallon',
+      clinicProvince: 'NS',
+    });
+
+    expect(naming.displayName).toBe('Practice Clinic');
+    expect(naming.greetingName).toBe('Jeffrey');
+    expect(naming.subtitle).toBe('Upper Tantallon, NS');
+  });
+
   it('uses contact first name for individual clinics when complete', () => {
     const naming = getClinicDashboardHeroNaming({
       isGroup: false,

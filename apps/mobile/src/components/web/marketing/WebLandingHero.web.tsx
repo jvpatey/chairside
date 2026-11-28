@@ -21,7 +21,7 @@ import { webSectionEyebrowStyle, webTypography } from '@/theme/web';
 /** Clear sticky marketing nav + breathing room above hero content. */
 const NAV_CLEARANCE = 72;
 
-const TRUST_LINE = 'Text to request cover · Built for Canadian dental teams';
+const TRUST_LINE = 'Built for Canadian dental teams';
 
 function LandingHeroSubtitle({ align = 'left' }: { align?: 'left' | 'center' }) {
   const styles = useThemedStyles(({ colors }) => ({
@@ -30,11 +30,6 @@ function LandingHeroSubtitle({ align = 'left' }: { align?: 'left' | 'center' }) 
       color: colors.labelSecondary,
       maxWidth: 480,
       textAlign: align,
-    },
-    fillIn: {
-      color: colors.secondary,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
     },
     yes: {
       color: colors.labelPrimary,
@@ -45,8 +40,7 @@ function LandingHeroSubtitle({ align = 'left' }: { align?: 'left' | 'center' }) 
 
   return (
     <Text style={styles.text}>
-      Post a <Text style={styles.fillIn}>fill-in</Text> and nearby professionals get a text —
-      they <Text style={styles.yes}>Reply YES</Text> to request cover, then you confirm.
+      Post a fill-in and nearby professionals get it by text. <Text style={styles.yes}>You choose who covers.</Text>
     </Text>
   );
 }
@@ -300,7 +294,7 @@ function DesktopWebLandingHero({ windowHeight }: { windowHeight: number }) {
       <View style={styles.atmosphere} />
       <View style={styles.inner}>
         <WebPageEnter style={styles.copy}>
-          <Text style={styles.eyebrow}>Same-day coverage by text</Text>
+          <Text style={styles.eyebrow}>Same-day cover</Text>
           <WebLandingHeroHeadline style={styles.headline} />
           <LandingHeroSubtitle />
           <View style={styles.ctaRow}>

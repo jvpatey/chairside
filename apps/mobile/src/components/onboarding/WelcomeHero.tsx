@@ -9,7 +9,7 @@ import {
 import { fontExtraBold, fontSemibold, useThemedStyles } from '@/theme';
 
 const MOBILE_HEADLINE = 'Fill the chair today.';
-const TRUST_LINE = 'Same-day cover by text · Built for Canadian dental teams';
+const TRUST_LINE = 'Built for Canadian dental teams';
 export function WelcomeHero() {
   const reducedMotion = useReducedMotion();
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
@@ -41,11 +41,6 @@ export function WelcomeHero() {
       maxWidth: 330,
       color: colors.labelSecondary,
     },
-    fillIn: {
-      color: colors.secondary,
-      fontFamily: fontSemibold,
-      fontWeight: '600' as const,
-    },
     yes: {
       color: colors.labelPrimary,
       fontFamily: fontSemibold,
@@ -72,8 +67,8 @@ export function WelcomeHero() {
       </Animated.View>
       <Animated.View entering={enterFadeUp(WELCOME_STAGGER.subtitle, reducedMotion)}>
         <Text style={styles.subtitle}>
-          Same-day <Text style={styles.fillIn}>fill-ins</Text> by text — clinics post, professionals{' '}
-          <Text style={styles.yes}>Reply YES</Text>, cover gets confirmed.
+          Post a fill-in and nearby professionals get it by text.{' '}
+          <Text style={styles.yes}>You choose who covers.</Text>
         </Text>
       </Animated.View>
       <Animated.View entering={enterFadeUp(WELCOME_STAGGER.trust, reducedMotion)}>

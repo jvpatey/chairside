@@ -50,13 +50,14 @@ export function getClinicDashboardHeroNaming(
     };
   }
 
+  // Incomplete setup never hides the saved name: the Get Started checklist owns that CTA.
+  const clinicName = input.clinicName?.trim() || null;
   return {
-    greetingName: input.isProfileComplete ? getFirstNameToken(input.contactName) : null,
-    displayName: input.isProfileComplete ? input.clinicName?.trim() || null : null,
-    namePlaceholder: input.isProfileComplete ? 'Your practice' : 'Welcome to Chairside',
-    subtitle: input.isProfileComplete
-      ? [input.clinicCity, input.clinicProvince].filter(Boolean).join(', ') || 'Dental practice'
-      : 'Dental practice',
+    greetingName: getFirstNameToken(input.contactName),
+    displayName: clinicName,
+    namePlaceholder: clinicName ? 'Your practice' : 'Welcome to Chairside',
+    subtitle:
+      [input.clinicCity, input.clinicProvince].filter(Boolean).join(', ') || 'Dental practice',
   };
 }
 

@@ -311,11 +311,10 @@ export default function CaptureClinicAddressScreen() {
               autoCapitalize="words"
               icon="business-outline"
               editable={!isSubmitting}
-              required
               validated={Boolean(clinicName.trim())}
             />
           ) : null}
-          <AddressAutocomplete value={address} onChange={setAddress} required />
+          <AddressAutocomplete value={address} onChange={setAddress} />
         </Animated.View>
       </OnboardingShell>
     </>

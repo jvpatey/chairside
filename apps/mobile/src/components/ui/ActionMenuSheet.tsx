@@ -10,7 +10,7 @@ import {
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import { useWebEscapeKey } from '@/hooks/useWebEscapeKey';
 import {
@@ -19,7 +19,7 @@ import {
   webPointer,
   webTextLinkHoverStyles,
 } from '@/lib/webPressableStyles';
-import { useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
 
 /** One line in a checklist-style confirm (e.g. missing profile fields). */
 export type ActionMenuSheetDetail = {
@@ -35,6 +35,8 @@ export type ActionMenuSheetItem = {
   /** Optional color for `detail` (e.g. success when Text alerts are on). */
   detailColor?: string;
   destructive?: boolean;
+  /** Starts a new visual group above this action (e.g. sign out below navigation). */
+  sectionBreakBefore?: boolean;
   icon?: ReactNode;
   onPress: () => void;
 };
@@ -50,6 +52,19 @@ export type ActionMenuSheetProps = {
   actions: ActionMenuSheetItem[];
   onClose: () => void;
 };
+
+/** Splits actions into groups at each `sectionBreakBefore`; shared by the native sheet and web dialog. */
+export function groupActionItems(actions: ActionMenuSheetItem[]): ActionMenuSheetItem[][] {
+  const groups: ActionMenuSheetItem[][] = [];
+  actions.forEach((action, index) => {
+    if (index === 0 || action.sectionBreakBefore) {
+      groups.push([action]);
+    } else {
+      groups[groups.length - 1].push(action);
+    }
+  });
+  return groups;
+}
 
 /** Checklist of details still needed; shared by the native sheet and web dialog. */
 export function ActionMenuDetailList({ items }: { items: ActionMenuSheetDetail[] }) {
@@ -133,7 +148,7 @@ export function ActionMenuSheetBottom({
   const insets = useSafeAreaInsets();
   useWebEscapeKey(onClose, visible);
 
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography, isDark }) => ({
     root: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -159,7 +174,7 @@ export function ActionMenuSheetBottom({
       marginBottom: spacing.md,
       paddingBottom: spacing.md,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.separator,
+      borderBottomColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.12 : 0.1),
       gap: spacing.xs,
     },
     title: {
@@ -173,12 +188,15 @@ export function ActionMenuSheetBottom({
       fontSize: 14,
       lineHeight: 20,
     },
+    actionGroups: {
+      gap: spacing.sm,
+    },
     actions: {
       borderRadius: 12,
       overflow: 'hidden',
       backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.14 : 0.12),
     },
     action: {
       paddingVertical: spacing.md,
@@ -257,7 +275,7 @@ export function ActionMenuSheetBottom({
         />
         {visible ? (
           <Animated.View entering={SHEET_ENTER}>
-            <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+            <SheetSurface borderRadius={20} style={styles.sheet}>
               <View style={styles.handle} />
               {headerContent ? (
                 <View style={styles.header}>{headerContent}</View>
@@ -268,8 +286,10 @@ export function ActionMenuSheetBottom({
                   {details && details.length > 0 ? <ActionMenuDetailList items={details} /> : null}
                 </View>
               ) : null}
-              <View style={styles.actions}>
-                {actions.map((action, index) => (
+              <View style={styles.actionGroups}>
+                {groupActionItems(actions).map((group, groupIndex) => (
+                <View key={groupIndex} style={styles.actions}>
+                {group.map((action, index) => (
                   <Pressable
                     key={action.label}
                     accessibilityRole="button"
@@ -309,6 +329,8 @@ export function ActionMenuSheetBottom({
                     </View>
                   </Pressable>
                 ))}
+                </View>
+                ))}
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -322,7 +344,7 @@ export function ActionMenuSheetBottom({
               >
                 <Text style={styles.cancelLabel}>Cancel</Text>
               </Pressable>
-            </LiquidGlassSurface>
+            </SheetSurface>
           </Animated.View>
         ) : null}
       </View>

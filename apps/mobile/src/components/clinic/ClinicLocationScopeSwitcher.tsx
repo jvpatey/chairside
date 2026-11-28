@@ -15,7 +15,7 @@ import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
@@ -248,7 +248,7 @@ function LocationScopePickerSheet({
         {visible ? (
           <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
             <Pressable accessible={false} onPress={(event) => event.stopPropagation()}>
-              <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+              <SheetSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
                 <View style={styles.header}>
                   <Text style={styles.title}>Switch clinic</Text>
@@ -269,7 +269,7 @@ function LocationScopePickerSheet({
                     density="sheet"
                   />
                 </ScrollView>
-              </LiquidGlassSurface>
+              </SheetSurface>
             </Pressable>
           </Animated.View>
         ) : null}

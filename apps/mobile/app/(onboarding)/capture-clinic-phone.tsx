@@ -214,7 +214,6 @@ export default function CaptureClinicPhoneScreen() {
             onChangeText={(text) => setPhone(formatPhoneNumber(text))}
             keyboardType="phone-pad"
             icon="call-outline"
-            required
           />
         ) : (
           <AuthField

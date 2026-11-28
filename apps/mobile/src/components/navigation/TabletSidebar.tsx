@@ -26,7 +26,7 @@ import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { handleTabBarPress } from '@/components/navigation/handleTabBarPress';
 import { useResolvedTabBarFocus } from '@/hooks/useResolvedTabBarFocus';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicBilling } from '@/contexts/ClinicBillingContext';
+import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useSidebarCollapse } from '@/contexts/SidebarCollapseContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -34,10 +34,7 @@ import { useClinicLogo } from '@/hooks/useClinicLogo';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { useSignOut } from '@/hooks/useSignOut';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
-import {
-  getTextAlertsStatusLabel,
-  getTextAlertsStatusTone,
-} from '@/lib/profileHubSubtitles';
+import { getTextAlertsStatusLabel, getTextAlertsStatusTone } from '@/lib/profileHubSubtitles';
 import {
   CLINIC_HOME,
   CLINIC_PROFILE,
@@ -52,7 +49,10 @@ import {
   WORKER_PROFILE_NOTIFICATIONS,
 } from '@/lib/routing';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
-import { TABLET_SIDEBAR_SECTIONS, TABLET_SIDEBAR_TAB_ORDER } from '@/components/navigation/tabOrder';
+import {
+  TABLET_SIDEBAR_SECTIONS,
+  TABLET_SIDEBAR_TAB_ORDER,
+} from '@/components/navigation/tabOrder';
 import { WEB_SIDEBAR_OUTER_INSET, getTabletTopPadding } from '@/lib/breakpoints';
 import { getTabAccentForName } from '@/lib/tabAtmosphereRoutes';
 import { resolveAccentColor, resolveAccentSubtle } from '@/lib/accentColors';
@@ -77,19 +77,21 @@ function getSidebarRoutes(
 ) {
   const order = TABLET_SIDEBAR_TAB_ORDER[role];
 
-  return state.routes
-    .filter((route) => typeof descriptors[route.key]?.options?.tabBarIcon === 'function')
-    .filter((route) => order.includes(route.name))
-    // Profile stays reachable via the account header — avoid a duplicate nav row.
-    .filter((route) => route.name !== 'profile')
-    .sort((a, b) => {
-      const aIndex = order.indexOf(a.name);
-      const bIndex = order.indexOf(b.name);
-      if (aIndex === -1 && bIndex === -1) return 0;
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
+  return (
+    state.routes
+      .filter((route) => typeof descriptors[route.key]?.options?.tabBarIcon === 'function')
+      .filter((route) => order.includes(route.name))
+      // Profile stays reachable via the account header — avoid a duplicate nav row.
+      .filter((route) => route.name !== 'profile')
+      .sort((a, b) => {
+        const aIndex = order.indexOf(a.name);
+        const bIndex = order.indexOf(b.name);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      })
+  );
 }
 
 type SidebarRoute = ReturnType<typeof getSidebarRoutes>[number];
@@ -113,7 +115,9 @@ function groupSidebarRoutes(
     }))
     .filter((section) => section.routes.length > 0);
 
-  const groupedNames = new Set(sections.flatMap((section) => section.routes.map((route) => route.name)));
+  const groupedNames = new Set(
+    sections.flatMap((section) => section.routes.map((route) => route.name)),
+  );
   const ungrouped = routes.filter((route) => !groupedNames.has(route.name));
   if (ungrouped.length > 0) {
     sections.push({ label: null, routes: ungrouped });
@@ -159,12 +163,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const { photoUri } = useProfilePhoto();
   const { logoUri } = useClinicLogo();
   const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
-  const {
-    clinicProfile,
-    isGroup,
-    organization,
-    accessibleLocations,
-  } = useClinicProfile();
+  const { clinicProfile, isGroup, organization, accessibleLocations } = useClinicProfile();
   const { billing } = useClinicBilling();
   const { workerProfile } = useWorkerProfile();
   const isWeb = Platform.OS === 'web';
@@ -655,8 +654,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
   const isAdminActive = pathname.includes('/admin');
   const showAdminEntry = isWeb && isPlatformAdminEmail(user?.email);
 
-  const clinicGroupName =
-    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
+  const clinicGroupName = organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || null;
   const profileName =
     role === 'worker'
       ? profile?.display_name
@@ -732,9 +730,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           },
           {
             label: 'Notifications',
-            icon: (
-              <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />
-            ),
+            icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
             onPress: () => {
               router.push(WORKER_PROFILE_NOTIFICATIONS);
             },
@@ -743,15 +739,14 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
       : [
           {
             label: 'Notifications',
-            icon: (
-              <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />
-            ),
+            icon: <Ionicons name="notifications-outline" size={20} color={colors.labelSecondary} />,
             onPress: () => {
               router.push(CLINIC_PROFILE_NOTIFICATIONS);
             },
           },
           {
             label: 'Billing',
+            detail: billing ? getClinicPlanLabel(billing.plan) : undefined,
             icon: <Ionicons name="card-outline" size={20} color={colors.labelSecondary} />,
             onPress: () => {
               router.push(CLINIC_PROFILE_BILLING);
@@ -761,6 +756,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
     {
       label: 'Sign out',
       destructive: true,
+      sectionBreakBefore: true,
       icon: <Ionicons name="log-out-outline" size={20} color={colors.destructive} />,
       onPress: () => {
         signOut();
@@ -830,9 +826,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
         accessibilityLabel={itemLabel}
-        {...(isCollapsed && isWeb
-          ? webOnlyStyle({ title: titleLabel } as ViewStyle)
-          : {})}
+        {...(isCollapsed && isWeb ? webOnlyStyle({ title: titleLabel } as ViewStyle) : {})}
         onPress={onPress}
         onLongPress={onLongPress}
         onLayout={() => {
@@ -845,12 +839,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           isCollapsed && styles.itemCollapsed,
           !isWeb && !isCollapsed && isFocused && { backgroundColor: activeBackground },
           isWeb && hovered && !pressed && !isFocused && styles.itemHovered,
-          isWeb &&
-            hovered &&
-            !pressed &&
-            isFocused &&
-            !isCollapsed &&
-            styles.itemActiveHovered,
+          isWeb && hovered && !pressed && isFocused && !isCollapsed && styles.itemActiveHovered,
           pressed && styles.itemPressed,
         ]}
       >
@@ -899,8 +888,7 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
 
   const accountAvatarKind =
     role === 'worker' || (role === 'clinic' && isGroup) ? 'worker' : 'clinic';
-  const accountPhotoUri =
-    role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri;
+  const accountPhotoUri = role === 'worker' ? photoUri : isGroup ? memberPhotoUri : logoUri;
 
   const sidebarContent = (
     <>
@@ -932,16 +920,16 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
                 height: activeIndicator.height,
                 backgroundColor: activeIndicator.backgroundColor,
                 borderRadius: activeIndicator.borderRadius,
-                transform: [
-                  { translateX: activeIndicator.x },
-                  { translateY: activeIndicator.y },
-                ],
+                transform: [{ translateX: activeIndicator.x }, { translateY: activeIndicator.y }],
               },
             ]}
           >
             {!isCollapsed ? (
               <View
-                style={[styles.slidingIndicatorAccent, { backgroundColor: activeIndicator.accentColor }]}
+                style={[
+                  styles.slidingIndicatorAccent,
+                  { backgroundColor: activeIndicator.accentColor },
+                ]}
               />
             ) : null}
           </View>
@@ -971,13 +959,12 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
             webHover(hovered, pressed, styles.itemHovered),
             pressed && styles.itemPressed,
           ]}
-          {...(isCollapsed && isWeb ? webOnlyStyle({ title: profileName ?? 'Account' } as ViewStyle) : {})}>
+          {...(isCollapsed && isWeb
+            ? webOnlyStyle({ title: profileName ?? 'Account' } as ViewStyle)
+            : {})}
+        >
           {accountAvatarKind === 'worker' ? (
-            <WorkerProfileAvatar
-              displayName={profileName}
-              photoUri={accountPhotoUri}
-              size={22}
-            />
+            <WorkerProfileAvatar displayName={profileName} photoUri={accountPhotoUri} size={22} />
           ) : (
             <ClinicLogoAvatar
               clinicName={profileName ?? 'Clinic'}
@@ -1108,7 +1095,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
           !isWeb && styles.sidebarEdgeCollapseButtonNative,
           webHover(hovered, pressed, styles.toggleHovered),
           pressed && styles.togglePressed,
-        ]}>
+        ]}
+      >
         <Feather
           name={isCollapsed ? 'chevrons-right' : 'chevrons-left'}
           size={16}
@@ -1125,7 +1113,8 @@ export function TabletSidebar({ state, descriptors, navigation, role }: TabletSi
         styles.sidebarFlat,
         padding,
         { position: 'relative', flex: 1, alignSelf: 'stretch' as const },
-      ]}>
+      ]}
+    >
       {sidebarContent}
       {renderEdgeCollapseControl()}
     </View>

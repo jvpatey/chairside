@@ -283,7 +283,7 @@ export function WebLandingStory() {
       <WebMarketingSectionHeader
         eyebrow="How it works"
         title="Text. Reply YES. Covered."
-        subtitle="Same-day fill-ins without the phone tree — clinics confirm every cover."
+        subtitle="Same-day fill-ins sent by text. Clinics confirm every cover."
       />
 
       <View style={styles.stage}>

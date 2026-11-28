@@ -1,5 +1,5 @@
 import type { ClinicProfile } from '@chairside/api';
-import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
+import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -246,9 +246,8 @@ export function ClinicProfileHero({
   } = useClinicLogo();
   const name =
     displayName?.trim() || profile?.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel = hideClinicMeta
-    ? null
-    : SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
+  // Practice type (specialty) is intentionally not shown on the settings hero.
+  const specialtyLabel: string | null = null;
   const locationLabel = hideClinicMeta
     ? null
     : [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
@@ -280,7 +279,7 @@ export function ClinicProfileHero({
               ? 'Change profile photo'
               : 'Change clinic logo'
         }
-        showAccountBadge
+        showAccountBadge={isGroup}
         isGroup={isGroup}
         emptyMetaFallback={
           hideClinicMeta ? undefined : 'Complete your clinic profile to get started'

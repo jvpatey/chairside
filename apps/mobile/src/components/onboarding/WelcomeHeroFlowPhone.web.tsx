@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-
 import {
   WelcomeSmsPreview,
   WELCOME_SMS_REPLY_CODE,
@@ -299,16 +298,17 @@ export function WelcomeHeroFlowPhone({ size = 'hero' }: WelcomeHeroFlowPhoneProp
     },
     glow: {
       position: 'absolute' as const,
-      top: '4%',
-      left: '-8%',
-      right: '-8%',
-      bottom: '18%',
-      borderRadius: 999,
+      top: '-6%',
+      left: '-30%',
+      right: '-30%',
+      bottom: '-6%',
       pointerEvents: 'none' as const,
+      // One soft light centred on the phone. `closest-side` makes it reach zero before the
+      // box edge, so no outline or hard edge shows around the device.
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse at 45% 35%, rgba(74, 154, 255, 0.42) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(59, 138, 232, 0.22) 0%, transparent 55%)'
-          : 'radial-gradient(ellipse at 45% 35%, rgba(26, 111, 212, 0.28) 0%, transparent 60%), radial-gradient(ellipse at 70% 75%, rgba(59, 138, 232, 0.16) 0%, transparent 55%)',
+          ? 'radial-gradient(closest-side at 50% 44%, rgba(74, 154, 255, 0.24) 0%, rgba(74, 154, 255, 0.08) 55%, rgba(74, 154, 255, 0) 100%)'
+          : 'radial-gradient(closest-side at 50% 44%, rgba(26, 111, 212, 0.14) 0%, rgba(26, 111, 212, 0.05) 55%, rgba(26, 111, 212, 0) 100%)',
       } as object),
     },
     frame: {
@@ -316,7 +316,12 @@ export function WelcomeHeroFlowPhone({ size = 'hero' }: WelcomeHeroFlowPhoneProp
       height: frameHeight,
       borderRadius: 44 * scale,
       ...webOnlyStyle({
-        boxShadow: getWebShadow(isDark, 'hero'),
+        // Layered shadow: the existing hero shadow plus a deeper contact shadow beneath the device.
+        boxShadow: `${getWebShadow(isDark, 'hero')}, ${
+          isDark
+            ? '0 38px 56px -26px rgba(0, 0, 0, 0.65)'
+            : '0 32px 50px -24px rgba(14, 27, 44, 0.38)'
+        }`,
       } as object),
     },
     clip: {
@@ -338,17 +343,39 @@ export function WelcomeHeroFlowPhone({ size = 'hero' }: WelcomeHeroFlowPhoneProp
     device: {
       flex: 1,
       borderRadius: 44,
-      padding: 11,
+      padding: 7,
       backgroundColor: isDark ? '#0B0D12' : '#1C1C1E',
+      // Brushed-titanium bezel: a soft metallic sweep plus a fine edge highlight.
+      ...webOnlyStyle({
+        backgroundImage: isDark
+          ? 'linear-gradient(160deg, #4A4D56 0%, #1A1C22 32%, #0E1014 70%, #2E3038 100%)'
+          : 'linear-gradient(160deg, #5C5F68 0%, #26282E 38%, #16171B 72%, #3A3D46 100%)',
+        boxShadow:
+          'inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(0, 0, 0, 0.55)',
+      } as object),
+    },
+    sheen: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 44 * scale,
+      pointerEvents: 'none' as const,
+      // Faint diagonal reflection on the glass, kept light so the UI stays readable.
+      ...webOnlyStyle({
+        backgroundImage:
+          'linear-gradient(125deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.025) 28%, rgba(255, 255, 255, 0) 52%)',
+      } as object),
     },
     screen: {
       flex: 1,
-      borderRadius: 34,
+      borderRadius: 37,
       overflow: 'hidden' as const,
       backgroundColor: colors.backgroundGrouped,
       position: 'relative' as const,
       ...webOnlyStyle({
-        clipPath: 'inset(0 round 34px)',
+        clipPath: 'inset(0 round 37px)',
       } as object),
     },
     statusBar: {
@@ -525,6 +552,7 @@ export function WelcomeHeroFlowPhone({ size = 'hero' }: WelcomeHeroFlowPhoneProp
             </View>
           </View>
         </View>
+        <View style={styles.sheen} />
       </View>
 
       <View style={styles.dots}>
