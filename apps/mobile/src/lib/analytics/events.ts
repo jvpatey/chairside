@@ -20,6 +20,7 @@ export const AnalyticsEvents = {
   clinicAddClinicNudgeTapped: 'clinic_add_clinic_nudge_tapped',
   clinicAddClinicNudgeDismissed: 'clinic_add_clinic_nudge_dismissed',
   clinicLocationAddedLater: 'clinic_location_added_later',
+  profileCompletionNudgeTapped: 'profile_completion_nudge_tapped',
 } as const;
 
 export type ListingOpenSource = 'sms' | 'share' | 'direct';

@@ -246,6 +246,9 @@ export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications
 export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
 /** Soft finish-profile destination (editable profile form, not the setup wizard). */
 export const WORKER_FINISH_PROFILE: Href = WORKER_PROFILE_PROFESSIONAL;
+/** Focused capture screens (same ones used right after sign-up). */
+export const WORKER_CAPTURE_PHONE: Href = '/(onboarding)/capture-phone' as Href;
+export const WORKER_CAPTURE_LOCATION: Href = '/(onboarding)/capture-location' as Href;
 export const WORKER_PROFILE_SUPPORT: Href = '/(tabs)/profile/support' as Href;
 export const WORKER_PROFILE_PRIVACY: Href = '/(tabs)/profile/privacy' as Href;
 export const WORKER_PROFILE_TERMS: Href = '/(tabs)/profile/terms' as Href;

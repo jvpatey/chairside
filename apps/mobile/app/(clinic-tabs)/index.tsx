@@ -4,6 +4,7 @@ import {
   getJobPostListingViewCountsMap,
   getShiftPostApplicationCount,
   getShiftPostListingViewCountsMap,
+  getMissingClinicProfileFields,
   getShiftPostPendingApplicationCountsMap,
   isClinicGroupsEnabled,
   listClinicApplications,
@@ -33,6 +34,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
+import { ProfileCompletionNudgeCard } from '@/components/dashboard/ProfileCompletionNudgeCard';
 import { FillInPostingCard } from '@/components/clinic/FillInPostingCard';
 import { RolePostingCard } from '@/components/clinic/RolePostingCard';
 import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
@@ -62,6 +64,7 @@ import { guardClinicPosting } from '@/lib/clinicPostingGuard';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { isTodayOrUpcomingShiftDate } from '@/lib/fillInFilters';
 import { isMainListJob } from '@/lib/postingFilters';
+import { getClinicProfileNudge } from '@/lib/profileCompletionNudge';
 import { useThemedStyles } from '@/theme';
 import {
   isClinicBillingFeatureUnlocked,
@@ -326,6 +329,14 @@ export default function ClinicDashboardScreen() {
   // Single-clinic owners with a finished profile get a gentle prompt to add their other sites.
   const showAddClinicNudge =
     isOwner && isProfileComplete && isClinicGroupsEnabled() && activeLocationCount < 2;
+  // Owners with an unfinished profile get a prompt (phone first — SMS is the core feature).
+  // Group managers see the "waiting for clinic access" panel instead.
+  const profileNudge =
+    isClinicProfileReady && isOwner && !isProfileComplete
+      ? getClinicProfileNudge(getMissingClinicProfileFields(clinicProfile, { locations }), {
+          isGroup,
+        })
+      : null;
   const groupName =
     groupDisplayName || organization?.name?.trim() || clinicName || 'Dental group';
   const {
@@ -446,9 +457,12 @@ export default function ClinicDashboardScreen() {
         ) : null
       }
       alerts={
-        managerAccessCopy || showAddClinicNudge ? (
+        managerAccessCopy || showAddClinicNudge || profileNudge ? (
           <FadeInSection delayMs={40}>
             <View style={{ gap: 12 }}>
+              {profileNudge ? (
+                <ProfileCompletionNudgeCard nudge={profileNudge} role="clinic" />
+              ) : null}
               <AddClinicNudge visible={showAddClinicNudge} />
               {managerAccessCopy ? (
                 <CardInfoPanel

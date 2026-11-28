@@ -4,7 +4,7 @@ import {
   type WorkerApplication,
   type WorkerDashboardCounts,
 } from '@chairside/api';
-import { getWorkerRoleTypes } from '@chairside/api';
+import { getMissingWorkerProfileFields, getWorkerRoleTypes } from '@chairside/api';
 import { formatRoleTypesLabel, WORKER_STATUS_HUB } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,6 +21,7 @@ import { DashboardNeedsAttention } from '@/components/dashboard/DashboardNeedsAt
 import { DashboardQuickActionsRow } from '@/components/dashboard/DashboardQuickActionsRow';
 import { DashboardScreen } from '@/components/dashboard/DashboardScreen';
 import { FadeInSection } from '@/components/dashboard/FadeInSection';
+import { ProfileCompletionNudgeCard } from '@/components/dashboard/ProfileCompletionNudgeCard';
 import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
 import { TextAlertsStatusBadge } from '@/components/worker/TextAlertsStatusBadge';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
@@ -37,6 +38,7 @@ import { partitionWorkerShiftApplications } from '@/lib/fillInFilters';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import { getFirstName } from '@/lib/greeting';
+import { getWorkerProfileNudge } from '@/lib/profileCompletionNudge';
 import {
   getWorkerFillInAvailabilityRoute,
   WORKER_APPLICATIONS,
@@ -57,7 +59,7 @@ export default function WorkerDashboardScreen() {
     userId: user?.id,
   });
   const { pendingCount: applicationUpdateCount, fillInPendingCount } = useApplicationTabBadge();
-  const { workerProfile, isProfileComplete } = useWorkerProfile();
+  const { workerProfile, isProfileComplete, isWorkerProfileReady } = useWorkerProfile();
   const { photoUri } = useProfilePhoto();
   const { isTablet } = useResponsiveLayout();
   const province = workerProfile?.province ?? 'NS';
@@ -161,6 +163,13 @@ export default function WorkerDashboardScreen() {
   const heroSubtitle =
     [workerSubtitle, locationLine || null].filter(Boolean).join(' · ') || 'Dental professional';
 
+  // Incomplete profiles get a prompt instead of the fill-in alerts card (phone first — fill-ins
+  // are sent by text).
+  const profileNudge =
+    isWorkerProfileReady && !isProfileComplete
+      ? getWorkerProfileNudge(getMissingWorkerProfileFields(workerProfile))
+      : null;
+
   const smsStatus = getFillInSmsStatus(workerProfile);
   const pendingLabel =
     upcomingInProgress.length === 1
@@ -220,6 +229,10 @@ export default function WorkerDashboardScreen() {
       alerts={
         isProfileComplete ? (
           <FillInAlertsNudgeCard openFillInCount={counts.openFillInsInProvince} />
+        ) : profileNudge ? (
+          <FadeInSection delayMs={30}>
+            <ProfileCompletionNudgeCard nudge={profileNudge} role="worker" />
+          </FadeInSection>
         ) : null
       }
       quickActions={
