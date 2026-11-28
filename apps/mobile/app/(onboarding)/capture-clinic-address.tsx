@@ -312,6 +312,7 @@ export default function CaptureClinicAddressScreen() {
               icon="business-outline"
               editable={!isSubmitting}
               required
+              validated={Boolean(clinicName.trim())}
             />
           ) : null}
           <AddressAutocomplete value={address} onChange={setAddress} required />

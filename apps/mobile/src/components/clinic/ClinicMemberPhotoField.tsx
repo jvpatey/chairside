@@ -1,11 +1,11 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
-import { useTheme, useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type ClinicMemberPhotoFieldProps = {
   displayName: string;
+  label?: string;
   photoUri?: string | null;
   isUploadingPhoto?: boolean;
   hasPhoto?: boolean;
@@ -13,9 +13,10 @@ type ClinicMemberPhotoFieldProps = {
   onRemovePhoto?: () => void;
 };
 
-/** Profile photo for a group member (name and title are no longer entered). */
+/** Centered photo control for the Group & clinics card. */
 export function ClinicMemberPhotoField({
   displayName,
+  label = 'Group photo',
   photoUri,
   isUploadingPhoto = false,
   hasPhoto = false,
@@ -23,40 +24,51 @@ export function ClinicMemberPhotoField({
   onRemovePhoto,
 }: ClinicMemberPhotoFieldProps) {
   const { colors } = useTheme();
-  const styles = useThemedStyles(({ spacing, typography }) => ({
-    photoSection: { gap: spacing.sm, alignItems: 'center' as const },
-    photoActions: {
-      flexDirection: 'row' as const,
-      gap: spacing.md,
-      marginTop: spacing.xs,
+  const styles = useThemedStyles(({ spacing }) => ({
+    wrap: {
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
     },
-    action: { ...typography.body, color: colors.primary, fontWeight: '600' as const },
-    secondary: { ...typography.body, color: colors.labelSecondary },
+    actions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+    },
+    action: {
+      fontSize: 15,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    secondary: {
+      fontSize: 15,
+      color: colors.labelSecondary,
+    },
   }));
 
   return (
-    <View style={styles.photoSection}>
-      <FormSectionHeader icon="camera-outline" label="Profile photo" />
+    <View style={styles.wrap}>
       <Pressable
         onPress={onPickPhoto}
         disabled={isUploadingPhoto}
         accessibilityRole="button"
-        accessibilityLabel={hasPhoto ? 'Change profile photo' : 'Add profile photo'}>
+        accessibilityLabel={hasPhoto ? `Change ${label.toLowerCase()}` : `Add ${label.toLowerCase()}`}>
         <WorkerProfileAvatar
           displayName={displayName}
           photoUri={photoUri}
-          size={88}
+          size={76}
           isLoading={isUploadingPhoto}
         />
       </Pressable>
-      <View style={styles.photoActions}>
-        <Pressable disabled={isUploadingPhoto} onPress={onPickPhoto}>
+      <View style={styles.actions}>
+        <Pressable disabled={isUploadingPhoto} onPress={onPickPhoto} hitSlop={6}>
           <Text style={styles.action}>
             {isUploadingPhoto ? 'Uploading…' : hasPhoto ? 'Change photo' : 'Add photo'}
           </Text>
         </Pressable>
         {hasPhoto && onRemovePhoto ? (
-          <Pressable disabled={isUploadingPhoto} onPress={onRemovePhoto}>
+          <Pressable disabled={isUploadingPhoto} onPress={onRemovePhoto} hitSlop={6}>
             <Text style={styles.secondary}>Remove</Text>
           </Pressable>
         ) : null}

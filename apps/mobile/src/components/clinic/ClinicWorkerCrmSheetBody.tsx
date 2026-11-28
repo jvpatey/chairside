@@ -121,7 +121,7 @@ export function ClinicWorkerCrmSheetBody({
     noteInput: {
       minHeight: 120,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
@@ -131,7 +131,7 @@ export function ClinicWorkerCrmSheetBody({
     },
     pickerButton: {
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,

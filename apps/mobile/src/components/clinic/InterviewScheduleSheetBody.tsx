@@ -277,10 +277,10 @@ export function InterviewScheduleSheetBody({
     },
     previewText: typography.body,
     detailsInput: {
-      backgroundColor: colors.fillSubtle,
+      backgroundColor: colors.surfaceElevated,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       minHeight: 96,

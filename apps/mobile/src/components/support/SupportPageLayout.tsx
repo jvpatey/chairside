@@ -9,7 +9,6 @@ import {
 import { getPublicLegalFooterLinks, PublicSiteFooter } from '@/components/legal/PublicSiteFooter';
 import { PublicLegalPageHeader } from '@/components/legal/PublicLegalPageHeader';
 import { PublicLegalPageShell } from '@/components/legal/PublicLegalPageShell';
-import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
 import { SupportContactForm } from '@/components/support/SupportContactForm';
 import { SupportHelpTopics } from '@/components/support/SupportHelpTopics';
 import { SUPPORT_PAGE_CONTENT } from '@/content/legal/support';
@@ -59,6 +58,22 @@ export function SupportPageLayout() {
       color: colors.labelSecondary,
       marginBottom: isCompact ? spacing.lg : spacing.xl,
     },
+    sectionEyebrow: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: colors.labelSecondary,
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    cardSubtitle: {
+      ...typography.subtitle,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 20 : 22,
+      color: colors.labelSecondary,
+    },
     formCard: {
       backgroundColor: colors.surface,
       borderRadius: isCompact ? radii.lg : radii.xl,
@@ -89,12 +104,11 @@ export function SupportPageLayout() {
         </Animated.View>
 
         <Animated.View entering={enterFadeUp(PUBLIC_PAGE_STAGGER.toc, reducedMotion)}>
+          <Text style={styles.sectionEyebrow}>Contact us</Text>
           <View style={styles.formCard}>
-            <PublicPageCardHeader
-              icon="mail-outline"
-              title="Contact us"
-              subtitle="Send a message for bugs, account issues, or questions. We typically respond within one to two business days."
-            />
+            <Text style={styles.cardSubtitle}>
+              Send a message for bugs, account issues, or questions. We typically respond within one to two business days.
+            </Text>
             <SupportContactForm />
           </View>
         </Animated.View>

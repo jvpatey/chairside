@@ -199,13 +199,13 @@ export function ScreeningQuestionPicker({
     },
     numberInput: {
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 10,
       paddingHorizontal: 10,
       paddingVertical: 8,
       fontSize: 14,
       color: colors.labelPrimary,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceElevated,
     },
   }));
 

@@ -9,6 +9,8 @@ export type Colors = {
   labelSecondary: string;
   labelTertiary: string;
   separator: string;
+  /** Visible border for text fields and input shells. */
+  fieldBorder: string;
   fillSubtle: string;
   primary: string;
   primaryPressed: string;
@@ -41,6 +43,7 @@ export const lightColors: Colors = {
   labelSecondary: '#3C485CC2',
   labelTertiary: '#3C485C80',
   separator: '#0E1B2C0D',
+  fieldBorder: '#0E1B2C2E',
   fillSubtle: '#3C485C14',
   // Brand blue — primary actions, roles, and fill-ins
   primary: '#1A6FD4',
@@ -76,6 +79,7 @@ export const darkColors: Colors = {
   labelSecondary: '#E5EAF599',
   labelTertiary: '#E5EAF54D',
   separator: '#FFFFFF0A',
+  fieldBorder: '#FFFFFF2E',
   fillSubtle: '#78788024',
   primary: '#4A9AFF',
   primaryPressed: '#3588F0',

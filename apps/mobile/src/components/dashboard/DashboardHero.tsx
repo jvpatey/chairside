@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { router, type Href } from 'expo-router';
+import type { Href } from 'expo-router';
 import { useCallback, type ReactNode } from 'react';
 import {
   Animated,
@@ -108,7 +108,6 @@ export function DashboardHero({
   const { isTablet } = useResponsiveLayout();
   const reduceMotion = usePrefersReducedMotion();
   const overlayActions = (forcePhoneLayout || !isTablet) && showActions && !flush;
-  const heroOpensProfile = Platform.OS !== 'web';
   const hideProfileInActions = hideProfileOnWebTablet && IS_WEB && isTablet && !forcePhoneLayout;
   const isWeb = Platform.OS === 'web';
   const useFlush = flush || (IS_WEB && isTablet && !forcePhoneLayout);
@@ -150,9 +149,6 @@ export function DashboardHero({
     },
     identityStack: {
       gap: 4,
-    },
-    identityPressed: {
-      opacity: 0.85,
     },
     actionsCorner: {
       position: 'absolute' as const,
@@ -254,11 +250,6 @@ export function DashboardHero({
     },
   }));
 
-  const openProfile = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(profileHref);
-  }, [profileHref]);
-
   const handlePulsePress = useCallback(() => {
     if (!pulse) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -327,18 +318,7 @@ export function DashboardHero({
     </View>
   );
 
-  const identity = heroOpensProfile ? (
-    <View style={styles.identity}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open profile"
-        onPress={openProfile}
-        style={({ pressed }) => [pressed && styles.identityPressed]}>
-        {identityCore}
-      </Pressable>
-      {contextContent}
-    </View>
-  ) : (
+  const identity = (
     <View style={styles.identity}>
       {identityCore}
       {contextContent}

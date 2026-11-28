@@ -221,7 +221,26 @@ export default function ClinicLocationsSettingsScreen() {
 
   const styles = useThemedStyles(({ spacing, typography }) => ({
     content: { gap: spacing.lg },
+    addClinicRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.sm,
+      minHeight: 48,
+      paddingVertical: spacing.sm,
+    },
+    addClinicLabel: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
     form: { gap: spacing.md },
+    groupFields: { gap: spacing.md },
+    phoneField: { gap: spacing.xs },
+    fieldHint: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
+    },
     actions: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
@@ -450,6 +469,7 @@ export default function ClinicLocationsSettingsScreen() {
               autoComplete="off"
               icon="business-outline"
               required
+              validated={Boolean(name.trim())}
               invalid={showValidation && !name.trim()}
             />
             <AddressAutocomplete value={address} onChange={setAddress} required />
@@ -488,8 +508,6 @@ export default function ClinicLocationsSettingsScreen() {
       <ProfileDetailScreen
         title={isGroup ? 'Group & clinics' : 'Clinics'}
         subtitle={listSubtitle}
-        actionLabel={isOwner ? 'Add clinic' : undefined}
-        onActionPress={isOwner ? startAdd : undefined}
         onBack={handleBack}>
         <View style={styles.content}>
           {showPhotoSection || showGroupSection ? (
@@ -499,6 +517,7 @@ export default function ClinicLocationsSettingsScreen() {
               {showPhotoSection ? (
                 <ClinicMemberPhotoField
                   displayName={groupNameInput || initialProfile.groupName || 'Group'}
+                  label={showGroupSection ? 'Group photo' : 'Profile photo'}
                   photoUri={photoUri}
                   isUploadingPhoto={isUploadingPhoto}
                   hasPhoto={hasPhoto}
@@ -506,8 +525,9 @@ export default function ClinicLocationsSettingsScreen() {
                   onRemovePhoto={() => void removePhoto()}
                 />
               ) : null}
+              {showPhotoSection && showGroupSection ? <FieldDivider /> : null}
               {showGroupSection ? (
-                <>
+                <View style={styles.groupFields}>
                   <AuthField
                     label="Group name"
                     placeholder="Group or brand name"
@@ -515,20 +535,23 @@ export default function ClinicLocationsSettingsScreen() {
                     onChangeText={setGroupNameInput}
                     autoCapitalize="words"
                     autoComplete="off"
-                    icon="business-outline"
                     required
+                    validated={!groupNameInvalid}
                     invalid={showProfileValidation && groupNameInvalid}
                   />
-                  <AuthField
-                    label="Group phone"
-                    placeholder={PHONE_NUMBER_PLACEHOLDER}
-                    value={groupPhone}
-                    onChangeText={(text) => setGroupPhone(formatPhoneNumber(text))}
-                    keyboardType="phone-pad"
-                    icon="call-outline"
-                    hint="Cover-request texts for fill-ins go to this number."
-                  />
-                </>
+                  <View style={styles.phoneField}>
+                    <AuthField
+                      label="Group phone"
+                      placeholder={PHONE_NUMBER_PLACEHOLDER}
+                      value={groupPhone}
+                      onChangeText={(text) => setGroupPhone(formatPhoneNumber(text))}
+                      keyboardType="phone-pad"
+                    />
+                    <Text style={styles.fieldHint}>
+                      Cover-request texts for fill-ins go to this number.
+                    </Text>
+                  </View>
+                </View>
               ) : null}
               {profileDirty || profileError ? (
                 <SetupStepFooter
@@ -589,6 +612,19 @@ export default function ClinicLocationsSettingsScreen() {
                   </View>
                 ))}
               </ProfileDetailStack>
+              {isOwner ? (
+                <>
+                  <FieldDivider />
+                  <Pressable
+                    onPress={startAdd}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add clinic"
+                    style={styles.addClinicRow}>
+                    <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                    <Text style={styles.addClinicLabel}>Add clinic</Text>
+                  </Pressable>
+                </>
+              ) : null}
             </SectionPanel>
           )}
         </View>

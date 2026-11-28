@@ -30,8 +30,10 @@ export function DashboardQuickActionsRow({
   actions,
   forcePhoneLayout = false,
 }: DashboardQuickActionsRowProps) {
-  const { isWide } = useResponsiveLayout();
+  const { isTablet, isWide } = useResponsiveLayout();
   const compact = forcePhoneLayout ? false : IS_WEB && isWide;
+  // Two-column phone rows stack icon above text so descriptions can wrap to 2 lines cleanly.
+  const stackTiles = actions.length > 1 && (forcePhoneLayout || !isTablet);
   const styles = useThemedStyles((theme) => ({
     ...getDashboardLayoutStyles(theme),
     tileSlot: { flex: 1, minWidth: 0 },
@@ -51,6 +53,7 @@ export function DashboardQuickActionsRow({
               disabled={action.disabled}
               dimmed={action.dimmed}
               accessibilityHint={action.accessibilityHint}
+              stacked={stackTiles}
               forcePhoneLayout={forcePhoneLayout}
               onPress={action.onPress}
             />

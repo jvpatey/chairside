@@ -61,9 +61,9 @@ export function SoftwareUsedSelector({
     input: {
       flex: 1,
       fontSize: typography.body.fontSize,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
       paddingVertical: 12,

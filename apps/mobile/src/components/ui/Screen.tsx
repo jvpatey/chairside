@@ -189,8 +189,7 @@ export function Screen({
       marginBottom: spacing.sm,
     },
     scopeRow: {
-      marginTop: -spacing.sm,
-      marginBottom: spacing.md,
+      marginTop: spacing.md,
       alignItems: 'flex-start' as const,
     },
     tabletSubtitle: {

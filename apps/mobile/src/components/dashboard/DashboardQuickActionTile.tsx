@@ -23,6 +23,8 @@ type DashboardQuickActionTileProps = {
   disabled?: boolean;
   dimmed?: boolean;
   accessibilityHint?: string;
+  /** Stacked icon-over-text layout (used for 2-column phone tiles and marketing preview). */
+  stacked?: boolean;
   /** Stacked phone tile even when the window is tablet-sized (marketing preview). */
   forcePhoneLayout?: boolean;
   onPress: () => void;
@@ -37,13 +39,13 @@ export function DashboardQuickActionTile({
   disabled = false,
   dimmed = false,
   accessibilityHint,
+  stacked = false,
   forcePhoneLayout = false,
   onPress,
 }: DashboardQuickActionTileProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  // Stacked is marketing-preview only — phone uses the same horizontal tile as tablet.
-  const useStackedLayout = forcePhoneLayout;
+  const useStackedLayout = stacked || forcePhoneLayout;
   const showChevron = Platform.OS !== 'web' && isTablet && !useStackedLayout;
   const isVisuallyMuted = disabled || dimmed;
   const accent = variant === 'primary' ? 'primary' : 'secondary';
@@ -55,12 +57,12 @@ export function DashboardQuickActionTile({
       flex: 1,
       width: '100%' as const,
       borderRadius: radii.lg,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: useStackedLayout ? spacing.sm + 4 : spacing.md,
       paddingVertical: compact ? spacing.sm + 2 : spacing.md,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      minHeight: compact ? 72 : useStackedLayout ? 84 : 76,
+      minHeight: compact ? 72 : useStackedLayout ? 104 : 76,
       justifyContent: 'center',
       ...webPointer(),
       ...webOnlyStyle({

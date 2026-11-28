@@ -314,13 +314,13 @@ export function ScreeningToggleSection({
     },
     numberInput: {
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 10,
       paddingHorizontal: 10,
       paddingVertical: 8,
       fontSize: 14,
       color: colors.labelPrimary,
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: colors.surfaceElevated,
     },
     capText: {
       ...typography.subtitle,

@@ -15,7 +15,6 @@ import {
 import type { LegalPathKey } from '@/constants/legal';
 import { PUBLIC_LEGAL_PATHS, LEGAL_LAST_UPDATED } from '@/constants/legal';
 import type { LegalSection } from '@/content/legal/types';
-import { PublicPageCardHeader } from '@/components/legal/PublicPageCardHeader';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { webHover, webListRowHoverStyles, webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -25,15 +24,6 @@ import { getWebShadow } from '@/theme/web';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'Account and sign-in': 'key-outline',
-  'Delete your account': 'trash-outline',
-  Notifications: 'notifications-outline',
-  'Uploads and files': 'cloud-upload-outline',
-  'Clinics and workers': 'people-outline',
-  Legal: 'document-text-outline',
-};
 
 type SupportHelpTopicsProps = {
   sections: LegalSection[];
@@ -56,14 +46,13 @@ function HelpTopicBody({
   legalPaths: Record<LegalPathKey, Href>;
 }) {
   const { isCompact } = useResponsiveLayout();
-  const iconInset = isCompact ? 36 : 44;
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     body: {
       gap: spacing.sm,
       paddingTop: spacing.sm,
       paddingBottom: spacing.xs,
-      paddingLeft: iconInset + spacing.md,
-      paddingRight: isCompact ? spacing.sm : 0,
+      paddingLeft: isCompact ? spacing.md : spacing.lg,
+      paddingRight: isCompact ? spacing.md : spacing.lg,
     },
     paragraph: {
       ...typography.body,
@@ -153,8 +142,6 @@ function HelpTopicRow({
 }) {
   const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
-  const iconName = TOPIC_ICONS[section.title] ?? 'help-circle-outline';
-  const iconSize = isCompact ? 36 : 44;
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     row: {
@@ -171,15 +158,6 @@ function HelpTopicRow({
       ...webPointer(),
     },
     headerHovered: webListRowHoverStyles(colors),
-    iconWrap: {
-      width: iconSize,
-      height: iconSize,
-      borderRadius: isCompact ? 10 : 12,
-      backgroundColor: colors.primarySubtle,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      flexShrink: 0,
-    },
     title: {
       ...typography.body,
       fontSize: isCompact ? 15 : 16,
@@ -190,7 +168,7 @@ function HelpTopicRow({
     divider: {
       height: 1,
       backgroundColor: colors.separator,
-      marginLeft: (isCompact ? spacing.md : spacing.lg) + iconSize + (isCompact ? spacing.sm : spacing.md),
+      marginLeft: isCompact ? spacing.md : spacing.lg,
     },
   }));
 
@@ -205,9 +183,6 @@ function HelpTopicRow({
           webHover(hovered, pressed, styles.headerHovered),
           pressed && { opacity: 0.88 },
         ]}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={iconName} size={isCompact ? 20 : 22} color={colors.primary} />
-        </View>
         <Text style={styles.title}>{section.title}</Text>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -247,11 +222,33 @@ export function SupportHelpTopics({
       padding: isCompact ? spacing.md : spacing.lg,
       gap: spacing.sm,
     },
-    headerTextInset: {
-      marginLeft: (isCompact ? 40 : 44) + (isCompact ? spacing.sm : spacing.md),
+    eyebrowRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    eyebrow: {
+      flexShrink: 1,
+      minWidth: 0,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: colors.labelSecondary,
+    },
+    subtitle: {
+      ...typography.subtitle,
+      fontSize: isCompact ? 14 : 15,
+      lineHeight: isCompact ? 20 : 22,
+      color: colors.labelSecondary,
     },
     updatedPill: {
-      alignSelf: 'flex-start' as const,
+      flexShrink: 0,
+      alignSelf: 'center' as const,
       paddingHorizontal: spacing.sm,
       paddingVertical: 4,
       borderRadius: radii.pill,
@@ -285,30 +282,31 @@ export function SupportHelpTopics({
   };
 
   return (
-    <View style={[styles.card, style]}>
-      <View style={styles.cardHeader}>
-        <PublicPageCardHeader
-          icon="help-circle-outline"
-          title="Help topics"
-          subtitle="Tap a topic to expand answers and troubleshooting tips."
-        />
-        <View style={[styles.updatedPill, styles.headerTextInset]}>
+    <View style={style}>
+      <View style={styles.eyebrowRow}>
+        <Text style={styles.eyebrow}>Help topics</Text>
+        <View style={styles.updatedPill}>
           <Text style={styles.updatedText}>Last updated: {lastUpdated}</Text>
         </View>
       </View>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.subtitle}>Tap a topic to expand answers and troubleshooting tips.</Text>
+        </View>
 
-      <View style={styles.sectionDivider} />
+        <View style={styles.sectionDivider} />
 
-      {sections.map((section, index) => (
-        <HelpTopicRow
-          key={section.title}
-          section={section}
-          expanded={expandedTitles.has(section.title)}
-          onToggle={() => toggleSection(section.title)}
-          showDivider={index < sections.length - 1}
-          legalPaths={legalPaths}
-        />
-      ))}
+        {sections.map((section, index) => (
+          <HelpTopicRow
+            key={section.title}
+            section={section}
+            expanded={expandedTitles.has(section.title)}
+            onToggle={() => toggleSection(section.title)}
+            showDivider={index < sections.length - 1}
+            legalPaths={legalPaths}
+          />
+        ))}
+      </View>
     </View>
   );
 }

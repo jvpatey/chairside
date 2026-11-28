@@ -16,6 +16,7 @@ export type ProfileSettingsCardVariant = 'default' | 'danger';
 export type ProfileSettingsCardProps = {
   title: string;
   subtitle?: string;
+  /** Only shown on collapsible / danger cards. Default cards use the uppercase eyebrow title. */
   icon?: keyof typeof Ionicons.glyphMap;
   iconAccent?: DashboardWidgetAccent;
   /** Custom leading content (e.g. avatar). Takes precedence over `icon`. */
@@ -108,6 +109,33 @@ export function ProfileSettingsCard({
     accessory: {
       flexShrink: 0,
     },
+    eyebrowRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    eyebrowPressable: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.xs,
+      minWidth: 0,
+      borderRadius: 8,
+      paddingVertical: spacing.xs,
+      ...webPointer(),
+    },
+    eyebrow: {
+      flexShrink: 1,
+      minWidth: 0,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
+      color: isDanger ? colors.destructive : colors.labelSecondary,
+    },
   }));
 
   const toggleExpanded = () => {
@@ -169,6 +197,69 @@ export function ProfileSettingsCard({
       {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
     </View>
   );
+
+  // Collapsible eyebrow: the title row is the tap target; the card body only shows when expanded.
+  if (collapsible && !leading) {
+    return (
+      <View style={style}>
+        <View style={styles.eyebrowRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+            accessibilityState={{ expanded }}
+            onPress={toggleExpanded}
+            style={({ pressed, hovered }) => [
+              styles.eyebrowPressable,
+              webHover(hovered, pressed, styles.headerHovered),
+              pressed && styles.headerPressed,
+            ]}>
+            <Text style={styles.eyebrow} numberOfLines={1}>
+              {title}
+            </Text>
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={colors.labelTertiary}
+            />
+          </Pressable>
+          {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
+        </View>
+        {expanded ? (
+          <View style={styles.card}>
+            {subtitle ? (
+              <Text style={styles.subtitle} numberOfLines={subtitleNumberOfLines}>
+                {subtitle}
+              </Text>
+            ) : null}
+            {children}
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Default cards: section name as a small uppercase eyebrow above the card, body inside.
+  // Custom-leading cards keep the in-card header.
+  if (!collapsible && !leading) {
+    return (
+      <View style={style}>
+        <View style={styles.eyebrowRow}>
+          <Text style={styles.eyebrow} numberOfLines={1}>
+            {title}
+          </Text>
+          {headerAccessory ? <View style={styles.accessory}>{headerAccessory}</View> : null}
+        </View>
+        <View style={styles.card}>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={subtitleNumberOfLines}>
+              {subtitle}
+            </Text>
+          ) : null}
+          {children}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.card, style]}>
