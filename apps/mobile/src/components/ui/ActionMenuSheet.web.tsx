@@ -11,21 +11,27 @@ import {
   webPointer,
 } from '@/lib/webPressableStyles';
 import { radii } from '@/theme/tokens';
-import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
+import { colorWithAlpha, fontSemibold, useTheme, useThemedStyles } from '@/theme';
 import { webTypography } from '@/theme/web';
 
-// @ts-expect-error TS5097 — explicit extension required to avoid web circular import
-import { ActionMenuSheetBottom, type ActionMenuSheetProps } from './ActionMenuSheet.tsx';
+import {
+  ActionMenuDetailList,
+  ActionMenuSheetBottom,
+  groupActionItems,
+  type ActionMenuSheetProps,
+  // @ts-expect-error TS5097 — explicit extension required to avoid web circular import
+} from './ActionMenuSheet.tsx';
 
 function ActionMenuDialog({
   visible,
   title,
   message,
+  details,
   headerContent,
   actions,
   onClose,
 }: ActionMenuSheetProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const isConfirmDialog = Boolean(title && actions.length === 1);
   const confirmAction = actions[0];
   const isDestructiveConfirm = Boolean(confirmAction?.destructive);
@@ -34,7 +40,7 @@ function ActionMenuDialog({
     isConfirmDialog && confirmAction && confirmAction.label.trim().length > 18,
   );
 
-  const styles = useThemedStyles(({ colors, spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, isDark }) => ({
     header: {
       gap: spacing.sm,
     },
@@ -80,6 +86,9 @@ function ActionMenuDialog({
     },
     actionCard: {
       overflow: 'hidden',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.14 : 0.12),
     },
     action: {
       flexDirection: 'row',
@@ -95,10 +104,25 @@ function ActionMenuDialog({
     actionPressed: {
       opacity: 0.88,
     },
+    actionLabelWrap: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
     actionLabel: {
       fontSize: 15,
       fontWeight: '500',
       color: colors.labelPrimary,
+      flexShrink: 1,
+    },
+    actionDetail: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.labelTertiary,
+      flexShrink: 0,
     },
     actionDestructive: {
       color: colors.destructive,
@@ -118,19 +142,12 @@ function ActionMenuDialog({
     },
     menuHeaderWithTitle: {
       borderBottomWidth: 1,
-      borderBottomColor: colors.separator,
-      paddingBottom: spacing.sm,
+      borderBottomColor: colorWithAlpha(colors.labelPrimary, isDark ? 0.12 : 0.1),
+      paddingBottom: spacing.md,
+      marginBottom: spacing.md,
     },
-    sectionEyebrow: {
-      fontSize: 11,
-      lineHeight: 14,
-      fontFamily: fontSemibold,
-      fontWeight: '600',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase' as const,
-      color: colors.labelTertiary,
-      paddingHorizontal: spacing.xs,
-      marginBottom: spacing.xs,
+    actionGroups: {
+      gap: spacing.sm,
     },
     menuTitle: {
       fontSize: 16,
@@ -164,6 +181,7 @@ function ActionMenuDialog({
             </View>
             {title ? <Text style={styles.title}>{title}</Text> : null}
             {message ? <Text style={styles.message}>{message}</Text> : null}
+            {details && details.length > 0 ? <ActionMenuDetailList items={details} /> : null}
           </View>
           <View
             style={[
@@ -210,17 +228,17 @@ function ActionMenuDialog({
       ) : (
         <>
           {headerContent ? (
-            <View style={styles.menuHeaderRich}>{headerContent}</View>
+            <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>{headerContent}</View>
           ) : title || message ? (
             <View style={[styles.menuHeaderRich, styles.menuHeaderWithTitle]}>
               {title ? <Text style={styles.menuTitle}>{title}</Text> : null}
               {message ? <Text style={styles.menuMessage}>{message}</Text> : null}
             </View>
           ) : null}
-          <View>
-            {hasRichHeader ? <Text style={styles.sectionEyebrow}>Menu</Text> : null}
-            <SurfaceCard padding="none" style={styles.actionCard} elevationLevel="subtle">
-              {actions.map((action, index) => (
+          <View style={styles.actionGroups}>
+            {groupActionItems(actions).map((group, groupIndex) => (
+              <SurfaceCard key={groupIndex} padding="none" style={styles.actionCard} elevationLevel="subtle">
+                {group.map((action, index) => (
                 <Pressable
                   key={action.label}
                   accessibilityRole="button"
@@ -230,23 +248,36 @@ function ActionMenuDialog({
                   }}
                   style={({ pressed, hovered }) => [
                     styles.actionRow,
-                    index === actions.length - 1 && styles.actionRowLast,
+                    index === group.length - 1 && styles.actionRowLast,
                     webHover(hovered, pressed, styles.actionHovered),
                     pressed && styles.actionPressed,
                   ]}
                 >
                   {action.icon ?? null}
-                  <Text
-                    style={[
-                      styles.actionLabel,
-                      action.destructive && styles.actionDestructive,
-                    ]}
-                  >
-                    {action.label}
-                  </Text>
+                  <View style={styles.actionLabelWrap}>
+                    <Text
+                      style={[
+                        styles.actionLabel,
+                        action.destructive && styles.actionDestructive,
+                      ]}
+                      numberOfLines={1}>
+                      {action.label}
+                    </Text>
+                    {action.detail ? (
+                      <Text
+                        style={[
+                          styles.actionDetail,
+                          action.detailColor ? { color: action.detailColor } : null,
+                        ]}
+                        numberOfLines={1}>
+                        {action.detail}
+                      </Text>
+                    ) : null}
+                  </View>
                 </Pressable>
-              ))}
-            </SurfaceCard>
+                ))}
+              </SurfaceCard>
+            ))}
           </View>
         </>
       )}

@@ -4,13 +4,11 @@ import { Text } from 'react-native';
 import { AccountChangePasswordSection } from '@/components/account/AccountChangePasswordSection';
 import { AccountDataPrivacyNotice } from '@/components/account/AccountDataPrivacyNotice';
 import { AccountDeleteAccountCard } from '@/components/account/AccountDeleteAccountCard';
-import { AccountDisplayNameField } from '@/components/account/AccountDisplayNameField';
 import { AccountLegalLinks } from '@/components/account/AccountLegalLinks';
 import { AccountProfileHero } from '@/components/account/AccountProfileHero';
 import { AccountSignOutCard } from '@/components/account/AccountSignOutCard';
 import {
   ProfileDetailStack,
-  ProfileSummaryBanner,
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
@@ -21,11 +19,8 @@ import { useThemedStyles } from '@/theme';
 type AccountScreenContentProps = {
   user: User;
   displayName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
   accountTypeLabel: string;
   audience: 'clinic' | 'worker';
-  onProfileRefresh: () => Promise<unknown>;
   isSigningOut: boolean;
   onSignOut: () => void;
   isDeleting: boolean;
@@ -36,11 +31,8 @@ type AccountScreenContentProps = {
 export function AccountScreenContent({
   user,
   displayName,
-  firstName,
-  lastName,
   accountTypeLabel,
   audience,
-  onProfileRefresh,
   isSigningOut,
   onSignOut,
   isDeleting,
@@ -52,35 +44,17 @@ export function AccountScreenContent({
   const isClinic = audience === 'clinic';
 
   const styles = useThemedStyles(({ colors, typography }) => ({
-    intro: profileSettingsHintStyle({ typography, colors }),
     hint: profileSettingsHintStyle({ typography, colors }),
   }));
 
   return (
     <ProfileDetailStack>
-      <ProfileSummaryBanner icon="information-circle-outline" title="Account overview">
-        <Text style={styles.intro}>
-          Manage how you sign in, how your name appears, and what happens to your account data.
-        </Text>
-      </ProfileSummaryBanner>
-
       <AccountProfileHero
         displayName={displayName}
         email={user.email}
         accountTypeLabel={accountTypeLabel}
         icon={isClinic ? 'business-outline' : 'person-circle-outline'}
       />
-
-      <SectionPanel icon="person-outline" iconAccent="primary" title="Profile">
-        <AccountDisplayNameField
-          userId={user.id}
-          savedFirstName={firstName}
-          savedLastName={lastName}
-          savedDisplayName={displayName}
-          audience={isClinic ? 'clinic' : 'worker'}
-          onSaved={onProfileRefresh}
-        />
-      </SectionPanel>
 
       {showPasswordSection ? (
         <SectionPanel icon="lock-closed-outline" iconAccent="secondary" title="Security">

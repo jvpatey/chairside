@@ -1,6 +1,4 @@
-import {
-  type FillInNotificationMode,
-} from '@chairside/config';
+import { type FillInNotificationMode } from '@chairside/config';
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
@@ -12,7 +10,6 @@ export function useFillInAvailabilityToggle() {
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
   const [notificationMode, setNotificationMode] = useState<FillInNotificationMode>('off');
-  const [acceptsClinicOutreach, setAcceptsClinicOutreach] = useState(false);
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +17,6 @@ export function useFillInAvailabilityToggle() {
   useEffect(() => {
     if (!workerProfile) return;
     setShortNoticeAvailable(workerProfile.short_notice_available ?? false);
-    setAcceptsClinicOutreach(workerProfile.accepts_clinic_fill_in_outreach ?? false);
     setNotificationMode(
       (workerProfile.fill_in_notification_mode as FillInNotificationMode) ?? 'off',
     );
@@ -31,7 +27,6 @@ export function useFillInAvailabilityToggle() {
     available: boolean,
     mode: FillInNotificationMode,
     sms: boolean = smsOptIn,
-    outreach: boolean = acceptsClinicOutreach,
   ) => {
     setIsSaving(true);
     setError(null);
@@ -40,7 +35,7 @@ export function useFillInAvailabilityToggle() {
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
         fill_in_sms_opt_in: available && sms && Boolean(workerProfile?.phone?.trim()),
-        accepts_clinic_fill_in_outreach: available && outreach,
+        accepts_clinic_fill_in_outreach: available,
       });
       await refreshWorkerProfile();
     } catch (saveError) {
@@ -56,18 +51,17 @@ export function useFillInAvailabilityToggle() {
   const handleToggle = async (value: boolean) => {
     const mode =
       value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
+    const hasPhone = Boolean(workerProfile?.phone?.trim());
+    const smsWhenOn = value && (smsOptIn || hasPhone);
     setShortNoticeAvailable(value);
-    if (value) setNotificationMode(mode);
+    if (value) {
+      setNotificationMode(mode);
+      if (hasPhone) setSmsOptIn(true);
+    }
     if (!value) {
       setSmsOptIn(false);
-      setAcceptsClinicOutreach(false);
     }
-    await persist(
-      value,
-      value ? mode : 'off',
-      value ? smsOptIn : false,
-      value ? acceptsClinicOutreach : false,
-    );
+    await persist(value, value ? mode : 'off', smsWhenOn);
   };
 
   return {

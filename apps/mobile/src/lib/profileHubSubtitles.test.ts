@@ -12,122 +12,117 @@ vi.mock('@chairside/api', () => ({
 
 import {
   getAccountTypeLabel,
-  getClinicAboutSubtitle,
-  getClinicGroupDetailsSubtitle,
-  getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
-  getClinicMessagingSubtitle,
   getNotificationsSubtitle,
+  getOtherAlertsSubtitle,
+  getTextAlertsStatusLabel,
+  getTextAlertsStatusTone,
+  getTextAlertsSubtitle,
 } from '@/lib/profileHubSubtitles';
 
 describe('getAccountTypeLabel', () => {
   it('labels worker and clinic account types', () => {
-    expect(getAccountTypeLabel('worker')).toBe('Find work');
+    expect(getAccountTypeLabel('worker')).toBe('Worker');
     expect(getAccountTypeLabel('clinic')).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: false })).toBe('Clinic');
     expect(getAccountTypeLabel('clinic', { isGroup: true })).toBe('Clinic group');
   });
 });
 
-describe('getClinicMessagingSubtitle', () => {
-  it('distinguishes locked Free from off-by-choice', () => {
-    expect(getClinicMessagingSubtitle(null, { locked: true })).toBe('Upgrade for open inquiries');
+describe('getTextAlertsStatusLabel', () => {
+  it('returns short On / Off / Add phone without phone number', () => {
     expect(
-      getClinicMessagingSubtitle({ accepts_general_candidate_messages: true } as never),
-    ).toBe('Open to inquiries');
+      getTextAlertsStatusLabel({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('On');
     expect(
-      getClinicMessagingSubtitle({ accepts_general_candidate_messages: false } as never),
-    ).toBe('Not open to inquiries');
+      getTextAlertsStatusLabel({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('Add phone');
+    expect(
+      getTextAlertsStatusLabel({
+        short_notice_available: false,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
   });
 });
 
-describe('getClinicGroupDetailsSubtitle', () => {
-  it('shows missing copy when name and phone are empty', () => {
-    expect(getClinicGroupDetailsSubtitle({ clinic_name: '', phone: '' } as never)).toBe(
-      'Add group name and phone',
-    );
-  });
-
-  it('shows group name when only name is set', () => {
-    expect(getClinicGroupDetailsSubtitle({ clinic_name: 'Smile Group', phone: '' } as never)).toBe(
-      'Smile Group',
-    );
+describe('getTextAlertsStatusTone', () => {
+  it('maps status to on / needs_phone / off', () => {
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('on');
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('needs_phone');
+    expect(
+      getTextAlertsStatusTone({
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toBe('off');
   });
 });
 
-describe('getClinicLocationsSubtitle', () => {
-  it('flags incomplete location software', () => {
+describe('getTextAlertsSubtitle', () => {
+  it('shows off when fill-ins are off', () => {
     expect(
-      getClinicLocationsSubtitle({
-        isOwner: true,
-        locations: [
-          {
-            is_active: true,
-            name: 'Downtown',
-            address_line1: '1 Main St',
-            city: 'Halifax',
-            postal_code: 'B3H 1A1',
-            software_used: [],
-          },
-        ],
-      }),
-    ).toBe('Add software to Downtown');
+      getTextAlertsSubtitle({
+        short_notice_available: false,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
   });
 
-  it('shows location count when all locations are complete', () => {
+  it('shows on with phone when SMS is active', () => {
     expect(
-      getClinicLocationsSubtitle({
-        isOwner: true,
-        locations: [
-          {
-            is_active: true,
-            name: 'Downtown',
-            address_line1: '1 Main St',
-            city: 'Halifax',
-            postal_code: 'B3H 1A1',
-            software_used: ['Dentrix'],
-          },
-        ],
-      }),
-    ).toBe('1 location');
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toMatch(/^On ·/);
+  });
+
+  it('shows add phone and off states', () => {
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never),
+    ).toBe('Add phone');
+    expect(
+      getTextAlertsSubtitle({
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toBe('Off');
   });
 });
 
-describe('getClinicGroupProfileSubtitle', () => {
-  it('prompts for the full group profile when name is missing', () => {
-    expect(getClinicGroupProfileSubtitle({ clinic_name: '' } as never)).toBe(
-      'Add group name, story, and doctors',
-    );
-  });
-
-  it('combines name with about extras', () => {
-    expect(
-      getClinicGroupProfileSubtitle(
-        {
-          clinic_name: 'Smile Group',
-          description: 'Great team',
-          website: 'https://example.com',
-        } as never,
-        { doctorCount: 2 },
-      ),
-    ).toBe('Smile Group · description, website, 2 doctors');
-  });
-
-  it('flags missing story when only the name is set', () => {
-    expect(getClinicGroupProfileSubtitle({ clinic_name: 'Smile Group' } as never)).toBe(
-      'Smile Group · Add story and doctors',
-    );
-  });
-});
-
-describe('getClinicAboutSubtitle', () => {
-  it('mentions practice doctors for groups', () => {
-    expect(
-      getClinicAboutSubtitle(
-        { description: 'Great team', website: 'https://example.com' } as never,
-        { isGroup: true, doctorCount: 2 },
-      ),
-    ).toBe('Description, website, and 2 doctors');
+describe('getOtherAlertsSubtitle', () => {
+  it('keeps a quiet hub label', () => {
+    expect(getOtherAlertsSubtitle()).toBe('Push · fill-ins and roles');
   });
 });
 

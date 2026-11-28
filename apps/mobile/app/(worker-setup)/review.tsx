@@ -1,12 +1,10 @@
-import { completeWorkerSetup, getMissingWorkerProfileFields, getWorkerRoleTypes, joinDisplayName } from '@chairside/api';
 import {
-  formatWorkerEducation,
-  formatRoleTypesLabel,
-  getEmploymentTypeLabel,
-  getProvinceLabel,
-  getSpecialtyLabel,
-  getTravelRadiusRangeLabel,
-} from '@chairside/config';
+  completeWorkerSetup,
+  getMissingWorkerProfileFields,
+  getWorkerRoleTypes,
+  joinDisplayName,
+} from '@chairside/api';
+import { formatRoleTypesLabel, getProvinceLabel } from '@chairside/config';
 import { Redirect, router } from 'expo-router';
 import { WORKER_HOME_WELCOME } from '@/lib/routing';
 import { useState } from 'react';
@@ -26,6 +24,7 @@ import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useWorkerPhotoUri } from '@/hooks/useWorkerPhotoUri';
 import { getFillInAvailabilityCollapsedSummary } from '@/lib/fillInAvailabilitySummary';
+import { formatPhoneNumber } from '@/lib/phone';
 import { useThemedStyles } from '@/theme';
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -125,35 +124,16 @@ export default function WorkerReviewScreen() {
   if (!isWorkerProfileReady) return null;
 
   const displayName = joinDisplayName(profile?.first_name, profile?.last_name);
-  const address = [
-    workerProfile?.address_line1,
-    workerProfile?.address_line2,
-    workerProfile?.city,
-    workerProfile?.province ? getProvinceLabel(workerProfile.province) : null,
-    workerProfile?.postal_code,
-  ]
+  const place = [workerProfile?.city, workerProfile?.province ? getProvinceLabel(workerProfile.province) : null]
     .filter(Boolean)
     .join(', ');
-  const softwareLabel =
-    workerProfile?.software_used && workerProfile.software_used.length > 0
-      ? workerProfile.software_used.join(', ')
-      : '';
-  const practiceTypesLabel =
-    workerProfile?.practice_types && workerProfile.practice_types.length > 0
-      ? workerProfile.practice_types.map(getSpecialtyLabel).join(', ')
-      : '';
-  const employmentLabel =
-    workerProfile?.preferred_employment_types &&
-    workerProfile.preferred_employment_types.length > 0
-      ? workerProfile.preferred_employment_types.map(getEmploymentTypeLabel).join(', ')
-      : '';
   const fillInSummary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
 
   return (
     <FormScreen
       {...setupFormProps}
-      title="Review profile"
-      subtitle="Confirm your professional background before browsing roles."
+      title="You’re ready"
+      subtitle="Confirm the essentials for fill-in texts."
       onBack={() => router.back()}
       footer={
         <View style={styles.footer}>
@@ -185,34 +165,18 @@ export default function WorkerReviewScreen() {
           value={formatRoleTypesLabel(getWorkerRoleTypes(workerProfile))}
         />
         <ReviewRow
-          label="Experience"
-          value={
-            workerProfile?.years_of_experience != null
-              ? `${workerProfile.years_of_experience} years`
-              : ''
-          }
+          label="Mobile phone"
+          value={workerProfile?.phone ? formatPhoneNumber(workerProfile.phone) : ''}
         />
+        <ReviewRow label="City" value={place} />
         <ReviewRow
-          label="Education"
-          value={workerProfile ? formatWorkerEducation(workerProfile) : ''}
-        />
-        <ReviewRow label="Software" value={softwareLabel} />
-        <ReviewRow label="Practice types" value={practiceTypesLabel} />
-        <ReviewRow label="Preferred employment" value={employmentLabel} />
-        <ReviewRow label="Address" value={address} />
-        <ReviewRow
-          label="Travel distance"
-          value={getTravelRadiusRangeLabel(workerProfile?.travel_radius_range)}
-        />
-        <ReviewRow
-          label="Fill-ins"
+          label="Text alerts"
           value={
             workerProfile?.short_notice_available
               ? fillInSummary.primary
-              : 'Off · turn on anytime in Fill-ins'
+              : 'Off · turn on anytime in Text alerts'
           }
         />
-        <ReviewRow label="Bio" value={workerProfile?.bio ?? ''} />
       </SurfaceCard>
     </FormScreen>
   );

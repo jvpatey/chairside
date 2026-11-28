@@ -105,6 +105,7 @@ export default function RootLayout() {
                   <Stack.Screen name="terms" options={{ headerShown: false }} />
                   <Stack.Screen name="f/[id]" options={{ headerShown: false }} />
                   <Stack.Screen name="j/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="a/[id]" options={{ headerShown: false }} />
                   <Stack.Screen name="admin" options={{ headerShown: false }} />
                   </Stack>
                   </ToastProvider>

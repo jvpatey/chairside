@@ -11,7 +11,7 @@ import { getAccountTypeLabel } from '@/lib/profileHubSubtitles';
 import { navigateToClinicProfileHub } from '@/lib/routing';
 
 export default function ClinicProfileAccountScreen() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const { isGroup } = useClinicProfile();
   const { isSigningOut, signOut } = useSignOut();
   const { isDeleting, confirmDeleteAccount } = useDeleteAccount();
@@ -21,16 +21,13 @@ export default function ClinicProfileAccountScreen() {
   return (
     <ProfileDetailScreen
       title="Account"
-      subtitle="Manage your clinic login, name, privacy, and account access."
+      subtitle="Manage your clinic login, privacy, and account access."
       onBack={() => navigateToClinicProfileHub(router)}>
       <AccountScreenContent
         user={user}
         displayName={profile?.display_name}
-        firstName={profile?.first_name}
-        lastName={profile?.last_name}
         accountTypeLabel={getAccountTypeLabel('clinic', { isGroup })}
         audience="clinic"
-        onProfileRefresh={refreshProfile}
         isSigningOut={isSigningOut}
         onSignOut={signOut}
         isDeleting={isDeleting}

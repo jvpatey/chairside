@@ -10,18 +10,16 @@ import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import {
   areAllGetStartedItemsComplete,
-  isWorkerApplicationKitStarted,
   isWorkerFillInsStepComplete,
   isWorkerRolesStepComplete,
   type GetStartedChecklistItem,
 } from '@/lib/getStartedChecklist';
 import { type WorkerFillInEngagementProfile } from '@/lib/workerFillInGetStarted';
 import {
+  getWorkerFillInAvailabilityRoute,
   WORKER_BROWSE,
-  WORKER_FILLIN_AVAILABILITY,
   WORKER_FILLINS,
-  WORKER_SETUP_APPLICATION,
-  WORKER_SETUP_BASICS,
+  WORKER_FINISH_PROFILE,
 } from '@/lib/routing';
 
 type WorkerReadinessChecklistProps = {
@@ -49,58 +47,68 @@ export function WorkerReadinessChecklist({
     shiftApplicationCount,
     workerProfile: workerProfile as WorkerFillInEngagementProfile | undefined,
   });
-  const textsOn = getFillInSmsStatus(workerProfile).smsActive;
+  const smsStatus = getFillInSmsStatus(workerProfile);
+  const textsOn = smsStatus.smsActive;
+  const profileComplete = isWorkerProfileComplete(workerProfile);
+  const needsPhone = !workerProfile?.phone?.trim();
 
   const items = useMemo<GetStartedChecklistItem[]>(
     () => [
       {
         id: 'profile',
-        title: isWorkerProfileComplete(workerProfile)
-          ? 'Profile complete'
-          : 'Complete your profile to apply',
-        body: isWorkerProfileComplete(workerProfile)
-          ? 'Your role, experience, and location are set.'
-          : 'Clinics need your role, experience, and location before you can apply or receive fill-ins.',
-        complete: isWorkerProfileComplete(workerProfile),
-        primary: !isWorkerProfileComplete(workerProfile),
-        onPress: () => router.push(WORKER_SETUP_BASICS),
+        title: profileComplete
+          ? 'Profile ready'
+          : needsPhone
+            ? 'Add a mobile number for text alerts'
+            : 'Add role, phone, and city',
+        body: profileComplete
+          ? 'Enough to match you to nearby fill-ins.'
+          : needsPhone
+            ? 'Fill-in openings are sent by SMS — add your phone so you don’t miss them.'
+            : 'Role and city help show the right jobs; phone enables fill-in texts.',
+        complete: profileComplete,
+        primary: !profileComplete,
+        onPress: () => router.push(WORKER_FINISH_PROFILE),
       },
       {
-        id: 'application-kit',
-        title: isWorkerApplicationKitStarted(workerProfile)
-          ? 'Application profile added'
-          : 'Add your application profile',
-        body: isWorkerApplicationKitStarted(workerProfile)
-          ? 'Photo, resume, or note ready for clinics.'
-          : 'Add a photo, resume, and default note for polished applications.',
-        complete: isWorkerApplicationKitStarted(workerProfile),
-        onPress: () => router.push(WORKER_SETUP_APPLICATION),
+        id: 'fill-in-alerts',
+        title: fillInsComplete ? 'Text alerts on' : 'Turn on text alerts',
+        body: fillInsComplete
+          ? textsOn
+            ? 'You’ll get same-day fill-ins by text.'
+            : 'Fill-ins are on — turn on texts for faster alerts.'
+          : 'Hear about same-day shifts near you the moment clinics post them.',
+        complete: fillInsComplete,
+        primary: profileComplete && !fillInsComplete,
+        onPress: () =>
+          router.push(
+            fillInsComplete
+              ? WORKER_FILLINS
+              : needsPhone
+                ? WORKER_FINISH_PROFILE
+                : getWorkerFillInAvailabilityRoute('profile'),
+          ),
       },
       {
         id: 'browse-roles',
         title: rolesComplete ? 'Explored open roles' : 'Browse open roles',
         body: rolesComplete
           ? jobApplicationCount > 0
-            ? 'You have submitted at least one role application.'
-            : 'You have browsed open roles near you.'
-          : 'Find full-time and part-time positions near you.',
+            ? 'You’ve started a role conversation.'
+            : 'You’ve browsed roles near you.'
+          : 'Optional — see permanent openings when you want.',
         complete: rolesComplete,
         onPress: () => router.push(WORKER_BROWSE),
       },
-      {
-        id: 'fill-in-alerts',
-        title: fillInsComplete ? 'Fill-in alerts on' : 'Turn on fill-in alerts',
-        body: fillInsComplete
-          ? textsOn
-            ? 'You get same-day fill-ins by push and text.'
-            : 'You get same-day fill-in alerts. Add texts in Fill-ins for faster alerts.'
-          : 'Hear about same-day shifts near you the moment clinics post them.',
-        complete: fillInsComplete,
-        primary: isWorkerProfileComplete(workerProfile) && !fillInsComplete,
-        onPress: () => router.push(fillInsComplete ? WORKER_FILLINS : WORKER_FILLIN_AVAILABILITY),
-      },
     ],
-    [fillInsComplete, jobApplicationCount, rolesComplete, textsOn, workerProfile],
+    [
+      fillInsComplete,
+      jobApplicationCount,
+      needsPhone,
+      profileComplete,
+      rolesComplete,
+      textsOn,
+    ],
   );
 
   if (
@@ -114,7 +122,13 @@ export function WorkerReadinessChecklist({
 
   return (
     <GetStartedChecklistCard
-      subtitle="Finish these steps to get the most out of Chairside."
+      subtitle={
+        profileComplete
+          ? 'A few steps to get fill-in texts.'
+          : needsPhone
+            ? 'Fill-ins are alerted by SMS — add your mobile number when you’re ready.'
+            : 'Finish your profile when you’re ready — role, phone, and city on one form.'
+      }
       items={items}
       onDismiss={() => void dismiss()}
     />

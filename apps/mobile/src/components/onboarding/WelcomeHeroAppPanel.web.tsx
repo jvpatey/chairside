@@ -60,8 +60,8 @@ export function WelcomeHeroAppPanel({
       pointerEvents: 'none' as const,
       ...webOnlyStyle({
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(152, 150, 255, 0.32) 0%, transparent 70%)'
-          : 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(88, 86, 214, 0.22) 0%, transparent 70%)',
+          ? 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(74, 154, 255, 0.32) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(26, 111, 212, 0.22) 0%, transparent 70%)',
         filter: 'blur(28px)',
       } as object),
     },
@@ -81,7 +81,7 @@ export function WelcomeHeroAppPanel({
       ...webOnlyStyle({
         boxShadow: isDark
           ? '0 24px 48px rgba(0, 0, 0, 0.35)'
-          : '0 20px 40px rgba(88, 86, 214, 0.14)',
+          : '0 20px 40px rgba(26, 111, 212, 0.14)',
       } as object),
     },
     browser: {

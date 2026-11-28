@@ -1,12 +1,16 @@
-import { ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
+import { normalizePhoneForStorage, ROLE_TYPE_OPTIONS, type RoleType } from '@chairside/config';
 import {
+  authUserHasVerifiedPhone,
+  getAuthErrorMessage,
   getWorkerRoleTypes,
   joinDisplayName,
+  requestAuthPhoneBind,
   resolveAuthNameParts,
   updateProfileName,
+  verifyAuthPhoneBind,
 } from '@chairside/api';
 import { router } from 'expo-router';
-import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_EXPERIENCE } from '@/lib/routing';
+import { ONBOARDING_CHANGE_ROLE, WORKER_SETUP_LOCATION } from '@/lib/routing';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -29,6 +33,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
+import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
 import { validateWorkerBasicsStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -43,9 +48,12 @@ export default function WorkerBasicsScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [roleTypes, setRoleTypes] = useState<RoleType[]>([]);
+  const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [phoneBindE164, setPhoneBindE164] = useState<string | null>(null);
+  const [phoneBindCode, setPhoneBindCode] = useState('');
 
   const seededName = resolveAuthNameParts({
     firstName: profile?.first_name,
@@ -63,7 +71,7 @@ export default function WorkerBasicsScreen() {
     isEditMode,
   );
 
-  const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes });
+  const validation = validateWorkerBasicsStep({ firstName, lastName, roleTypes, phone });
 
   const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
@@ -82,6 +90,7 @@ export default function WorkerBasicsScreen() {
   useEffect(() => {
     if (!workerProfile) return;
     setRoleTypes(getWorkerRoleTypes(workerProfile));
+    setPhone(workerProfile.phone ? formatPhoneNumber(workerProfile.phone) : '');
   }, [workerProfile]);
 
   const handleContinue = async () => {
@@ -100,14 +109,49 @@ export default function WorkerBasicsScreen() {
         });
         await refreshProfile();
       }
-      await save({ role_types: roleTypes });
+      const normalizedPhone = normalizePhoneForStorage(phone);
+      if (user?.id && normalizedPhone && !authUserHasVerifiedPhone(user, normalizedPhone)) {
+        if (!phoneBindE164) {
+          const bind = await requestAuthPhoneBind(normalizedPhone);
+          if (bind.needsOtp) {
+            setPhoneBindE164(bind.e164);
+            setPhoneBindCode('');
+            setSubmitError(null);
+            return;
+          }
+        } else {
+          if (phoneBindCode.trim().length < 6) {
+            setSubmitError('Enter the 6-digit code we texted you.');
+            return;
+          }
+          await verifyAuthPhoneBind(user.id, phoneBindE164, phoneBindCode);
+          setPhoneBindE164(null);
+          setPhoneBindCode('');
+        }
+      }
+      await save({
+        role_types: roleTypes,
+        ...(normalizedPhone
+          ? {
+              phone: normalizedPhone,
+              // Setup: verified number turns fill-in texts on by default.
+              ...(!isEditMode
+                ? {
+                    fill_in_sms_opt_in: true,
+                    short_notice_available: true,
+                    fill_in_notification_mode: 'all' as const,
+                  }
+                : {}),
+            }
+          : {}),
+      });
       if (isEditMode) {
         router.replace(exitHref);
       } else {
-        router.push(WORKER_SETUP_EXPERIENCE);
+        router.push(WORKER_SETUP_LOCATION);
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
+      setSubmitError(getAuthErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -118,8 +162,8 @@ export default function WorkerBasicsScreen() {
   return (
     <FormScreen
       {...setupFormProps}
-      title="Professional background · Basics"
-      subtitle="Add a photo, your name, and the roles you are qualified for."
+      title="Basics"
+      subtitle="Your name, roles, and mobile number so clinics can reach you for fill-ins."
       backLabel={isEditMode ? undefined : 'Back'}
       onBack={() =>
         isEditMode ? router.replace(exitHref) : router.replace(ONBOARDING_CHANGE_ROLE)
@@ -131,7 +175,13 @@ export default function WorkerBasicsScreen() {
           showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
-          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          continueLabel={
+            phoneBindE164
+              ? 'Verify and continue'
+              : isEditMode
+                ? 'Save changes'
+                : 'Continue'
+          }
           onContinue={handleContinue}
         />
       }>
@@ -184,6 +234,40 @@ export default function WorkerBasicsScreen() {
             multiple
             onChange={(value) => setRoleTypes(value as RoleType[])}
           />
+        </SectionPanel>
+
+        <SectionPanel icon="call-outline" iconAccent="secondary" title="Mobile phone">
+          <Text style={styles.hint}>
+            Used for fill-in text alerts and phone sign-in. Texts turn on by default — you can turn
+            them off anytime.
+          </Text>
+          <AuthField
+            label="Mobile phone"
+            placeholder={PHONE_NUMBER_PLACEHOLDER}
+            value={phone}
+            onChangeText={(text) => {
+              setPhone(formatPhoneNumber(text));
+              setPhoneBindE164(null);
+              setPhoneBindCode('');
+            }}
+            keyboardType="phone-pad"
+            icon="call-outline"
+            required
+            invalid={showValidation && !normalizePhoneForStorage(phone)}
+            validated={Boolean(normalizePhoneForStorage(phone))}
+            accent="secondary"
+          />
+          {phoneBindE164 ? (
+            <AuthField
+              label="Verification code"
+              placeholder="6-digit code"
+              value={phoneBindCode}
+              onChangeText={setPhoneBindCode}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              accent="secondary"
+            />
+          ) : null}
         </SectionPanel>
       </ProfileDetailStack>
     </FormScreen>

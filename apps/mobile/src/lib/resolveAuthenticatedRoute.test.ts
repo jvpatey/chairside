@@ -33,7 +33,7 @@ describe('resolveAuthenticatedRoute', () => {
     vi.clearAllMocks();
   });
 
-  it('sends incomplete clinic accounts to setup basics', async () => {
+  it('sends incomplete clinic accounts to clinic tabs (soft gate)', async () => {
     apiMocks.resolveAuthProfile.mockResolvedValue({ id: 'user-1', role: 'clinic' });
     apiMocks.getClinicProfile.mockResolvedValue({
       id: 'user-1',
@@ -48,7 +48,7 @@ describe('resolveAuthenticatedRoute', () => {
     });
 
     expect(result).toEqual({
-      href: '/(clinic-setup)/basics',
+      href: '/(clinic-tabs)',
       role: 'clinic',
     });
     expect(refreshProfile).toHaveBeenCalled();
@@ -73,13 +73,9 @@ describe('resolveAuthenticatedRoute', () => {
     });
   });
 
-  it('sends incomplete worker accounts to setup basics', async () => {
+
+  it('sends incomplete worker accounts to the worker home tabs', async () => {
     apiMocks.resolveAuthProfile.mockResolvedValue({ id: 'user-2', role: 'worker' });
-    apiMocks.getWorkerProfile.mockResolvedValue({
-      id: 'user-2',
-      role_types: [],
-      setup_completed_at: null,
-    });
 
     const result = await resolveAuthenticatedRoute({
       userId: 'user-2',
@@ -88,7 +84,7 @@ describe('resolveAuthenticatedRoute', () => {
     });
 
     expect(result).toEqual({
-      href: '/(worker-setup)/basics',
+      href: '/(tabs)',
       role: 'worker',
     });
   });

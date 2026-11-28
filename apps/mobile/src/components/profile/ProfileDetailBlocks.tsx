@@ -176,7 +176,7 @@ export function SectionPanel({
   children: ReactNode;
 }) {
   const styles = useThemedStyles(({ spacing }) => ({
-    body: { gap: spacing.xs },
+    body: { gap: spacing.md },
   }));
 
   return (
@@ -205,7 +205,7 @@ export function FieldBlock({
 }) {
   const styles = useThemedStyles(({ spacing, colors, typography }) => ({
     field: {
-      gap: spacing.xs,
+      gap: spacing.sm,
       paddingVertical: spacing.sm,
     },
     label: {

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConfettiBurst } from '@/components/celebration/ConfettiBurst';
 import { DashboardWelcomeCelebrationContent } from '@/components/celebration/DashboardWelcomeCelebrationContent';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import type { DashboardWelcomeRole } from '@/lib/dashboardWelcomeCopy';
 import { useThemedStyles } from '@/theme';
@@ -69,14 +69,14 @@ export function DashboardWelcomeCelebration({
         {visible ? (
           <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
             <Pressable onPress={(event) => event.stopPropagation()}>
-              <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+              <SheetSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
                 <DashboardWelcomeCelebrationContent
                   role={role}
                   isGroup={isGroup}
                   onDismiss={onDismiss}
                 />
-              </LiquidGlassSurface>
+              </SheetSurface>
             </Pressable>
           </Animated.View>
         ) : null}

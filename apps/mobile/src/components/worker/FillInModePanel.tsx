@@ -1,45 +1,49 @@
 import {
-  FILL_IN_NOTIFICATION_MODE_OPTIONS,
-  normalizePhoneForStorage,
-  type FillInNotificationMode,
-} from '@chairside/config';
+  authUserHasVerifiedPhone,
+  clearAuthPhoneBind,
+  getAuthErrorMessage,
+  requestAuthPhoneBind,
+  verifyAuthPhoneBind,
+} from '@chairside/api';
+import { normalizePhoneForStorage, type FillInNotificationMode } from '@chairside/config';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { FadeSwap } from '@/components/ui/FadeSwap';
-import { SettingsRadioRow } from '@/components/ui/SettingsRadioRow';
 import { SettingsToggleRow } from '@/components/ui/SettingsToggleRow';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
+import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import {
   getFillInTextAlertsHint,
   getFillInTextAlertsState,
   isFillInTextAlertsSwitchOn,
 } from '@/lib/fillInTextAlerts';
 import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
-import { webPointer } from '@/lib/webPressableStyles';
-import { radii, spacing, useTheme, useThemedStyles } from '@/theme';
+import { webHover, webPointer } from '@/lib/webPressableStyles';
+import { fontSemibold, radii, spacing, useTheme, useThemedStyles } from '@/theme';
 
 type FillInModePanelProps = {
   showNotificationOptions?: boolean;
   hidePrimaryToggle?: boolean;
   variant?: 'card' | 'grouped';
+  /**
+   * textAlerts — single Text alerts hero + phone (settings hub).
+   * default — available toggle + SMS (onboarding).
+   */
+  layout?: 'default' | 'textAlerts';
 };
 
 type PersistParams = {
   available: boolean;
   mode: FillInNotificationMode;
   sms: boolean;
-  outreach: boolean;
   /** Normalized phone to save alongside the change. */
   phone?: string;
 };
-
-const NOTIFICATION_MODE_OPTIONS = FILL_IN_NOTIFICATION_MODE_OPTIONS.filter(
-  (option) => option.value !== 'off',
-);
 
 function SettingsSection({
   title,
@@ -107,12 +111,13 @@ export function FillInModePanel({
   showNotificationOptions = true,
   hidePrimaryToggle = false,
   variant = 'card',
+  layout = 'default',
 }: FillInModePanelProps) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
   const { save } = useWorkerSetupSave();
   const [shortNoticeAvailable, setShortNoticeAvailable] = useState(false);
-  const [acceptsClinicOutreach, setAcceptsClinicOutreach] = useState(false);
   const [notificationMode, setNotificationMode] = useState<FillInNotificationMode>('off');
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [phone, setPhone] = useState('');
@@ -121,6 +126,8 @@ export function FillInModePanel({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [phoneBindE164, setPhoneBindE164] = useState<string | null>(null);
+  const [phoneBindCode, setPhoneBindCode] = useState('');
   const isGrouped = variant === 'grouped';
   const useNestedSections = !isGrouped;
 
@@ -152,15 +159,53 @@ export function FillInModePanel({
       fontWeight: '600',
       color: colors.destructive,
     },
-    linkRow: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xs,
+    phoneSummary: {
+      gap: 4,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xs,
+    },
+    phoneSummaryTop: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: spacing.sm,
+    },
+    phoneSummaryLabel: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.labelTertiary,
+    },
+    phoneSummaryValue: {
+      fontSize: 17,
+      lineHeight: 22,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+      letterSpacing: -0.2,
+    },
+    phoneActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.md,
+    },
+    changeLink: {
       ...webPointer(),
     },
-    linkText: {
+    changeLinkText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.secondary,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    removeLinkText: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.destructive,
     },
     cancelLink: {
       alignSelf: 'center',
@@ -177,11 +222,6 @@ export function FillInModePanel({
       backgroundColor: colors.separator,
       opacity: 0.7,
     },
-    radioDivider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      opacity: 0.7,
-    },
     saveError: {
       fontSize: 13,
       lineHeight: 18,
@@ -194,7 +234,6 @@ export function FillInModePanel({
   useEffect(() => {
     if (!workerProfile) return;
     setShortNoticeAvailable(workerProfile.short_notice_available ?? false);
-    setAcceptsClinicOutreach(workerProfile.accepts_clinic_fill_in_outreach ?? false);
     setNotificationMode(
       (workerProfile.fill_in_notification_mode as FillInNotificationMode) ?? 'off',
     );
@@ -218,9 +257,11 @@ export function FillInModePanel({
     setIsChangingNumber(false);
     setPhone('');
     setPhoneError(null);
+    setPhoneBindE164(null);
+    setPhoneBindCode('');
   };
 
-  const persist = async ({ available, mode, sms, outreach, phone: phoneToSave }: PersistParams) => {
+  const persist = async ({ available, mode, sms, phone: phoneToSave }: PersistParams) => {
     // SMS requires a saved number: the one being saved now, or the one already on file.
     const phoneForSms = phoneToSave ?? savedPhone;
     setIsSaving(true);
@@ -230,7 +271,8 @@ export function FillInModePanel({
         short_notice_available: available,
         fill_in_notification_mode: available ? mode : 'off',
         fill_in_sms_opt_in: available && sms && Boolean(phoneForSms),
-        accepts_clinic_fill_in_outreach: available && outreach,
+        // Outreach stays on with fill-ins — no separate toggle in the SMS-first UI.
+        accepts_clinic_fill_in_outreach: available,
         ...(phoneToSave ? { phone: phoneToSave } : {}),
       });
       await refreshWorkerProfile();
@@ -247,39 +289,46 @@ export function FillInModePanel({
     available: shortNoticeAvailable,
     mode: notificationMode,
     sms: smsOptIn,
-    outreach: acceptsClinicOutreach,
   });
 
   const handleToggle = async (value: boolean) => {
-    const mode =
-      value && notificationMode === 'off' ? ('all' as FillInNotificationMode) : notificationMode;
+    // Outreach-first: text alerts always use province-wide matching (`all`), not schedule days.
+    const mode: FillInNotificationMode =
+      layout === 'textAlerts'
+        ? value
+          ? 'all'
+          : 'off'
+        : value && notificationMode === 'off'
+          ? 'all'
+          : notificationMode;
+    const smsWhenOn = value && (smsOptIn || hasPhone);
     setShortNoticeAvailable(value);
-    if (value) setNotificationMode(mode);
+    if (value) {
+      setNotificationMode(mode === 'off' ? 'all' : mode);
+      if (hasPhone) {
+        setSmsOptIn(true);
+      } else if (layout === 'textAlerts') {
+        setIsFinishingTexts(true);
+      }
+    }
     if (!value) {
       setSmsOptIn(false);
-      setAcceptsClinicOutreach(false);
       closePhoneEntry();
+    }
+    // Without a phone, wait for Save number before persisting SMS on.
+    if (value && !hasPhone && layout === 'textAlerts') {
+      await persist({
+        available: true,
+        mode: 'all',
+        sms: false,
+      });
+      return;
     }
     await persist({
       available: value,
-      mode: value ? mode : 'off',
-      sms: value ? smsOptIn : false,
-      outreach: value ? acceptsClinicOutreach : false,
+      mode: value ? (mode === 'off' ? 'all' : mode) : 'off',
+      sms: smsWhenOn,
     });
-  };
-
-  const handleOutreachToggle = async (value: boolean) => {
-    setAcceptsClinicOutreach(value);
-    if (shortNoticeAvailable) {
-      await persist({ ...currentSettings(), outreach: value });
-    }
-  };
-
-  const handleModeChange = async (mode: FillInNotificationMode) => {
-    setNotificationMode(mode);
-    if (shortNoticeAvailable) {
-      await persist({ ...currentSettings(), mode });
-    }
   };
 
   const handleSmsToggle = async (value: boolean) => {
@@ -310,11 +359,46 @@ export function FillInModePanel({
       return;
     }
     setPhoneError(null);
+    setSaveError(null);
+
+    try {
+      if (user?.id && !authUserHasVerifiedPhone(user, pendingPhone)) {
+        if (!phoneBindE164) {
+          const bind = await requestAuthPhoneBind(pendingPhone);
+          if (bind.needsOtp) {
+            setPhoneBindE164(bind.e164);
+            setPhoneBindCode('');
+            return;
+          }
+        } else {
+          if (phoneBindCode.trim().length < 6) {
+            setPhoneError('Enter the 6-digit code we texted you.');
+            return;
+          }
+          await verifyAuthPhoneBind(user.id, phoneBindE164, phoneBindCode);
+          setPhoneBindE164(null);
+          setPhoneBindCode('');
+        }
+      }
+    } catch (error) {
+      setPhoneError(getAuthErrorMessage(error));
+      return;
+    }
 
     if (textState === 'finishing') {
-      const ok = await persist({ ...currentSettings(), sms: true, phone: pendingPhone });
+      const ok = await persist({
+        ...currentSettings(),
+        available: true,
+        mode: layout === 'textAlerts' ? 'all' : currentSettings().mode,
+        sms: true,
+        phone: pendingPhone,
+      });
       if (ok) {
         setSmsOptIn(true);
+        setShortNoticeAvailable(true);
+        if (layout === 'textAlerts') {
+          setNotificationMode('all');
+        }
         closePhoneEntry();
       }
       return;
@@ -324,6 +408,48 @@ export function FillInModePanel({
     if (ok) closePhoneEntry();
   };
 
+  const startChangingNumber = () => {
+    setPhone(savedPhone ? formatPhoneNumber(savedPhone) : '');
+    setPhoneError(null);
+    setIsChangingNumber(true);
+  };
+
+  const runRemovePhone = async () => {
+    if (!user?.id) return;
+    setIsSaving(true);
+    setPhoneError(null);
+    setSaveError(null);
+    try {
+      await clearAuthPhoneBind(user.id);
+      setPhone('');
+      setPhoneBindE164(null);
+      setPhoneBindCode('');
+      setSmsOptIn(false);
+      setIsChangingNumber(false);
+      // Keep the add-number form open so the section doesn’t go blank.
+      setIsFinishingTexts(true);
+      await refreshWorkerProfile();
+    } catch (error) {
+      setPhoneError(getAuthErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemovePhone = () => {
+    if (isSaving || !user?.id) return;
+    showConfirmActionSheet({
+      title: 'Remove mobile number?',
+      message:
+        'Text alerts and phone sign-in will stop until you add and verify a number again.',
+      confirmLabel: 'Remove number',
+      destructive: true,
+      onConfirm: () => {
+        void runRemovePhone();
+      },
+    });
+  };
+
   const phoneEntry = phoneEntryOpen ? (
     <View style={styles.phoneBlock}>
       <AuthField
@@ -331,6 +457,8 @@ export function FillInModePanel({
         value={phone}
         onChangeText={(text) => {
           setPhone(formatPhoneNumber(text));
+          setPhoneBindE164(null);
+          setPhoneBindCode('');
           if (phoneError) setPhoneError(null);
         }}
         keyboardType="phone-pad"
@@ -338,20 +466,32 @@ export function FillInModePanel({
         editable={!isSaving}
         invalid={Boolean(phoneError)}
         validated={Boolean(pendingPhone)}
-        accent="secondary"
+        accent="primary"
       />
+      {phoneBindE164 ? (
+        <AuthField
+          label="Verification code"
+          value={phoneBindCode}
+          onChangeText={setPhoneBindCode}
+          keyboardType="number-pad"
+          placeholder="6-digit code"
+          editable={!isSaving}
+          autoComplete="one-time-code"
+          accent="primary"
+        />
+      ) : null}
       {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
       <OnboardingButton
         label={
-          textState === 'finishing'
-            ? isSaving
-              ? 'Turning on…'
-              : 'Turn on text alerts'
-            : isSaving
-              ? 'Saving…'
-              : 'Save new number'
+          isSaving
+            ? 'Saving…'
+            : phoneBindE164
+              ? 'Verify and save'
+              : user?.id && pendingPhone && !authUserHasVerifiedPhone(user, pendingPhone)
+                ? 'Send code'
+                : 'Save number'
         }
-        accent="secondary"
+        accent="primary"
         disabled={isSaving || !pendingPhone}
         onPress={() => void handleSubmitPhone()}
       />
@@ -360,91 +500,93 @@ export function FillInModePanel({
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       ) : null}
-      <Text style={styles.helper}>
-        Message and data rates may apply. You can turn texts off anytime.
-      </Text>
+      <Text style={styles.helper}>Message and data rates may apply.</Text>
     </View>
   ) : hasPhone ? (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        setPhone('');
-        setPhoneError(null);
-        setIsChangingNumber(true);
-      }}
-      style={styles.linkRow}>
-      <Text style={styles.linkText}>Change number</Text>
-    </Pressable>
+    <View style={styles.phoneSummary}>
+      <View style={styles.phoneSummaryTop}>
+        <Text style={styles.phoneSummaryLabel}>Mobile</Text>
+        <View style={styles.phoneActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change mobile number"
+            disabled={isSaving}
+            onPress={startChangingNumber}
+            style={({ pressed, hovered }) => [
+              styles.changeLink,
+              webHover(hovered, pressed, { opacity: 0.85 }),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.changeLinkText}>Change</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove mobile number"
+            disabled={isSaving}
+            onPress={handleRemovePhone}
+            style={({ pressed, hovered }) => [
+              styles.changeLink,
+              webHover(hovered, pressed, { opacity: 0.85 }),
+              pressed && { opacity: 0.75 },
+            ]}>
+            <Text style={styles.removeLinkText}>Remove</Text>
+          </Pressable>
+        </View>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Mobile number ${formatPhoneNumber(savedPhone!)}. Double tap to change.`}
+        onPress={startChangingNumber}
+        style={({ pressed, hovered }) => [
+          webHover(hovered, pressed, { opacity: 0.9 }),
+          pressed && { opacity: 0.8 },
+        ]}>
+        <Text style={styles.phoneSummaryValue}>{formatPhoneNumber(savedPhone!)}</Text>
+      </Pressable>
+    </View>
   ) : null;
 
-  const textAlertsSection = showExpandedSettings ? (
-    <>
-      {hidePrimaryToggle ? null : <View style={styles.sectionDivider} />}
-      <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
-        <SettingsToggleRow
-          prominence="primary"
-          title="Text me for fill-ins"
-          hint={getFillInTextAlertsHint(textState, savedPhone)}
-          value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
-          disabled={isSaving}
-          bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.secondary}
-          onValueChange={(value) => void handleSmsToggle(value)}
-        />
+  const textAlertsSection =
+    showExpandedSettings && layout === 'default' ? (
+      <>
+        {hidePrimaryToggle ? null : <View style={styles.sectionDivider} />}
+        <SettingsSection title="Text alerts" nested={useNestedSections} embedded={isGrouped}>
+          <SettingsToggleRow
+            prominence="primary"
+            title="Fill-in text alerts"
+            hint={getFillInTextAlertsHint(textState, savedPhone)}
+            value={isFillInTextAlertsSwitchOn(textState, smsOptIn)}
+            disabled={isSaving}
+            bleedPadding={useNestedSections ? spacing.md : undefined}
+            accentColor={colors.primary}
+            onValueChange={(value) => void handleSmsToggle(value)}
+          />
+          <FadeSwap swapKey={phoneEntryOpen ? 'entry' : 'summary'} durationMs={220}>
+            {phoneEntry}
+          </FadeSwap>
+        </SettingsSection>
+      </>
+    ) : null;
+
+  const textAlertsPhoneOnly =
+    layout === 'textAlerts' && shortNoticeAvailable ? (
+      <SettingsSection nested={useNestedSections} embedded={isGrouped}>
+        <Text style={styles.helper}>{getFillInTextAlertsHint(textState, savedPhone)}</Text>
         <FadeSwap swapKey={phoneEntryOpen ? 'entry' : 'summary'} durationMs={220}>
           {phoneEntry}
         </FadeSwap>
       </SettingsSection>
-    </>
-  ) : null;
+    ) : null;
 
-  const clinicOutreachSection = showExpandedSettings ? (
-    <>
-      <View style={styles.sectionDivider} />
-      <SettingsSection nested={useNestedSections} embedded={isGrouped}>
-        <SettingsToggleRow
-          title="Let clinics reach out"
-          hint="Clinics in your province can find you and message you about fill-ins."
-          value={acceptsClinicOutreach}
-          disabled={isSaving}
-          bleedPadding={useNestedSections ? spacing.md : undefined}
-          accentColor={colors.secondary}
-          onValueChange={(value) => void handleOutreachToggle(value)}
-        />
-      </SettingsSection>
-    </>
-  ) : null;
-
-  const postedFillInAlertsSection = showExpandedSettings ? (
-    <>
-      <View style={styles.sectionDivider} />
-      <SettingsSection title="Posted fill-in alerts" nested={useNestedSections} embedded={isGrouped}>
-        {NOTIFICATION_MODE_OPTIONS.map((option, index) => {
-          const selected = notificationMode === option.value;
-          return (
-            <View key={option.value}>
-              <SettingsRadioRow
-                label={option.label}
-                hint={
-                  option.value === 'available_days_only'
-                    ? 'When the shift matches your schedule.'
-                    : undefined
-                }
-                selected={selected}
-                disabled={isSaving}
-                bleedPadding={useNestedSections ? spacing.md : undefined}
-                accent="secondary"
-                onPress={() => void handleModeChange(option.value)}
-              />
-              {index < NOTIFICATION_MODE_OPTIONS.length - 1 ? (
-                <View style={styles.radioDivider} />
-              ) : null}
-            </View>
-          );
-        })}
-      </SettingsSection>
-    </>
-  ) : null;
+  const primaryTitle = layout === 'textAlerts' ? 'Text alerts' : 'Available for fill-ins';
+  const primaryHint =
+    layout === 'textAlerts'
+      ? shortNoticeAvailable
+        ? 'We’ll text you when a fill-in opens nearby.'
+        : 'Turn on to get fill-in opportunities by text.'
+      : shortNoticeAvailable
+        ? 'You appear open to short-notice fill-in opportunities.'
+        : 'Turn on when you can cover urgent shifts.';
 
   return (
     <View style={isGrouped ? styles.grouped : styles.card}>
@@ -452,27 +594,24 @@ export function FillInModePanel({
         <View style={styles.primarySection}>
           <SettingsToggleRow
             prominence="primary"
-            title="Available for fill-ins"
-            hint={
-              shortNoticeAvailable
-                ? 'You appear open to short-notice fill-in opportunities.'
-                : 'Turn on when you can cover urgent shifts.'
-            }
+            title={primaryTitle}
+            hint={primaryHint}
             value={shortNoticeAvailable}
             disabled={isSaving}
-            accentColor={colors.secondary}
+            accentColor={colors.primary}
             bleedPadding={isGrouped ? undefined : spacing.md}
             onValueChange={(value) => void handleToggle(value)}
           />
         </View>
       )}
-      <FadeSwap
-        swapKey={showExpandedSettings ? 'expanded' : 'collapsed'}
-        style={isGrouped ? styles.grouped : undefined}>
-        {textAlertsSection}
-        {clinicOutreachSection}
-        {postedFillInAlertsSection}
-      </FadeSwap>
+      {layout === 'textAlerts' ? textAlertsPhoneOnly : null}
+      {layout === 'default' ? (
+        <FadeSwap
+          swapKey={showExpandedSettings ? 'expanded' : 'collapsed'}
+          style={isGrouped ? styles.grouped : undefined}>
+          {textAlertsSection}
+        </FadeSwap>
+      ) : null}
       {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
     </View>
   );

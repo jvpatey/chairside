@@ -1,8 +1,5 @@
 import {
-  getClinicProfile,
-  getClinicProfileByOrganizationId,
   getClinicWorkspace,
-  getWorkerProfile,
   isClinicGroupsEnabled,
   resolveAuthProfile,
   type Profile,
@@ -10,15 +7,14 @@ import {
 } from '@chairside/api';
 import type { Href } from 'expo-router';
 
-import {
-  CLINIC_SETUP_ACCOUNT_TYPE,
-  CLINIC_SETUP_BASICS,
-  getHomeRouteForRole,
-  WORKER_SETUP_BASICS,
-} from '@/lib/routing';
-import { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+import { getHomeRouteForRole } from '@/lib/routing';
 
-export { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+export {
+  canAccessClinicTabs,
+  canAccessWorkerTabs,
+  isClinicSetupComplete,
+  isWorkerSetupComplete,
+} from '@/lib/setupCompletion';
 
 type ResolveAuthenticatedRouteInput = {
   userId: string;
@@ -33,37 +29,16 @@ type ResolveAuthenticatedRouteResult = {
 
 async function resolveHomeRouteForRole(userId: string, role: UserRole): Promise<Href> {
   if (role === 'clinic') {
+    // Soft tabs: incomplete clinics land in the app; capture + post gates handle gaps.
     if (isClinicGroupsEnabled()) {
       const workspace = await getClinicWorkspace(userId);
-      if (workspace) {
-        const clinicProfile = await getClinicProfileByOrganizationId(workspace.organization.id);
-        if (workspace.membership.role === 'manager') {
-          return getHomeRouteForRole('clinic');
-        }
-        if (!isClinicSetupComplete(clinicProfile)) {
-          if (!clinicProfile?.account_type) {
-            return CLINIC_SETUP_ACCOUNT_TYPE;
-          }
-          return CLINIC_SETUP_BASICS;
-        }
+      if (workspace?.membership.role === 'manager') {
         return getHomeRouteForRole('clinic');
       }
-    }
-
-    const clinicProfile = await getClinicProfile(userId);
-    if (!isClinicSetupComplete(clinicProfile)) {
-      if (isClinicGroupsEnabled() && !clinicProfile) {
-        return CLINIC_SETUP_ACCOUNT_TYPE;
-      }
-      return CLINIC_SETUP_BASICS;
     }
     return getHomeRouteForRole('clinic');
   }
 
-  const workerProfile = await getWorkerProfile(userId);
-  if (!isWorkerSetupComplete(workerProfile)) {
-    return WORKER_SETUP_BASICS;
-  }
   return getHomeRouteForRole('worker');
 }
 

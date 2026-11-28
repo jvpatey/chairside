@@ -27,8 +27,8 @@ const ACCENT_HOVER_SHADOW: Record<GradientAccent, { dark: string; light: string 
     light: '0 4px 12px rgba(26, 111, 212, 0.28)',
   },
   secondary: {
-    dark: '0 6px 16px rgba(88, 86, 214, 0.28)',
-    light: '0 4px 12px rgba(88, 86, 214, 0.28)',
+    dark: '0 6px 16px rgba(74, 154, 255, 0.28)',
+    light: '0 4px 12px rgba(26, 111, 212, 0.28)',
   },
   tertiary: {
     dark: '0 6px 16px rgba(52, 211, 153, 0.28)',

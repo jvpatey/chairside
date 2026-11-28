@@ -15,7 +15,7 @@ import { FormScreen } from '@/components/ui/FormScreen';
 import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { resolvePostingAttributionLabels } from '@/hooks/useClinicActingContext';
+import { resolvePostedOnLabel } from '@/hooks/useClinicActingContext';
 import { resolveClinicJobLocationLabel } from '@/lib/clinicPostingListDisplay';
 import { getClinicShiftApplicantsRoute, getEditShiftRoute, navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
 import { useThemedStyles, type GradientAccent } from '@/theme';
@@ -106,11 +106,7 @@ export default function ShiftDetailScreen() {
   const locationLabel = isGroup
     ? resolveClinicJobLocationLabel(shift, locations, clinicProfile)
     : null;
-  const { postedByLabel, postedOnLabel } = resolvePostingAttributionLabels({
-    postedAt: shift.created_at,
-    postedByDisplayName: shift.posted_by_display_name,
-    postedByTitle: shift.posted_by_title,
-  });
+  const postedOnLabel = resolvePostedOnLabel(shift.created_at);
 
   return (
     <FormScreen
@@ -156,7 +152,6 @@ export default function ShiftDetailScreen() {
           shift={shift}
           accent={FILL_IN_ACCENT}
           locationLabel={locationLabel || null}
-          postedByLabel={postedByLabel}
           postedOnLabel={postedOnLabel}
           viewCount={viewCount}
           applicantCount={applicationCount}

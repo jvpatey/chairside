@@ -219,4 +219,10 @@ describe('getAuthErrorMessage', () => {
       'Please confirm your email before signing in.',
     );
   });
+
+  it('does not mislabel Signups not allowed for otp as an expired code', () => {
+    expect(getAuthErrorMessage(new Error('Signups not allowed for otp'))).toBe(
+      'No account uses this number for sign-in yet. Sign in with email, open Profile, and verify your mobile — then phone sign-in will work.',
+    );
+  });
 });

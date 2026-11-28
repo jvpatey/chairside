@@ -310,7 +310,7 @@ export function MobileTabDock({ state, descriptors, navigation, insets, role }: 
         };
 
         const onLongPress = () => {
-          navigation.emit({
+          navigation?.emit?.({
             type: 'tabLongPress',
             target: route.key,
           });

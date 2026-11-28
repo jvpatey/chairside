@@ -11,12 +11,15 @@ Chairside notification channels:
 
 Pingram is **not** used for in-app or mobile push.
 
+Auth OTP SMS (sign-up / sign-in codes) **is** Pingram, but via the Supabase **Send SMS** Auth hook (`send-auth-sms`), not the `notify` function. See [AUTH.md](./AUTH.md).
+
 ## Pingram dashboard setup (email + SMS only)
 
 1. Create a Pingram environment (Canada region recommended).
-2. Create notification types used for **SMS / email**:
+2. Create notification types used for **SMS / email** (or run `./scripts/setup-pingram-notification-types.sh`):
    - `fill_in_posted` (SMS template + opt-out text)
    - `fill_in_outreach_sms` (SMS-only outreach text alerts)
+   - `auth_otp` (phone sign-in / sign-up OTP — Auth Send SMS hook; see [AUTH.md](./AUTH.md))
    - `clinic_manager_invitation` (email)
    - `support_contact` (Support form email — see [SUPPORT_CONTACT.md](./SUPPORT_CONTACT.md))
 3. Copy **Secret API key** → Supabase Edge Function secret `PINGRAM_API_KEY`.
@@ -31,22 +34,45 @@ Pingram is **not** used for in-app or mobile push.
 
 SMS copy is built in [`supabase/functions/_shared/sms.ts`](../supabase/functions/_shared/sms.ts). By default it stays within **one 160-character GSM-7 segment** (Pingram bills per segment; Canada is US$0.015/segment and the free tier is about 60 Canadian segments a month). When a public listing URL is included, the builder may use **up to two segments** (320 GSM-7 chars) so the link is never dropped. A single non-GSM character (en dash, curly quote, accented letter, emoji) switches the whole text to Unicode at 70 characters per segment, so every SMS goes through `toGsmSafeSms` and the fill-in copy drops the location, then the compensation, then shortens the clinic name until it fits. Run the tests with `cd supabase/functions && deno test _shared/sms.test.ts`.
 
-Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). The posting clinic must be on a paid plan (`starter`, `pro`, `group_starter`, or `group_pro` — `clinic_can_use_feature(..., 'fill_in_sms')`). Sourced fill-ins bypass the clinic plan gate. The worker must have `fill_in_sms_opt_in=true`, a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift. Free clinics still get in-app + push alerts; SMS is skipped.
+Fill-in SMS is sent via Pingram `POST /sms` (not the multi-channel `/send` API). **`fill_in_sms` is ungated** while plans are revamped (client billing + `clinic_can_use_feature` + notify all allow it). The worker must have `fill_in_sms_opt_in=true` (auto-enabled when a phone is saved), a normalizable phone, `short_notice_available`, a non-`off` fill-in mode, completed setup, and a role match for the shift.
+
+**Product model:** SMS-first fill-ins with a thin companion app (not a browse marketplace). `YES` = request cover (Best Match); the clinic still confirms. Permanent roles stay push/in-app awareness only (no role SMS handshake). See `packages/config/src/product.ts`.
+
+**SMS handshake (fill-ins):**
+1. Fill-in posted → worker SMS with `Reply YES ####` (when `SMS_REPLY_ENABLED`) **and** a Details link to `/f/{shiftId}?src=sms`
+2. Cover requested → clinic SMS to `clinic_profiles.phone` with Companion Accept link `/a/{applicationId}?t={token}&src=sms` (“Accept or decline”)
+3. Clinic Accept/Decline on the companion page (token RPCs) — same rules as `confirm_fill_in_applicant` / reject; no clinic inbound SMS keywords
+4. Accept / decline / filled → worker SMS with `/a/{applicationId}` (or short filled notice)
+In-app + Expo push still fire alongside SMS.
 
 SMS send/reply funnels are also captured in PostHog (`sms_sent`, `sms_reply_yes`, etc.). See [ANALYTICS.md](./ANALYTICS.md).
 
 ### Public listing links in fill-in SMS
 
-When SMS reply codes are **off** (the default), fill-in texts include a short HTTPS link to a **public listing page** that does not require login:
+Fill-in texts include a short HTTPS link to a **public listing companion page** that does not require login (opens in-app via universal links when installed):
 
-- Clinic-owned: `Apply: https://chairside.app/f/{shiftId}` — preview details + **Sign in to apply**
-- Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login)
+- Clinic-owned with replies on: `Reply YES 4821 to request. Details: https://chairside.app/f/{shiftId}?src=sms`
+- Clinic-owned with replies off: `Apply: https://chairside.app/f/{shiftId}` — preview + **Sign in to request cover**
+- Sourced: `Details: https://chairside.app/f/{shiftId}` — preview + Call / Email / Open listing (no login; never gets YES codes)
+- Clinic Companion Accept: `https://chairside.app/a/{applicationId}?t={token}&src=sms` — Accept/Decline without login ([`142_fill_in_decision_tokens.sql`](../supabase/migrations/142_fill_in_decision_tokens.sql))
+- Application deep link (no token): `https://chairside.app/a/{applicationId}` — signed-in clinic/worker routes into the same detail screens used in-app
 
-Permanent jobs use the same public preview at `/j/{id}` (no SMS today). Live-only safe fields come from the `get_public_listing` RPC ([`136_public_listing.sql`](../supabase/migrations/136_public_listing.sql)). Push deep links go to `chairside:///(tabs)/shift/{id}`. Universal links for `/f/*` and `/j/*` are registered in AASA + Android intent filters. Base URL comes from `APP_WEB_BASE_URL` / `EXPO_PUBLIC_WEB_BASE_URL` (fallback `https://chairsidedental.app`).
+Permanent jobs use the same public preview at `/j/{id}` (push/in-app awareness; no SMS handshake). Live-only safe fields come from the `get_public_listing` RPC ([`136_public_listing.sql`](../supabase/migrations/136_public_listing.sql)). Universal links for `/f/*`, `/j/*`, and `/a/*` are registered in AASA + Android intent filters. Base URL comes from `APP_WEB_BASE_URL` / `EXPO_PUBLIC_WEB_BASE_URL` (fallback `https://chairsidedental.app`).
+
+### Companion Accept (clinic decide from SMS)
+
+When a fill-in cover request is created, `notify` mints a decision token via `create_fill_in_decision_token` (service role) and includes it on the clinic cover-request SMS. The companion page calls:
+
+- `get_fill_in_decision_preview(application_id, token)` — anon-safe preview
+- `decide_fill_in_from_sms(application_id, token, 'accept'|'decline')` — Accept reuses the same hire / auto-reject siblings / mark shift filled rules as `confirm_fill_in_applicant`; Decline rejects that application only
+
+Tokens are stored hashed, expire at the end of the shift day (Atlantic time), and are single-use after Accept or Decline.
+
+Android App Links: replace `REPLACE_WITH_PLAY_APP_SIGNING_SHA256` in [`apps/mobile/public/.well-known/assetlinks.json`](../apps/mobile/public/.well-known/assetlinks.json) with the Play App Signing certificate SHA-256 before shipping Android deep links from SMS.
 
 ### Reply YES to request a fill-in (SMS replies)
 
-Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms, and the existing `application_received` alert fires. The feature is **off** until `SMS_REPLY_ENABLED=true`. When reply codes are enabled, clinic-owned fill-in texts use the YES CTA instead of the listing URL. **Sourced** fill-ins never get reply codes (no clinic inbox) — they always use the public Details link.
+Workers can request a fill-in by replying to the fill-in text (`Reply YES 4821 to request.`). A reply creates a normal **cover request** (`applications` row, status `applied`); the clinic still confirms (Best Match — not Instant Fill), and the existing `application_received` alert fires. **Production should set `SMS_REPLY_ENABLED=true`.** When enabled, clinic-owned fill-in texts include **both** the YES CTA and the Details listing URL. **Sourced** fill-ins never get reply codes (no clinic inbox) — they always use the public Details link only.
 
 Pieces:
 
@@ -187,11 +213,11 @@ eas build --profile production --platform ios
 
 | Event | Recipient | Type id | Channels | Push pref category |
 | ----- | --------- | ------------ | -------- | ------------------ |
-| Application submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push | `applications_interviews` |
-| Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push | `applications_interviews` |
+| Application / cover request submitted | Clinic group: **owner + managers assigned to the post’s location** (all managers if `location_id` is null); each user’s prefs. Individual: org/owner id. | `application_received` | in-app + Expo push; **+ SMS to clinic phone** for fill-in cover requests (Companion Accept `/a/{id}?t=…`) | `applications_interviews` |
+| Status → reviewed/in_progress/rejected/selected/hired | Worker | matching `application_*` | in-app + Expo push; **+ SMS** for fill-in hired/selected/rejected/filled (`/a/{id}`) | `applications_interviews` |
 | Clinic requests full application kit | Worker | `application_kit_requested` | in-app + Expo push | `applications_interviews` |
 | Interview offered / scheduled / cancelled / reschedule | Worker, or clinic (applicant-driven events): same location-aware clinic fan-out as applications | matching `application_interview_*` | in-app + Expo push | `applications_interviews` |
-| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS if clinic has `fill_in_sms` and worker opted in | `fill_in_alerts` |
+| Fill-in post → live | Eligible workers | `fill_in_posted` | in-app + Expo push; + SMS when worker opted in (`fill_in_sms` ungated) | `fill_in_alerts` |
 | Fill-in post updated while live | Eligible workers | `fill_in_posted` (update copy) | in-app + Expo push; + SMS if clinic has `fill_in_sms` and worker opted in | `fill_in_alerts` |
 | Job post → live | Eligible workers | `job_posted` | in-app + Expo push | `job_alerts` |
 | New message | Worker ↔ clinic: clinic recipients are **owner + managers for the application post’s location** (general/outreach / null location → owner + all managers); each user’s `messages` pref; skip sender. Clinic-side sends notify the worker only. | `message_received` | in-app + Expo push | `messages` |

@@ -1,13 +1,11 @@
 import { isClinicSummaryGroup, type LiveJobPost } from '@chairside/api';
-import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
 import { formatJobPostRoleMeta } from '@chairside/config';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
-import { MatchTierBadge } from '@/components/matching/MatchTierBadge';
 import { BadgeRow } from '@/components/ui/BadgeRow';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
-import { ListingClinicSubtitle } from '@/components/ui/ListingMetaIconRow';
+import { PillBadge } from '@/components/ui/PillBadge';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { FeaturedListingBadge } from '@/components/worker/FeaturedListingBadge';
 import { useFeaturedListingTreatment } from '@/components/worker/featuredListingTreatment';
@@ -18,12 +16,10 @@ import {
   formatWorkerListingCardLocation,
   resolveWorkerPostLogoStoragePath,
 } from '@/lib/workerPostLocation';
-import { useThemedStyles } from '@/theme';
+import { fontSemibold, useTheme, useThemedStyles } from '@/theme';
 
 type RoleListingCardProps = {
   job: LiveJobPost;
-  jobMatch?: JobMatchBreakdown | null;
-  matchContext?: Partial<JobMatchContext>;
   /** Active application status for this job; omit when not applied / terminal. */
   applicationStatus?: string | null;
   isSaved?: boolean;
@@ -33,61 +29,79 @@ type RoleListingCardProps = {
   embedded?: boolean;
 };
 
+/** Signature role card — title first; role-blue employment line; clinic secondary. */
 export function RoleListingCard({
   job,
-  jobMatch,
-  matchContext,
-  applicationStatus: _applicationStatus,
-  isSaved: _isSaved = false,
+  applicationStatus = null,
+  isSaved = false,
   onToggleSaved: _onToggleSaved,
   distanceLabel,
   onPress,
   embedded = false,
 }: RoleListingCardProps) {
+  const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
   const featuredTreatment = useFeaturedListingTreatment();
   const logoStoragePath = resolveWorkerPostLogoStoragePath(job);
   const logoUri = useClinicLogoUri(logoStoragePath);
   const location = formatWorkerListingCardLocation(job, distanceLabel);
   const roleMeta = formatJobPostRoleMeta(job);
+  const clinicName = job.clinic.clinic_name;
+  const isGroup = isClinicSummaryGroup(job.clinic);
+  const hasApplied = Boolean(applicationStatus);
+
   const metaRows = buildRoleListingMetaRows({
     location,
-    roleMeta,
+    compensation: job.compensation,
     postedAt: job.created_at,
   });
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors }) => ({
     stretchCard: {
-      overflow: 'hidden',
-      position: 'relative',
+      overflow: 'hidden' as const,
+      position: 'relative' as const,
     },
     subtitleStack: {
-      gap: spacing.xs,
+      gap: 2,
+    },
+    roleLine: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    clinicLine: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.labelSecondary,
     },
   }));
 
-  const matchBadge =
-    jobMatch && matchContext ? (
-      <MatchTierBadge
-        breakdown={jobMatch}
-        context={matchContext}
-        subtitle={job.title}
-        showProfileHint
-        // Avoid <button> inside SurfaceCard's pressable on web.
-        interactive={!onPress}
-      />
-    ) : null;
-
   const isFeatured = job.has_priority_listing;
-  const badgeRow =
-    isFeatured || matchBadge ? (
+  const trailingBadges =
+    isFeatured || hasApplied || isSaved ? (
       <BadgeRow>
         {isFeatured ? <FeaturedListingBadge size="sm" /> : null}
-        {matchBadge}
+        {isSaved ? (
+          <PillBadge
+            label="Saved"
+            color={colors.labelSecondary}
+            backgroundColor={colors.fillSubtle}
+            size="xs"
+          />
+        ) : null}
+        {hasApplied ? (
+          <PillBadge
+            label="Applied"
+            color={colors.primary}
+            backgroundColor={colors.primarySubtle}
+            size="xs"
+          />
+        ) : null}
       </BadgeRow>
     ) : null;
-  /** Phone / narrow: stack badges under the clinic line so the title keeps full width. */
-  const stackBadges = isCompact && badgeRow != null;
+  const stackBadges = isCompact && trailingBadges != null;
 
   return (
     <SurfaceCard
@@ -95,31 +109,27 @@ export function RoleListingCard({
       onPress={onPress}
       padding="none"
       style={styles.stretchCard}
-      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}>
       <BrowseListRow
         avatar={
-          <ClinicLogoAvatar clinicName={job.clinic.clinic_name} logoUri={logoUri} size={48} />
+          <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />
         }
         title={job.title}
         subtitle={
-          stackBadges ? (
-            <View style={styles.subtitleStack}>
-              <ListingClinicSubtitle
-                name={job.clinic.clinic_name}
-                isGroup={isClinicSummaryGroup(job.clinic)}
-              />
-              {badgeRow}
-            </View>
-          ) : (
-            <ListingClinicSubtitle
-              name={job.clinic.clinic_name}
-              isGroup={isClinicSummaryGroup(job.clinic)}
-            />
-          )
+          <View style={styles.subtitleStack}>
+            {roleMeta ? (
+              <Text style={styles.roleLine} numberOfLines={1}>
+                {roleMeta}
+              </Text>
+            ) : null}
+            <Text style={styles.clinicLine} numberOfLines={1}>
+              {isGroup ? `${clinicName} · Group` : clinicName}
+            </Text>
+            {stackBadges ? trailingBadges : null}
+          </View>
         }
         metaRows={metaRows}
-        topTrailing={stackBadges ? null : badgeRow}
+        topTrailing={stackBadges ? null : trailingBadges}
         // SurfaceCard owns the row press — avoid nested <button> on web.
         showChevron={Boolean(onPress)}
       />

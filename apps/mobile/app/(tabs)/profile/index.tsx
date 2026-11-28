@@ -10,19 +10,20 @@ import { DetailHeroSkeleton } from '@/components/ui/skeletons/DetailHeroSkeleton
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { getFillInSmsStatus } from '@/lib/fillInAvailabilitySummary';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
   getAccountSubtitle,
-  getApplicationKitSubtitle,
-  getNotificationsSubtitle,
+  getOtherAlertsSubtitle,
   getProfessionalBackgroundSubtitle,
   getSupportSubtitle,
+  getTextAlertsSubtitle,
 } from '@/lib/profileHubSubtitles';
 import {
+  getWorkerFillInAvailabilityRoute,
   WORKER_ADMIN,
   WORKER_HOME,
   WORKER_PROFILE_ACCOUNT,
-  WORKER_PROFILE_APPLICATION_KIT,
   WORKER_PROFILE_NOTIFICATIONS,
   WORKER_PROFILE_PROFESSIONAL,
   WORKER_PROFILE_SUPPORT,
@@ -33,9 +34,10 @@ export default function WorkerProfileScreen() {
   const { profile, user } = useAuth();
   const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
   const { isCompact, isTablet } = useResponsiveLayout();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const showAdminEntry =
     Platform.OS === 'web' && !isTablet && isPlatformAdminEmail(user?.email);
+  const smsActive = getFillInSmsStatus(workerProfile).smsActive;
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -64,28 +66,40 @@ export default function WorkerProfileScreen() {
 
         <ProfileSettingsGroup>
           <ProfileSettingsRow
-            icon="briefcase-outline"
-            title="Professional background"
+            icon="chatbubble-ellipses-outline"
+            title="Text alerts"
+            subtitle={getTextAlertsSubtitle(workerProfile)}
+            iconColor={smsActive ? colors.success : colors.primary}
+            iconBackgroundColor={
+              smsActive
+                ? colorWithAlpha(colors.success, isDark ? 0.18 : 0.1)
+                : colors.primarySubtle
+            }
+            onPress={() =>
+              router.push(getWorkerFillInAvailabilityRoute('profile'))
+            }
+          />
+          <ProfileSettingsRow
+            icon="person-outline"
+            title="Profile"
             subtitle={getProfessionalBackgroundSubtitle(workerProfile)}
             iconColor={colors.primary}
             iconBackgroundColor={colors.primarySubtle}
             onPress={() => router.push(WORKER_PROFILE_PROFESSIONAL)}
           />
           <ProfileSettingsRow
-            icon="folder-outline"
-            title="Application profile"
-            subtitle={getApplicationKitSubtitle(workerProfile)}
-            iconColor={colors.secondary}
-            iconBackgroundColor={colors.secondarySubtle}
-            onPress={() => router.push(WORKER_PROFILE_APPLICATION_KIT)}
-          />
-          <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
-            subtitle={getNotificationsSubtitle(workerProfile)}
+            subtitle={getOtherAlertsSubtitle()}
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(WORKER_PROFILE_NOTIFICATIONS)}
+          />
+          <ProfileSettingsRow
+            icon="person-circle-outline"
+            title="Account"
+            subtitle={getAccountSubtitle(user?.email)}
+            onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
           />
           {isCompact ? (
             <ProfileSettingsRow
@@ -107,14 +121,6 @@ export default function WorkerProfileScreen() {
               onPress={() => router.push(WORKER_ADMIN)}
             />
           ) : null}
-          <ProfileSettingsRow
-            icon="person-circle-outline"
-            title="Account"
-            subtitle={getAccountSubtitle(user?.email)}
-            iconColor={colors.warning}
-            iconBackgroundColor={colorWithAlpha(colors.warning, 0.094)}
-            onPress={() => router.push(WORKER_PROFILE_ACCOUNT)}
-          />
         </ProfileSettingsGroup>
       </View>
     </ProfileDetailScreen>

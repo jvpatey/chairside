@@ -29,6 +29,10 @@
           {
             "/": "/j/*",
             "comment": "Public job listing links"
+          },
+          {
+            "/": "/a/*",
+            "comment": "Application decision deep links from SMS"
           }
         ]
       }

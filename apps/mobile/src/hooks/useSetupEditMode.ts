@@ -5,11 +5,11 @@ import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import {
   CLINIC_PROFILE,
-  CLINIC_PROFILE_ABOUT,
-  CLINIC_PROFILE_GROUP,
+  CLINIC_PROFILE_LOCATIONS,
   CLINIC_PROFILE_PRACTICE,
   getApplyRoute,
   WORKER_PROFILE,
+  WORKER_PROFILE_ACCOUNT,
   WORKER_PROFILE_APPLICATION_KIT,
   WORKER_PROFILE_PROFESSIONAL,
   type ApplyPostType,
@@ -18,21 +18,21 @@ import {
 export type SetupReturnTarget =
   | 'worker-profile'
   | 'worker-professional'
+  | 'worker-account'
   | 'worker-application-kit'
   | 'worker-apply'
   | 'clinic-profile'
   | 'clinic-practice'
-  | 'clinic-about'
   | 'clinic-group';
 
 const SETUP_RETURN_ROUTES: Record<Exclude<SetupReturnTarget, 'worker-apply'>, Href> = {
   'worker-profile': WORKER_PROFILE,
   'worker-professional': WORKER_PROFILE_PROFESSIONAL,
+  'worker-account': WORKER_PROFILE_ACCOUNT,
   'worker-application-kit': WORKER_PROFILE_APPLICATION_KIT,
   'clinic-profile': CLINIC_PROFILE,
   'clinic-practice': CLINIC_PROFILE_PRACTICE,
-  'clinic-about': CLINIC_PROFILE_ABOUT,
-  'clinic-group': CLINIC_PROFILE_GROUP,
+  'clinic-group': CLINIC_PROFILE_LOCATIONS,
 };
 
 const SETUP_RETURN_TARGETS = new Set<string>([

@@ -5,33 +5,29 @@ import { JobPostManageMenuHost } from '@/components/clinic/JobPostManageMenuHost
 import { ClinicSetupGate } from '@/components/onboarding/SetupGate';
 import { renderClinicTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
+import { hiddenTabScreenOptions } from '@/components/navigation/hiddenTabScreenOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
 import { FillInPendingProvider, useFillInPending } from '@/contexts/FillInPendingContext';
-import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
-import {
-  ApplicationTabBadgeProvider,
-  useApplicationTabBadge,
-} from '@/contexts/ApplicationTabBadgeContext';
+import { MessageUnreadProvider } from '@/contexts/MessageUnreadContext';
+import { ApplicationTabBadgeProvider } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function ClinicTabNavigator() {
-  const { unreadCount } = useMessageUnread();
   const { pendingCount } = useFillInPending();
-  const { pendingCount: applicationPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
-  const screenOptions = useAdaptiveTabScreenOptions();
+  const screenOptions = useAdaptiveTabScreenOptions('clinic');
 
   return (
     <>
-      <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions}>
+      <Tabs tabBar={renderClinicTabBar} screenOptions={screenOptions} backBehavior="initialRoute">
         <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
         <Tabs.Screen
           name="postings"
@@ -46,30 +42,8 @@ function ClinicTabNavigator() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="discover"
-          options={{
-            title: 'Discover',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'compass' : 'compass-outline'}
-                size={22}
-                color={color}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="applications"
-          options={{
-            title: 'Applications',
-            tabBarAccessibilityLabel: 'Applications',
-            tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="discover" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="applications" options={hiddenTabScreenOptions} />
         <Tabs.Screen
           name="fill-ins"
           options={{
@@ -80,44 +54,30 @@ function ClinicTabNavigator() {
             ),
           }}
         />
+        <Tabs.Screen name="calendar" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="messages" options={hiddenTabScreenOptions} />
         <Tabs.Screen
-          name="calendar"
+          name="profile"
           options={{
-            title: 'Calendar',
+            title: 'Settings',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'today' : 'today-outline'} size={22} color={color} />
+              <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={color} />
             ),
           }}
         />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons
-                name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-                size={22}
-                color={color}
-              />
-            ),
-          }}
-        />
-        <Tabs.Screen name="profile" options={{ href: null }} />
-        <Tabs.Screen name="admin" options={{ href: null }} />
-        <Tabs.Screen name="application" options={{ href: null }} />
-        <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
-        <Tabs.Screen name="post-job" options={{ href: null }} />
-        <Tabs.Screen name="post-shift" options={{ href: null }} />
-        <Tabs.Screen name="find-available-workers" options={{ href: null }} />
-        <Tabs.Screen name="open-inquiry-candidates" options={{ href: null }} />
-        <Tabs.Screen name="outreach-compose" options={{ href: null }} />
-        <Tabs.Screen name="job/[id]" options={{ href: null }} />
-        <Tabs.Screen name="shift/[id]" options={{ href: null }} />
-        <Tabs.Screen name="clinic/[clinicId]" options={{ href: null }} />
-        <Tabs.Screen name="role-applicants/[jobId]" options={{ href: null }} />
-        <Tabs.Screen name="shift-applicants/[shiftId]" options={{ href: null }} />
-        <Tabs.Screen name="role-history" options={{ href: null }} />
+        <Tabs.Screen name="admin" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="application" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="conversation/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="post-job" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="post-shift" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="open-inquiry-candidates" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="outreach-compose" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="job/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="shift/[id]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="clinic/[clinicId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="role-applicants/[jobId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="shift-applicants/[shiftId]" options={hiddenTabScreenOptions} />
+        <Tabs.Screen name="role-history" options={hiddenTabScreenOptions} />
       </Tabs>
       <JobPostManageMenuHost />
     </>

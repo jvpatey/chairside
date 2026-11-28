@@ -23,6 +23,8 @@ type DashboardQuickActionTileProps = {
   disabled?: boolean;
   dimmed?: boolean;
   accessibilityHint?: string;
+  /** Stacked icon-over-text layout (used for 2-column phone tiles and marketing preview). */
+  stacked?: boolean;
   /** Stacked phone tile even when the window is tablet-sized (marketing preview). */
   forcePhoneLayout?: boolean;
   onPress: () => void;
@@ -37,12 +39,14 @@ export function DashboardQuickActionTile({
   disabled = false,
   dimmed = false,
   accessibilityHint,
+  stacked = false,
   forcePhoneLayout = false,
   onPress,
 }: DashboardQuickActionTileProps) {
   const { colors } = useTheme();
   const { isTablet } = useResponsiveLayout();
-  const useStackedLayout = forcePhoneLayout || !isTablet;
+  const useStackedLayout = stacked || forcePhoneLayout;
+  const showChevron = Platform.OS !== 'web' && isTablet && !useStackedLayout;
   const isVisuallyMuted = disabled || dimmed;
   const accent = variant === 'primary' ? 'primary' : 'secondary';
   const accentColor = resolveAccentColor(colors, accent);
@@ -51,13 +55,14 @@ export function DashboardQuickActionTile({
   const styles = useThemedStyles(({ colors, spacing, radii }) => ({
     tile: {
       flex: 1,
+      width: '100%' as const,
       borderRadius: radii.lg,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: useStackedLayout ? spacing.sm + 4 : spacing.md,
       paddingVertical: compact ? spacing.sm + 2 : spacing.md,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.separator,
       backgroundColor: colors.surface,
-      minHeight: compact ? 72 : useStackedLayout ? 84 : isTablet ? 96 : 88,
+      minHeight: compact ? 72 : useStackedLayout ? 104 : 76,
       justifyContent: 'center',
       ...webPointer(),
       ...webOnlyStyle({
@@ -114,7 +119,7 @@ export function DashboardQuickActionTile({
       fontSize: 12,
       lineHeight: 16,
       fontFamily: fontRegular,
-      color: colors.labelTertiary,
+      color: colors.labelSecondary,
       textAlign: useStackedLayout ? ('center' as const) : ('left' as const),
     },
     chevron: {
@@ -179,7 +184,7 @@ export function DashboardQuickActionTile({
               {description}
             </Text>
           </View>
-          {Platform.OS !== 'web' ? (
+          {showChevron ? (
             <Ionicons name="chevron-forward" size={18} color={colors.labelTertiary} style={styles.chevron} />
           ) : null}
         </View>

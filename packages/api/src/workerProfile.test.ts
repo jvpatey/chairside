@@ -9,16 +9,16 @@ import {
 function buildProfile(partial: {
   role_type?: string | null;
   role_types?: string[];
-  address_line1?: string | null;
+  phone?: string | null;
   city?: string | null;
-  postal_code?: string | null;
+  province?: string | null;
 }) {
   return {
     role_type: null,
     role_types: [],
-    address_line1: '123 Main St',
+    phone: '9025551234',
     city: 'Halifax',
-    postal_code: 'B3H 1A1',
+    province: 'NS',
     ...partial,
   };
 }
@@ -51,5 +51,16 @@ describe('isWorkerProfileComplete', () => {
     expect(getMissingWorkerProfileFields(buildProfile({ role_types: [], role_type: null }))).toContain(
       'Role type',
     );
+  });
+
+  it('requires a mobile phone', () => {
+    expect(isWorkerProfileComplete(buildProfile({ phone: '' }))).toBe(false);
+    expect(getMissingWorkerProfileFields(buildProfile({ phone: null }))).toContain('Mobile phone');
+  });
+
+  it('requires city and province, not street address', () => {
+    expect(isWorkerProfileComplete(buildProfile({ city: '', province: 'NS' }))).toBe(false);
+    expect(getMissingWorkerProfileFields(buildProfile({ city: null }))).toContain('City');
+    expect(isWorkerProfileComplete(buildProfile({ role_types: ['hygienist'] }))).toBe(true);
   });
 });

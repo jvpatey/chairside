@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInset';
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageHeader, type PageHeaderVariant } from '@/components/ui/PageHeader';
+import { SoftEdgeDivider } from '@/components/ui/SoftEdgeDivider';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useShellAtmosphere, useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
 import { getWebTabletContentTopPadding } from '@/lib/breakpoints';
@@ -37,6 +38,8 @@ export type ScreenProps = {
   headerAccessory?: ReactNode;
   headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
+  /** Soft edge-faded divider under the page title (Fill-ins / Roles hubs). */
+  softHeaderDivider?: boolean;
   scroll?: boolean;
   scrollEnabled?: boolean;
   fillsContainer?: boolean;
@@ -82,6 +85,7 @@ export function Screen({
   headerAccessory,
   headerVariant,
   constrainWidth = true,
+  softHeaderDivider = false,
   scroll = true,
   scrollEnabled = true,
   fillsContainer = false,
@@ -107,6 +111,9 @@ export function Screen({
   }, []);
 
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  // Tablet/web sits beside the sidebar; the scene is already inset. A viewport-based
+  // maxWidth + center leaves a large empty gutter next to the (especially collapsed) rail.
+  const applyWidthConstraint = constrainWidth && !isTablet;
   const variant = resolveHeaderVariant(headerVariant, onBack, showHeader);
   const tabDockInset = useMobileTabDockInset();
   const tabAtmosphere = useTabAtmosphere();
@@ -154,16 +161,16 @@ export function Screen({
     },
     stickyInner: {
       width: '100%' as const,
-      maxWidth: constrainWidth ? contentMaxWidth : undefined,
-      alignSelf: 'center' as const,
+      maxWidth: applyWidthConstraint ? contentMaxWidth : undefined,
+      alignSelf: applyWidthConstraint ? ('center' as const) : ('stretch' as const),
     },
     content: {
       flexGrow: fillsContainer ? 1 : undefined,
       paddingHorizontal: spacing.lg,
       width: '100%',
-      ...(constrainWidth && contentMaxWidth
+      ...(applyWidthConstraint && contentMaxWidth
         ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
-        : {}),
+        : { alignSelf: 'stretch' as const }),
     },
     contentFill: {
       flex: 1,
@@ -181,6 +188,9 @@ export function Screen({
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.lg,
       backgroundColor: 'transparent',
+    },
+    softDivider: {
+      marginTop: spacing.md,
     },
   }));
 
@@ -205,6 +215,7 @@ export function Screen({
         showNotifications={showNotifications}
         variant={variant}
       />
+      {softHeaderDivider ? <SoftEdgeDivider style={styles.softDivider} /> : null}
     </View>
   ) : null;
 

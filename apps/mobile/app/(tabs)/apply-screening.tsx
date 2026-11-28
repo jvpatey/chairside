@@ -4,6 +4,7 @@ import {
   getLiveJobPost,
   type ScreeningQuestion,
 } from '@chairside/api';
+import { THIN_PERMANENT_ROLES } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
@@ -52,6 +53,11 @@ export default function ApplyScreeningScreen() {
   const loadJob = useCallback(async () => {
     if (!jobId) {
       setIsLoading(false);
+      return;
+    }
+
+    if (THIN_PERMANENT_ROLES) {
+      router.replace({ pathname: '/apply', params: { postType: 'job', postId: jobId } });
       return;
     }
 

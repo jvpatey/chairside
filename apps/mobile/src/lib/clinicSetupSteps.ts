@@ -1,15 +1,6 @@
 import type { Href } from 'expo-router';
 
-import {
-  CLINIC_SETUP_ABOUT,
-  CLINIC_SETUP_ACCOUNT_TYPE,
-  CLINIC_SETUP_BASICS,
-  CLINIC_SETUP_LOCATION,
-  CLINIC_SETUP_LOCATIONS,
-  CLINIC_SETUP_PRACTICE,
-  CLINIC_SETUP_REVIEW,
-  CLINIC_SETUP_TEAM,
-} from '@/lib/routing';
+import { CLINIC_SETUP_BASICS, CLINIC_SETUP_LOCATION } from '@/lib/routing';
 
 export type ClinicSetupNavStep = {
   id: string;
@@ -17,35 +8,30 @@ export type ClinicSetupNavStep = {
   href: Href;
 };
 
-/** Individual clinic setup when account-type is enabled. */
-export const CLINIC_INDIVIDUAL_SETUP_STEPS: ClinicSetupNavStep[] = [
-  { id: 'account-type', label: 'Account type', href: CLINIC_SETUP_ACCOUNT_TYPE },
+/**
+ * Single thin clinic setup path (no account-type fork, no mandatory review).
+ * Multi-clinic sites are added later under Settings → Locations.
+ */
+export const CLINIC_SETUP_STEPS: ClinicSetupNavStep[] = [
   { id: 'basics', label: 'Basics', href: CLINIC_SETUP_BASICS },
   { id: 'location', label: 'Location', href: CLINIC_SETUP_LOCATION },
-  { id: 'practice', label: 'Practice', href: CLINIC_SETUP_PRACTICE },
-  { id: 'about', label: 'About', href: CLINIC_SETUP_ABOUT },
-  { id: 'review', label: 'Review', href: CLINIC_SETUP_REVIEW },
 ];
 
-/** Group clinic setup when account-type is enabled. */
-export const CLINIC_GROUP_SETUP_STEPS: ClinicSetupNavStep[] = [
-  { id: 'account-type', label: 'Account type', href: CLINIC_SETUP_ACCOUNT_TYPE },
-  { id: 'basics', label: 'Basics', href: CLINIC_SETUP_BASICS },
-  { id: 'locations', label: 'Locations', href: CLINIC_SETUP_LOCATIONS },
-  { id: 'team', label: 'Team', href: CLINIC_SETUP_TEAM },
-  { id: 'about', label: 'About', href: CLINIC_SETUP_ABOUT },
-  { id: 'review', label: 'Review', href: CLINIC_SETUP_REVIEW },
-];
+/** @deprecated Prefer CLINIC_SETUP_STEPS — kept for call sites that still pass isGroup. */
+export const CLINIC_INDIVIDUAL_SETUP_STEPS = CLINIC_SETUP_STEPS;
 
-export function getClinicSetupSteps(isGroup: boolean): ClinicSetupNavStep[] {
-  return isGroup ? CLINIC_GROUP_SETUP_STEPS : CLINIC_INDIVIDUAL_SETUP_STEPS;
+/** @deprecated Prefer CLINIC_SETUP_STEPS — groups no longer have a separate wizard. */
+export const CLINIC_GROUP_SETUP_STEPS = CLINIC_SETUP_STEPS;
+
+export function getClinicSetupSteps(_isGroup?: boolean): ClinicSetupNavStep[] {
+  return CLINIC_SETUP_STEPS;
 }
 
 export function getClinicSetupStepNumber(
   stepId: ClinicSetupNavStep['id'],
-  isGroup: boolean,
+  _isGroup?: boolean,
 ): { step: number; total: number } {
-  const steps = getClinicSetupSteps(isGroup);
+  const steps = CLINIC_SETUP_STEPS;
   const index = steps.findIndex((step) => step.id === stepId);
   return {
     step: index >= 0 ? index + 1 : 1,
@@ -54,9 +40,8 @@ export function getClinicSetupStepNumber(
 }
 
 /** Resolve the active setup step from a router pathname. */
-export function getClinicSetupStepIndexFromPath(pathname: string, isGroup: boolean): number {
-  const steps = getClinicSetupSteps(isGroup);
-  // Prefer longer ids first so "locations" does not match "location".
+export function getClinicSetupStepIndexFromPath(pathname: string, _isGroup?: boolean): number {
+  const steps = CLINIC_SETUP_STEPS;
   const ordered = [...steps].sort((a, b) => b.id.length - a.id.length);
   const match = ordered.find((step) => {
     const pattern = new RegExp(`/(?:\\(.*\\)/)?${step.id}(?:/|$|\\?)`);

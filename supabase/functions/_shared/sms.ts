@@ -104,7 +104,8 @@ function shiftDetails(input: {
 /**
  * Fill-in alert SMS. Drops location, then compensation, then shortens the clinic name to fit.
  * Never drops the brand prefix, clinic, date, call to action, or opt-out text.
- * With a listing URL, allows up to two GSM-7 segments.
+ * With a listing URL (alone or with a YES code), allows up to two GSM-7 segments.
+ * When both replyCode and listingUrl are set, ships YES + Details link (companion pattern).
  */
 export function buildFillInSms(input: {
   clinicName: string;
@@ -114,11 +115,14 @@ export function buildFillInSms(input: {
   endTime?: string | null;
   compensation?: string | null;
   isUpdate?: boolean;
-  /** When set, the call to action becomes "Reply YES {code} to request." */
+  /** When set, include "Reply YES {code} to request." */
   replyCode?: string | null;
-  /** Public listing URL (e.g. https://chairside.app/f/{id}). Ignored when replyCode is set. */
+  /** Public listing URL (e.g. https://chairside.app/f/{id}). Kept alongside replyCode when both set. */
   listingUrl?: string | null;
-  /** CTA verb when listingUrl is set. Default "Apply". Use "Details" for sourced ads. */
+  /**
+   * CTA verb when listingUrl is set without a reply code. Default "Apply".
+   * With a reply code, the link label is always "Details".
+   */
   listingCta?: 'Apply' | 'Details' | null;
 }): string {
   const verb = input.isUpdate ? 'updated' : 'posted';
@@ -127,18 +131,26 @@ export function buildFillInSms(input: {
   const compensationPart = compensation ? ` Pay: ${compensation}.` : '';
   const location = input.locationLabel.trim();
   const listingUrl = input.listingUrl?.trim() || null;
-  const listingCta = input.listingCta === 'Details' ? 'Details' : 'Apply';
+  const replyCode = input.replyCode?.trim() || null;
+  const listingCta =
+    replyCode && listingUrl
+      ? 'Details'
+      : input.listingCta === 'Details'
+        ? 'Details'
+        : 'Apply';
 
   let callToAction: string;
-  if (input.replyCode) {
-    callToAction = `Reply YES ${input.replyCode} to request.`;
+  if (replyCode && listingUrl) {
+    callToAction = `Reply YES ${replyCode} to request. Details: ${listingUrl}`;
+  } else if (replyCode) {
+    callToAction = `Reply YES ${replyCode} to request.`;
   } else if (listingUrl) {
     callToAction = `${listingCta}: ${listingUrl}`;
   } else {
     callToAction = 'Open Chairside to apply.';
   }
 
-  const maxLength = listingUrl && !input.replyCode ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT;
+  const maxLength = listingUrl ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT;
 
   const build = (clinicName: string, withLocation: boolean, withCompensation: boolean) => {
     const locationPart = withLocation && location ? ` (${location})` : '';
@@ -173,4 +185,59 @@ export function buildOutreachSms(input: {
       : `Chairside: ${clinicName} sent you a fill-in request. Open Chairside to reply. Reply STOP to opt out.`;
 
   return fitSms([build(input.clinicName), build(truncateName(input.clinicName))]);
+}
+
+/** Clinic SMS when a professional requests cover on a fill-in. */
+export function buildClinicCoverRequestSms(input: {
+  workerName: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  decisionUrl: string;
+}): string {
+  const details = shiftDetails(input);
+  const worker = input.workerName.trim() || 'A professional';
+  const url = input.decisionUrl.trim();
+  const build = (name: string) =>
+    `Chairside: ${name} requested your fill-in for ${details}. Accept or decline: ${url}`;
+
+  return fitSms(
+    [build(worker), build(truncateName(worker, 24))],
+    url ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT,
+  );
+}
+
+/** Worker SMS for fill-in accept / decline / filled outcomes. */
+export function buildFillInDecisionSms(input: {
+  outcome: 'accepted' | 'declined' | 'filled';
+  clinicName: string;
+  shiftDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  detailsUrl?: string | null;
+}): string {
+  const details = shiftDetails(input);
+  const clinic = input.clinicName.trim() || 'A clinic';
+  const url = input.detailsUrl?.trim() || null;
+
+  let body: (clinicName: string) => string;
+  if (input.outcome === 'accepted') {
+    body = (clinicName) =>
+      url
+        ? `Chairside: ${clinicName} confirmed you for ${details}. Details: ${url}`
+        : `Chairside: ${clinicName} confirmed you for ${details}. Open Chairside for details.`;
+  } else if (input.outcome === 'filled') {
+    body = (clinicName) =>
+      `Chairside: The fill-in at ${clinicName} for ${details} was covered by someone else.`;
+  } else {
+    body = (clinicName) =>
+      url
+        ? `Chairside: ${clinicName} declined your cover request for ${details}. ${url}`
+        : `Chairside: ${clinicName} declined your cover request for ${details}.`;
+  }
+
+  return fitSms(
+    [body(clinic), body(truncateName(clinic))],
+    url ? SMS_TWO_SEGMENT_LIMIT : SMS_SEGMENT_LIMIT,
+  );
 }

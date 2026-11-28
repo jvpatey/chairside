@@ -34,7 +34,17 @@ type AuthFieldProps = {
   hint?: string;
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: 'email' | 'password' | 'username' | 'current-password' | 'new-password' | 'name' | 'off';
+  autoComplete?:
+    | 'email'
+    | 'password'
+    | 'username'
+    | 'current-password'
+    | 'new-password'
+    | 'name'
+    | 'given-name'
+    | 'family-name'
+    | 'tel'
+    | 'off';
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'number-pad' | 'url';
   editable?: boolean;
   multiline?: boolean;
@@ -79,7 +89,7 @@ export function AuthField({
   const { scrollWrapIntoView } = useFormScroll();
   const styles = useThemedStyles((theme) => ({
     wrap: {
-      gap: theme.spacing.xs,
+      gap: theme.spacing.md,
     },
     inputRow: formFieldInputRowStyle(theme, { multiline }),
     inputRowValidated: {

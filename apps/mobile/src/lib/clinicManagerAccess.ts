@@ -48,25 +48,13 @@ export function getManagerAccessBannerCopy(reason: ManagerAccessBlockReason): {
     return {
       title: 'Waiting for clinic access',
       message:
-        'Ask your group owner to assign you a clinic in Team & access. Then you can post roles and fill-ins.',
+        'Ask your group owner to give you clinic access. Then you can post roles and fill-ins.',
     };
   }
   return {
     title: 'Waiting for clinic access',
     message:
-      'Ask your group owner to assign you a clinic in Team & access. Then you can post roles and fill-ins.',
+      'Ask your group owner to give you clinic access. Then you can post roles and fill-ins.',
   };
 }
 
-export function getOwnerUnassignedManagersCopy(count: number): {
-  title: string;
-  message: string;
-} {
-  return {
-    title: 'Assign clinic access',
-    message:
-      count === 1
-        ? 'A manager joined without a clinic. Assign them a location in Team & access so they can post.'
-        : `${count} managers joined without a clinic. Assign locations in Team & access so they can post.`,
-  };
-}

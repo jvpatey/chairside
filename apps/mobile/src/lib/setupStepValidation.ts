@@ -1,14 +1,12 @@
 import type { ClinicProfile } from '@chairside/api';
 import { getWorkerRoleTypes, type WorkerProfile } from '@chairside/api';
-import type { RoleType } from '@chairside/config';
+import { normalizePhoneForStorage, type RoleType } from '@chairside/config';
 import type { Href } from 'expo-router';
 
 import type { AddressFormValue } from '@/components/clinic/AddressAutocomplete';
 import {
-  CLINIC_SETUP_ABOUT,
   CLINIC_SETUP_BASICS,
   CLINIC_SETUP_LOCATION,
-  CLINIC_SETUP_PRACTICE,
   WORKER_SETUP_BASICS,
   WORKER_SETUP_LOCATION,
 } from '@/lib/routing';
@@ -19,24 +17,20 @@ export type SetupValidationResult = {
 };
 
 export type ClinicSetupStepId = 'basics' | 'location' | 'practice' | 'about' | 'review';
-export type WorkerSetupStepId =
-  | 'basics'
-  | 'experience'
-  | 'skills'
-  | 'location'
-  | 'fill-ins'
-  | 'review';
+export type WorkerSetupStepId = 'basics' | 'location' | 'fill-ins' | 'review';
 
 export function validateClinicBasicsStep(values: {
   clinicName: string;
-  contactName: string;
+  contactName?: string;
   phone: string;
+  /** @deprecated Groups no longer relax the phone requirement. */
+  isGroup?: boolean;
 }): SetupValidationResult {
   if (!values.clinicName.trim()) {
     return { ok: false, message: 'Enter your clinic name to continue.' };
   }
-  if (!values.contactName.trim() && !values.phone.trim()) {
-    return { ok: false, message: 'Enter a phone number or contact name to continue.' };
+  if (!normalizePhoneForStorage(values.phone)) {
+    return { ok: false, message: 'Enter a clinic phone number to continue.' };
   }
   return { ok: true, message: null };
 }
@@ -46,6 +40,19 @@ export function validateAddressStep(
 ): SetupValidationResult {
   if (!address.address_line1.trim() || !address.city.trim() || !address.postal_code.trim()) {
     return { ok: false, message: 'Enter a complete address to continue.' };
+  }
+  return { ok: true, message: null };
+}
+
+/** Worker place for SMS matching — city + province only. */
+export function validateWorkerPlaceStep(
+  address: Pick<AddressFormValue, 'city' | 'province'>,
+): SetupValidationResult {
+  if (!address.city.trim()) {
+    return { ok: false, message: 'Enter your city to continue.' };
+  }
+  if (!address.province.trim()) {
+    return { ok: false, message: 'Select your province to continue.' };
   }
   return { ok: true, message: null };
 }
@@ -61,6 +68,7 @@ export function validateWorkerBasicsStep(values: {
   firstName: string;
   lastName: string;
   roleTypes: RoleType[];
+  phone: string;
 }): SetupValidationResult {
   if (!values.firstName.trim() || !values.lastName.trim()) {
     return { ok: false, message: 'Enter your first and last name.' };
@@ -68,13 +76,15 @@ export function validateWorkerBasicsStep(values: {
   if (values.roleTypes.length === 0) {
     return { ok: false, message: 'Select at least one role you are qualified for.' };
   }
+  if (!normalizePhoneForStorage(values.phone)) {
+    return { ok: false, message: 'Enter a 10-digit mobile number for fill-in texts.' };
+  }
   return { ok: true, message: null };
 }
 
 export function isClinicBasicsComplete(profile: ClinicProfile | null): boolean {
   return validateClinicBasicsStep({
     clinicName: profile?.clinic_name ?? '',
-    contactName: profile?.contact_name ?? '',
     phone: profile?.phone ?? '',
   }).ok;
 }
@@ -100,14 +110,14 @@ export function isWorkerBasicsComplete(
     firstName: firstName ?? '',
     lastName: lastName ?? '',
     roleTypes: getWorkerRoleTypes(profile),
+    phone: profile?.phone ?? '',
   }).ok;
 }
 
 export function isWorkerLocationComplete(profile: WorkerProfile | null): boolean {
-  return validateAddressStep({
-    address_line1: profile?.address_line1 ?? '',
+  return validateWorkerPlaceStep({
     city: profile?.city ?? '',
-    postal_code: profile?.postal_code ?? '',
+    province: profile?.province ?? '',
   }).ok;
 }
 
@@ -118,17 +128,11 @@ export function getClinicSetupStepGuard(
   if (step === 'basics') return null;
   if (!isClinicBasicsComplete(profile)) return CLINIC_SETUP_BASICS;
 
-  // Groups collect address and software per location. Don't bounce About/Review
-  // back to Locations based on org-profile fields — those live on clinic_locations.
-  if (profile?.account_type === 'group') {
-    if (step === 'location' || step === 'practice') return CLINIC_SETUP_ABOUT;
-    return null;
-  }
-
   if (step === 'location') return null;
-  if (!isClinicLocationComplete(profile)) return CLINIC_SETUP_LOCATION;
-  if (step === 'practice') return null;
-  if (!isClinicPracticeComplete(profile)) return CLINIC_SETUP_PRACTICE;
+  // Address may live on clinic_locations for multi-site accounts; profile mirror is enough for the thin path.
+  if (!isClinicLocationComplete(profile) && profile?.account_type !== 'group') {
+    return CLINIC_SETUP_LOCATION;
+  }
   return null;
 }
 
@@ -140,7 +144,6 @@ export function getWorkerSetupStepGuard(
 ): Href | null {
   if (step === 'basics') return null;
   if (!isWorkerBasicsComplete(profile, firstName, lastName)) return WORKER_SETUP_BASICS;
-  if (step === 'experience' || step === 'skills') return null;
   if (step === 'location') return null;
   if (!isWorkerLocationComplete(profile)) return WORKER_SETUP_LOCATION;
   return null;

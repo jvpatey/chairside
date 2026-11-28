@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { AnalyticsEvents } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { WORKER_SETUP_BASICS } from '@/lib/routing';
+import { WORKER_FINISH_PROFILE } from '@/lib/routing';
 
 export function guardApply(
   workerProfile: WorkerProfile | null,
@@ -27,13 +27,13 @@ export function guardApply(
 
   const missing = getMissingWorkerProfileFields(workerProfile);
   showConfirmActionSheet({
-    title: 'Complete your profile',
+    title: 'A few details first',
     message:
       missing.length > 0
-        ? `Add the following before applying: ${missing.join(', ')}`
-        : 'Finish your profile to apply.',
-    confirmLabel: 'Continue setup',
-    onConfirm: () => router.push(WORKER_SETUP_BASICS),
+        ? `Add the following to request cover: ${missing.join(', ')}`
+        : 'Add your role, phone, and city to request cover.',
+    confirmLabel: 'Continue',
+    onConfirm: () => router.push(WORKER_FINISH_PROFILE),
   });
 }
 
@@ -44,13 +44,13 @@ export function guardQuickApply(workerProfile: WorkerProfile | null, _kitRoute: 
 
   const missing = getMissingWorkerProfileFields(workerProfile);
   showConfirmActionSheet({
-    title: 'Complete your background',
+    title: 'A few details first',
     message:
       missing.length > 0
-        ? `Add the following before applying: ${missing.join(', ')}`
-        : 'Finish your professional background to apply.',
-    confirmLabel: 'Add background',
-    onConfirm: () => router.push(WORKER_SETUP_BASICS),
+        ? `Add the following to continue: ${missing.join(', ')}`
+        : 'Add your role, phone, and city to continue.',
+    confirmLabel: 'Continue',
+    onConfirm: () => router.push(WORKER_FINISH_PROFILE),
   });
   return false;
 }

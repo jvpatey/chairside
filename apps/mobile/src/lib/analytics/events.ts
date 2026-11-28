@@ -8,6 +8,19 @@ export const AnalyticsEvents = {
   coverRequested: 'cover_requested',
   applySubmitted: 'apply_submitted',
   authSignedIn: 'auth_signed_in',
+  coverDecisionOpened: 'cover_decision_opened',
+  coverDecisionAccepted: 'cover_decision_accepted',
+  coverDecisionDeclined: 'cover_decision_declined',
+  clinicSignupAccountTypeSelected: 'clinic_signup_account_type_selected',
+  clinicSignupAddressSaved: 'clinic_signup_address_saved',
+  clinicSignupAddAnotherTapped: 'clinic_signup_add_another_tapped',
+  clinicSignupAddressSkipped: 'clinic_signup_address_skipped',
+  clinicSignupLocationAdded: 'clinic_signup_location_added',
+  clinicSignupLocationLimitHit: 'clinic_signup_location_limit_hit',
+  clinicAddClinicNudgeTapped: 'clinic_add_clinic_nudge_tapped',
+  clinicAddClinicNudgeDismissed: 'clinic_add_clinic_nudge_dismissed',
+  clinicLocationAddedLater: 'clinic_location_added_later',
+  profileCompletionNudgeTapped: 'profile_completion_nudge_tapped',
 } as const;
 
 export type ListingOpenSource = 'sms' | 'share' | 'direct';

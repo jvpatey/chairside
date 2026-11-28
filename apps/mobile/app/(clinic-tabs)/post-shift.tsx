@@ -8,9 +8,12 @@ import {
 import { ROLE_TYPE_OPTIONS } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { navigateAfterFillInSave, type FillInReturnTarget } from '@/lib/routing';
-import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import {
+  navigateAfterFillInSave,
+  type FillInReturnTarget,
+} from '@/lib/routing';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { CompensationInput } from '@/components/clinic/CompensationInput';
@@ -23,10 +26,14 @@ import { PageLoadingDetail } from '@/components/ui/PageLoadingState';
 import { FormErrorBanner } from '@/components/ui/FormErrorBanner';
 import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
+import { FillInSmsPreview } from '@/components/worker/FillInSmsPreview';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
+import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
 import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
 import { todayISO } from '@/lib/dates';
 import {
@@ -36,6 +43,7 @@ import {
 } from '@/lib/clinicPlanPresentation';
 import { showFormError } from '@/lib/formErrors';
 import { isValidTimeRange, normalizeTime24h, parseTime24h } from '@/lib/time';
+import { webPointer } from '@/lib/webPressableStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
 const FILL_IN_ACCENT = 'secondary' as const;
@@ -56,10 +64,10 @@ export default function PostShiftScreen() {
   const {
     clinicId,
     accessibleLocations,
+    locationScope,
     isGroup,
-    attribution,
-    attributionLabel,
   } = useClinicActingContext();
+  const { clinicProfile } = useClinicProfile();
   const { billing, upgradePrompt, showPublishUpgrade, handleBillingError } = useClinicUpgradePrompt();
   const { colors } = useTheme();
   const brandColor = colors.secondary;
@@ -81,10 +89,9 @@ export default function PostShiftScreen() {
   const [endTime, setEndTime] = useState('');
   const [compensation, setCompensation] = useState('');
   const [description, setDescription] = useState('');
+  const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(
-    accessibleLocations.find((location) => location.is_primary)?.id ??
-      accessibleLocations[0]?.id ??
-      null,
+    resolveActiveLocationId(locationScope, accessibleLocations),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
@@ -94,6 +101,16 @@ export default function PostShiftScreen() {
   const countsTowardLimit = shiftDate.trim() >= todayISO();
   const fillInLimitReached =
     !isEditing && countsTowardLimit && isFillInPostingLimitReached(billing);
+  const hasClinicPhone = Boolean(clinicProfile?.phone?.trim());
+  const needsLocationPicker = accessibleLocations.length > 1;
+  const phoneSettingsHref = useMemo(
+    () =>
+      getSetupEditRoute(
+        '/(clinic-setup)/basics',
+        isGroup ? 'clinic-group' : 'clinic-practice',
+      ),
+    [isGroup],
+  );
 
   const handleCompensationChange = useCallback((value: string) => {
     setCompensation(value);
@@ -137,6 +154,30 @@ export default function PostShiftScreen() {
       fontSize: 14,
       lineHeight: 20,
     },
+    noticeLink: {
+      ...typography.subtitle,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600' as const,
+      color: brandColor,
+      marginTop: spacing.xs,
+    },
+    optionalToggle: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingVertical: spacing.sm,
+    },
+    optionalToggleLabel: {
+      ...typography.body,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
+      flex: 1,
+      paddingRight: spacing.sm,
+    },
+    optionalBlock: {
+      gap: spacing.md,
+    },
   }));
 
   const loadShift = useCallback(async () => {
@@ -162,6 +203,7 @@ export default function PostShiftScreen() {
       setEndTime(form.endTime);
       setCompensation(form.compensation);
       setDescription(form.description);
+      setShowOptionalDetails(Boolean(form.compensation.trim() || form.description.trim()));
       setLocationId(shift.location_id ?? null);
       setFormKey((current) => current + 1);
     } catch (error) {
@@ -185,8 +227,8 @@ export default function PostShiftScreen() {
       return;
     }
 
-    if (isGroup && !locationId) {
-      const message = 'Choose which location this fill-in is for.';
+    if (needsLocationPicker && !locationId) {
+      const message = 'Choose which clinic this fill-in is for.';
       setFormError(showFormError(message));
       scrollToFirstSection(['location']);
       return;
@@ -222,7 +264,7 @@ export default function PostShiftScreen() {
         end_time: endTime.trim(),
         compensation: compensation.trim() || undefined,
         description: description.trim() || undefined,
-        ...(isGroup ? { location_id: locationId } : {}),
+        ...(needsLocationPicker || locationId ? { location_id: locationId } : {}),
       };
 
       if (isEditing && shiftId) {
@@ -233,10 +275,9 @@ export default function PostShiftScreen() {
           ...payload,
           status: 'live',
           organization_id: clinicId,
-          location_id: locationId,
-          ...attribution,
+          location_id: locationId ?? accessibleLocations[0]?.id ?? null,
         });
-        navigateAfterFillInSave(router, resolvedReturnTo);
+        navigateAfterFillInSave(router, resolvedReturnTo, { posted: true });
       }
     } catch (error) {
       if (handleBillingError(error)) {
@@ -262,7 +303,7 @@ export default function PostShiftScreen() {
             : 'Publishing…'
           : isEditing
             ? 'Save changes'
-            : 'Publish fill-in'
+            : 'Post & text matching professionals'
       }
       disabled={isSubmitting || fillInLimitReached || pickerOpen}
       accent={FILL_IN_ACCENT}
@@ -292,7 +333,7 @@ export default function PostShiftScreen() {
         subtitle={
           isEditing
             ? 'Update your fill-in shift details.'
-            : 'Publish a short-notice or temp shift.'
+            : 'We’ll text matching professionals as soon as you publish.'
         }
         accent={FILL_IN_ACCENT}
         onBack={handleBack}
@@ -301,9 +342,20 @@ export default function PostShiftScreen() {
         <FormErrorBanner message={formError} />
 
         <View style={styles.form}>
-        {isGroup ? (
+        {!isEditing ? (
+          <View style={styles.section}>
+            <FormSectionHeader
+              icon="chatbubble-ellipses-outline"
+              label="What professionals will get"
+              accent="secondary"
+            />
+            <FillInSmsPreview />
+          </View>
+        ) : null}
+
+        {needsLocationPicker ? (
           <View ref={setSectionRef('location')} style={styles.section} collapsable={false}>
-            <FormSectionHeader icon="location-outline" label="Location" required accent="secondary" />
+            <FormSectionHeader icon="location-outline" label="Clinic" required accent="secondary" />
             <ChipSelector
               options={accessibleLocations.map((location) => ({
                 value: location.id,
@@ -316,9 +368,6 @@ export default function PostShiftScreen() {
               }}
               accent={FILL_IN_ACCENT}
             />
-            {attributionLabel ? (
-              <Text style={styles.loading}>Will show as posted by {attributionLabel}</Text>
-            ) : null}
           </View>
         ) : null}
 
@@ -366,37 +415,79 @@ export default function PostShiftScreen() {
         </View>
 
         <View style={styles.section}>
-          <FormSectionHeader icon="cash-outline" label="Compensation (optional)" accent="secondary" />
-          <CompensationInput
-            key={`comp-${formKey}`}
-            initialValue={compensation}
-            onChange={handleCompensationChange}
-            embedded
-          />
+          <Pressable
+            onPress={() => setShowOptionalDetails((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              showOptionalDetails ? 'Hide optional details' : 'Add optional pay and description'
+            }
+            style={[styles.optionalToggle, webPointer()]}>
+            <Text style={styles.optionalToggleLabel}>
+              {showOptionalDetails ? 'Hide optional details' : 'Add pay or description (optional)'}
+            </Text>
+            <Ionicons
+              name={showOptionalDetails ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.labelSecondary}
+            />
+          </Pressable>
+          {showOptionalDetails ? (
+            <View style={styles.optionalBlock}>
+              <FormSectionHeader icon="cash-outline" label="Compensation" accent="secondary" />
+              <CompensationInput
+                key={`comp-${formKey}`}
+                initialValue={compensation}
+                onChange={handleCompensationChange}
+                embedded
+              />
+              <AuthField
+                label="Description"
+                placeholder="Shift details"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                autoCapitalize="sentences"
+                accent={FILL_IN_ACCENT}
+                icon="document-text-outline"
+              />
+            </View>
+          ) : null}
         </View>
 
-        <AuthField
-          label="Description"
-          placeholder="Shift details"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          autoCapitalize="sentences"
-          accent={FILL_IN_ACCENT}
-          icon="document-text-outline"
-        />
+        {!isEditing && !hasClinicPhone ? (
+          <View style={styles.notice}>
+            <View style={styles.noticeRow}>
+              <View style={styles.noticeIconWrap}>
+                <Ionicons name="call" size={18} color={colors.secondaryOnSecondary} />
+              </View>
+              <View style={styles.noticeTextBlock}>
+                <Text style={styles.noticeTitle}>Add a clinic phone for cover texts</Text>
+                <Text style={styles.noticeBody}>
+                  Professionals will still get texted. Add your clinic phone so you get a text when someone
+                  requests cover — you can accept from that message.
+                </Text>
+                <Pressable
+                  onPress={() => router.push(phoneSettingsHref as never)}
+                  accessibilityRole="link"
+                  style={webPointer()}>
+                  <Text style={styles.noticeLink}>Add clinic phone</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         {!isEditing ? (
           <View style={styles.notice}>
             <View style={styles.noticeRow}>
               <View style={styles.noticeIconWrap}>
-                <Ionicons name="notifications" size={18} color={colors.secondaryOnSecondary} />
+                <Ionicons name="chatbubbles" size={18} color={colors.secondaryOnSecondary} />
               </View>
               <View style={styles.noticeTextBlock}>
-                <Text style={styles.noticeTitle}>Publishing notifies available workers</Text>
+                <Text style={styles.noticeTitle}>Texts go out on publish</Text>
                 <Text style={styles.noticeBody}>
-                  This fill-in will be sent to workers marked as available for short-notice shifts
-                  in your area.
+                  Matching professionals in your area get a text right away. When someone requests
+                  cover, you’ll get a text to accept or decline.
                 </Text>
               </View>
             </View>

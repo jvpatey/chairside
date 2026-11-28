@@ -33,20 +33,16 @@ import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
-import { SetupBillingUpsellLink } from '@/components/billing/SetupBillingUpsellLink';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogoUri } from '@/hooks/useClinicLogoUri';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { isClinicBillingFeatureUnlocked } from '@/lib/clinicPlanPresentation';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
 import { formatPhoneNumber } from '@/lib/phone';
-import { CLINIC_SETUP_PRACTICE, CLINIC_SETUP_TEAM } from '@/lib/routing';
+import { CLINIC_SETUP_LOCATION, CLINIC_SETUP_REVIEW } from '@/lib/routing';
 import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import {
-  validateAddressStep,
-  validateClinicPracticeStep,
-} from '@/lib/setupStepValidation';
+import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useTheme, useThemedStyles } from '@/theme';
 
 function specialtyLabel(specialty: string): string {
@@ -201,9 +197,7 @@ export default function ClinicLocationsSetupScreen() {
   }, [reload]);
 
   const addressValidation = validateAddressStep(address);
-  const practiceValidation = validateClinicPracticeStep(practice.softwareUsed);
-  const canSave =
-    Boolean(name.trim()) && addressValidation.ok && practiceValidation.ok;
+  const canSave = Boolean(name.trim()) && addressValidation.ok;
 
   const resetForm = () => {
     setEditingId(null);
@@ -329,18 +323,16 @@ export default function ClinicLocationsSetupScreen() {
       setSubmitError('Add at least one location to continue.');
       return;
     }
-    router.push(CLINIC_SETUP_TEAM);
+    router.push(CLINIC_SETUP_REVIEW);
   };
 
   if (!isGroup) {
-    router.replace(CLINIC_SETUP_PRACTICE);
+    router.replace(CLINIC_SETUP_LOCATION);
     return null;
   }
 
   const formValidationMessage =
-    !name.trim()
-      ? 'Enter a location name.'
-      : addressValidation.message ?? practiceValidation.message;
+    !name.trim() ? 'Enter a location name.' : addressValidation.message;
 
   return (
     <>
@@ -428,7 +420,6 @@ export default function ClinicLocationsSetupScreen() {
               values={practice}
               onChange={setPractice}
               showValidation={showValidation}
-              softwareRequired
             />
             <SetupStepFooter
               canContinue={canSave}
@@ -455,7 +446,6 @@ export default function ClinicLocationsSetupScreen() {
             <Text style={styles.addLabel}>Add another location</Text>
           </Pressable>
         )}
-        <SetupBillingUpsellLink label="Need more than 2 locations? View plans" />
       </View>
     </FormScreen>
     </>

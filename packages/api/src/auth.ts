@@ -28,6 +28,26 @@ export {
   signUpWithEmail,
   type SignUpSessionResult,
 } from './authSignup';
+export {
+  authPhoneToStorageDigits,
+  authUserHasPhone,
+  authUserHasVerifiedPhone,
+  finishWorkerOtpAuth,
+  finishClinicOtpAuth,
+  normalizeAuthPhone,
+  clearAuthPhoneBind,
+  reclaimAuthPhone,
+  requestAuthPhoneBind,
+  resolvePhoneShellLogin,
+  signInWithEmailOtp,
+  signInWithPhoneOtp,
+  verifyAuthPhoneBind,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+  type AuthPhoneBindResult,
+  type OtpChannel,
+  type SignInWithPhoneOtpOptions,
+} from './authOtp';
 import { getSignupEmailRedirectUrl } from './authSignup';
 
 export const PASSWORD_MIN_LENGTH = 8;
@@ -179,6 +199,17 @@ export async function updatePassword(newPassword: string) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.updateUser({ password: newPassword });
 
+  if (error) throw error;
+  return data.user;
+}
+
+/** Add or change the auth email (Supabase may require confirmation). */
+export async function updateAuthEmail(email: string) {
+  const supabase = getSupabaseClient();
+  const trimmed = email.trim();
+  if (!trimmed) throw new Error('Enter an email address.');
+
+  const { data, error } = await supabase.auth.updateUser({ email: trimmed });
   if (error) throw error;
   return data.user;
 }
@@ -374,6 +405,51 @@ export function getAuthErrorMessage(error: unknown): string {
 
   if (lower.includes('user already registered')) {
     return 'An account with this email already exists.';
+  }
+
+  if (lower.includes('saved without an sms') || lower.includes('enable phone confirmations')) {
+    return 'Phone verification needs SMS confirmations on. In Supabase Auth → Phone, turn Enable phone confirmations On, then try again.';
+  }
+
+  if (
+    lower.includes('invalid payload sent to hook') ||
+    lower.includes('error running hook') ||
+    lower.includes('could not read the phone number')
+  ) {
+    return 'Could not send the verification text. Wait a moment and try again.';
+  }
+
+  // Must run before the generic "otp" matcher — Supabase returns
+  // "Signups not allowed for otp" when shouldCreateUser is false and no Auth
+  // user has this phone yet (profile phone alone does not count).
+  if (
+    lower.includes('signups not allowed') ||
+    lower.includes('signup is disabled') ||
+    lower.includes('user not found') ||
+    (lower.includes('phone') && lower.includes('not found'))
+  ) {
+    return 'No account uses this number for sign-in yet. Sign in with email, open Profile, and verify your mobile — then phone sign-in will work.';
+  }
+
+  if (
+    lower.includes('token has expired') ||
+    lower.includes('token is invalid') ||
+    lower.includes('invalid token') ||
+    lower.includes('otp has expired') ||
+    lower.includes('invalid otp') ||
+    (lower.includes('otp') && (lower.includes('expired') || lower.includes('invalid')))
+  ) {
+    return 'That code is invalid or expired. Request a new one.';
+  }
+
+  if (
+    lower.includes('phone') &&
+    (lower.includes('already') ||
+      lower.includes('registered') ||
+      lower.includes('exists') ||
+      lower.includes('linked'))
+  ) {
+    return 'That number is already linked to another account. Sign in with the account that had this number, remove it there, then try again — or use a different number.';
   }
 
   if (

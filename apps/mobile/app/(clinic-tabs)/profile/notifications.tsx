@@ -21,8 +21,8 @@ export default function ClinicProfileNotificationsScreen() {
 
   const subtitle = isGroupOwner
     ? Platform.OS === 'web'
-      ? 'Managers typically handle applications and candidate messages. Turn off alerts here if you don’t want them on the owner login. Notification history stays available.'
-      : 'Managers typically handle applications and candidate messages. Turn off alerts here if you don’t want them on the owner login. In-app history stays available.'
+      ? 'Managers typically handle cover requests day to day. Turn alerts off here if you don’t want them on the owner login. Notification history stays available.'
+      : 'Managers typically handle cover requests day to day. Turn alerts off here if you don’t want them on the owner login. In-app history stays available.'
     : Platform.OS === 'web'
       ? 'Choose which events show in-app alerts. Notification history stays available.'
       : 'Choose which alerts send push notifications. In-app history stays available.';
@@ -34,19 +34,12 @@ export default function ClinicProfileNotificationsScreen() {
       onBack={() => navigateToClinicProfileHub(router)}>
       <ProfileSettingsCard title={pushAlertsTitle} icon="notifications-outline" iconAccent="secondary">
         <NotificationCategoryPreferences
-          categories={[
-            NOTIFICATION_PREFERENCE_CATEGORIES.messages,
-            NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-          ]}
+          categories={[NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews]}
         />
         <Text style={styles.hint}>
           {isGroupOwner
-            ? Platform.OS === 'web'
-              ? 'Turning Messages or Applications off stops owner alerts while managers keep working those queues. Items still appear in your notification inbox.'
-              : 'Turning Messages or Applications off stops owner push while managers keep working those queues. Items still appear in your notification inbox.'
-            : Platform.OS === 'web'
-              ? 'Application and message notifications still appear in your notification inbox when alerts are off.'
-              : 'Application and message notifications still appear in your notification inbox when push is off.'}
+            ? 'Turning this off stops owner alerts while managers keep working cover requests. Items still appear in your notification inbox. Fill-in texts are sent to your clinic phone either way.'
+            : 'Items still appear in your notification inbox when alerts are off. Fill-in texts are sent to your clinic phone either way.'}
         </Text>
       </ProfileSettingsCard>
     </ProfileDetailScreen>

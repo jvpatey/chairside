@@ -8,7 +8,7 @@ import {
   type LiveShiftPost,
 } from '@chairside/api';
 import type { JobMatchBreakdown, JobMatchContext } from '@chairside/core';
-import { formatJobPostCardMeta } from '@chairside/config';
+import { formatJobPostCardMeta, THIN_PERMANENT_ROLES } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -29,7 +29,12 @@ import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { AnalyticsEvents } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { getApplyScreeningRoute, WORKER_APPLICATIONS, WORKER_PENDING_FILLINS, WORKER_SETUP_BASICS } from '@/lib/routing';
+import {
+  getApplyScreeningRoute,
+  WORKER_APPLICATIONS,
+  WORKER_PENDING_FILLINS,
+  WORKER_FINISH_PROFILE,
+} from '@/lib/routing';
 import { getApplyApplicationKitEditRoute } from '@/hooks/useSetupEditMode';
 import { formatShiftPostMeta, formatShiftPostRoleTitle } from '@/lib/shiftPostDisplay';
 import {
@@ -73,7 +78,7 @@ export default function ApplyScreen() {
     compensation: {
       fontSize: 15,
       fontWeight: '600',
-      color: colors.secondary,
+      color: colors.primary,
     },
     footer: {
       flexDirection: 'row',
@@ -130,7 +135,11 @@ export default function ApplyScreen() {
         }
         setJob(loadedJob);
         setShift(null);
-        setScreeningEnabled(loadedJob.screening_enabled && loadedJob.screening_questions.length > 0);
+        setScreeningEnabled(
+          !THIN_PERMANENT_ROLES &&
+            loadedJob.screening_enabled &&
+            loadedJob.screening_questions.length > 0,
+        );
         if (workerProfile) {
           setJobMatch(computeJobMatchBreakdown(workerProfile, loadedJob));
           setMatchContext(buildLiveJobMatchDisplayContext(workerProfile, loadedJob));
@@ -179,7 +188,7 @@ export default function ApplyScreen() {
         title: 'Complete your profile',
         message: 'Finish setup before applying.',
         confirmLabel: 'Continue setup',
-        onConfirm: () => router.replace(WORKER_SETUP_BASICS),
+        onConfirm: () => router.replace(WORKER_FINISH_PROFILE),
       });
       return;
     }
@@ -187,7 +196,7 @@ export default function ApplyScreen() {
   }, [isProfileComplete, loadPost]);
 
   const handleContinue = () => {
-    if (type === 'job' && screeningEnabled) {
+    if (type === 'job' && screeningEnabled && !THIN_PERMANENT_ROLES) {
       router.push(getApplyScreeningRoute(id));
       return;
     }

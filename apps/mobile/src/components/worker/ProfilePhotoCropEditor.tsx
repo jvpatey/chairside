@@ -3,7 +3,7 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProfilePhotoCropEditorContent } from '@/components/worker/ProfilePhotoCropEditorContent';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import type { ProfilePhotoCropTransform } from '@/lib/profilePhotoCrop';
 import { useThemedStyles } from '@/theme';
@@ -65,7 +65,7 @@ export function ProfilePhotoCropEditor({
         {visible ? (
           <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
             <Pressable onPress={(event) => event.stopPropagation()}>
-              <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+              <SheetSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
                 <ProfilePhotoCropEditorContent
                   imageUri={imageUri}
@@ -75,7 +75,7 @@ export function ProfilePhotoCropEditor({
                   onCancel={onCancel}
                   onConfirm={onConfirm}
                 />
-              </LiquidGlassSurface>
+              </SheetSurface>
             </Pressable>
           </Animated.View>
         ) : null}

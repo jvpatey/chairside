@@ -250,8 +250,8 @@ export function WorkerRoleBrowseFilters({
     <AdaptiveFilterShell
       activeCount={activeCount}
       onReset={handleReset}
-      title="Filter roles"
-      accessibilityLabel="Filter roles"
+      title="Narrow openings"
+      accessibilityLabel="Filter permanent roles by area and role"
     >
       <FilterSheetSection
         label="Sort by"
@@ -360,8 +360,8 @@ export function WorkerFillInBrowseFilters({
     <AdaptiveFilterShell
       activeCount={activeCount}
       onReset={handleReset}
-      title="Filter fill-ins"
-      accessibilityLabel="Filter fill-ins"
+      title="Narrow fill-ins"
+      accessibilityLabel="Filter fill-ins by area, role, and availability"
       accent={accent}
     >
       <FilterSheetSection

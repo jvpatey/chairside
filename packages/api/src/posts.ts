@@ -986,29 +986,23 @@ export async function listLiveShiftPosts(province: string): Promise<LiveShiftPos
   }).map((post) => attachPriorityListing(attachPostLocation(post, locationMap), planMap));
 }
 
-function shiftWeekday(shiftDate: string): number {
-  const date = new Date(`${shiftDate}T12:00:00`);
-  return date.getDay();
-}
-
-/** Live shifts matching any worker role and availability weekdays (mirrors notify fill-in recipient logic). */
+/**
+ * Live shifts matching the worker’s roles (mirrors notify fill-in recipient logic).
+ * Schedule / available-days are not used — SMS and badges filter by role only.
+ * `availabilityDaySet` is accepted for call-site compatibility and ignored.
+ */
 export async function getMatchingLiveShiftPosts(
   province: string,
   roleTypes: string[] | null,
-  availabilityDaySet: number[],
+  _availabilityDaySet?: number[],
 ): Promise<LiveShiftPost[]> {
-  if (!roleTypes?.length || availabilityDaySet.length === 0) {
+  if (!roleTypes?.length) {
     return [];
   }
 
   const roleSet = new Set(roleTypes);
-  const daySet = new Set(availabilityDaySet);
   const liveShifts = await listLiveShiftPosts(province);
-  return liveShifts.filter((shift) => {
-    if (!roleSet.has(shift.role_type)) return false;
-    if (!shift.shift_date) return false;
-    return daySet.has(shiftWeekday(shift.shift_date));
-  });
+  return liveShifts.filter((shift) => roleSet.has(shift.role_type));
 }
 
 export async function getWorkerSeenShiftPostIds(workerId: string): Promise<Set<string>> {

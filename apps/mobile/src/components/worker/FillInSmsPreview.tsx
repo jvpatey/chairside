@@ -2,7 +2,9 @@ import { Text, View } from 'react-native';
 
 import { useThemedStyles } from '@/theme';
 
-const DEFAULT_SMS_BODY = 'Same-day hygienist fill-in opened near you. Today 9–5. Tap to request.';
+/** Matches production `buildFillInSms` tone (YES + Details companion), with generic sample details. */
+export const DEFAULT_SMS_BODY =
+  'Chairside: A nearby clinic posted a fill-in for tomorrow, 8 AM–5 PM. Reply YES 4821 to request. Details: chairsidedental.app/f/… Reply STOP to opt out.';
 
 type FillInSmsPreviewProps = {
   body?: string;

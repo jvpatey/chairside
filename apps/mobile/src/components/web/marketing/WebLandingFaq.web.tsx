@@ -16,15 +16,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const FAQ_ITEMS = [
   {
     id: 'free-tier',
-    question: 'Is there really a free tier?',
+    question: 'Is Chairside free to use?',
     answer:
-      'Yes. Clinics can keep one live role and one live fill-in at no cost. Dental professionals — hygienists, assistants, receptionists, and others — always join and apply for free.',
+      'Yes. Chairside is currently free for both dental clinics and dental professionals — post fill-in shifts and permanent roles with no limits.',
   },
   {
     id: 'who-can-join',
     question: 'Who can join Chairside?',
     answer:
-      'Canadian dental clinics hiring staff, and dental professionals looking for permanent roles or fill-in shifts. Create a clinic profile to post openings, or a professional profile to browse and apply.',
+      'Canadian dental clinics that need same-day coverage (and occasional permanent roles), and dental professionals who want fill-in shifts. Clinics post; professionals get texts and request cover by replying YES.',
   },
   {
     id: 'provinces',
@@ -36,19 +36,19 @@ const FAQ_ITEMS = [
     id: 'fill-ins',
     question: 'How do fill-in shifts work?',
     answer:
-      'Clinics post a same-day or short-notice fill-in. Available professionals nearby get a push and SMS, then request to cover in-app. You accept the right person and message them in Chairside — no phone tree.',
+      'Clinics post a same-day or short-notice fill-in. Nearby professionals get an SMS with Reply YES to request cover, plus a Details link. The clinic confirms the best match — YES is a request, not an auto-hire. The app holds status, contact, and map details.',
   },
   {
-    id: 'matching',
-    question: 'How does matching and screening work?',
+    id: 'roles',
+    question: 'What about permanent roles?',
     answer:
-      'Professionals see match scores on roles so they can tell fit at a glance. Clinics can add screening questions on paid plans, then compare applicants before opening a message.',
+      'Permanent roles stay lightweight: clinics can post openings for awareness, and professionals can apply. Fill-ins are the SMS-first product; roles are not part of the text handshake.',
   },
   {
     id: 'groups',
     question: 'Can multi-location groups use Chairside?',
     answer:
-      'Yes. Group plans let you manage multiple locations, invite managers, and keep hiring centralized. Start free with up to two locations and one manager per location, plus one live role and one live fill-in across the group.',
+      'Yes. Dental groups can manage multiple clinic locations, invite managers, and coordinate coverage and hiring from one place.',
   },
 ] as const;
 
@@ -172,7 +172,7 @@ export function WebLandingFaq() {
         <WebMarketingSectionHeader
           eyebrow="FAQ"
           title="Common questions"
-          subtitle="Straight answers about pricing, coverage, and how Chairside works."
+          subtitle="Straight answers about coverage and how Chairside works."
         />
 
         <View style={styles.card}>

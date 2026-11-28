@@ -9,21 +9,12 @@ import { ProfileSettingsGroup } from '@/components/profile/ProfileSettingsGroup'
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import {
-  getClinicMembershipRoleLabel,
-  resolveClinicMemberDisplayName,
-} from '@/hooks/useClinicActingContext';
 import { useClinicMemberPhoto } from '@/hooks/useClinicMemberPhoto';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { isPlatformAdminEmail } from '@/lib/platformAdmin';
 import {
   getAccountSubtitle,
-  getClinicAboutSubtitle,
-  getClinicBillingSubtitle,
-  getClinicGroupProfileSubtitle,
   getClinicLocationsSubtitle,
-  getClinicMemberProfileSubtitle,
-  getClinicMessagingSubtitle,
   getClinicNotificationsSubtitle,
   getClinicPracticeSubtitle,
   getSupportSubtitle,
@@ -31,52 +22,32 @@ import {
 import {
   CLINIC_ADMIN,
   CLINIC_HOME,
-  CLINIC_PROFILE_ABOUT,
   CLINIC_PROFILE_ACCOUNT,
-  CLINIC_PROFILE_BILLING,
-  CLINIC_PROFILE_GROUP,
   CLINIC_PROFILE_LOCATIONS,
-  CLINIC_PROFILE_MEMBER,
-  CLINIC_PROFILE_MESSAGING,
   CLINIC_PROFILE_NOTIFICATIONS,
   CLINIC_PROFILE_PRACTICE,
   CLINIC_PROFILE_SUPPORT,
-  CLINIC_PROFILE_TEAM,
+  CLINIC_PROFILE_TEXT_ALERTS,
 } from '@/lib/routing';
+import { getClinicTextAlertsSubtitle, isClinicTextPhoneVerified } from '@/lib/clinicTextAlerts';
 import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
-import { getClinicPlanLabel, useClinicBilling } from '@/contexts/ClinicBillingContext';
-import { isClinicBillingFeatureLocked } from '@/lib/clinicPlanPresentation';
 import { isClinicGroupsEnabled } from '@chairside/api';
 
 export default function ClinicAccountProfileScreen() {
-  const { user, profile: authProfile } = useAuth();
+  const { user } = useAuth();
   const {
     clinicProfile,
     isClinicProfileReady,
     isGroup,
     isOwner,
     locations,
-    organization,
-    membership,
   } = useClinicProfile();
-  const { photoUri: memberPhotoUri, hasPhoto: hasMemberPhoto } = useClinicMemberPhoto();
-  const { billing, isBillingReady } = useClinicBilling();
+  const { photoUri: memberPhotoUri } = useClinicMemberPhoto();
   const { isCompact, isTablet } = useResponsiveLayout();
   const { colors } = useTheme();
   const showAdminEntry =
     Platform.OS === 'web' && !isTablet && isPlatformAdminEmail(user?.email);
   const groupsEnabled = isClinicGroupsEnabled();
-  const groupDisplayName =
-    organization?.name?.trim() || clinicProfile?.clinic_name?.trim() || 'Dental group';
-  const memberName = resolveClinicMemberDisplayName({
-    displayName: membership?.display_name,
-    fallbackDisplayName: authProfile?.display_name,
-  });
-  const memberRoleLabel = getClinicMembershipRoleLabel(membership?.role, isOwner);
-  // Groups: person title, then "Owner · Dental Group"
-  const groupIdentityLine = isGroup
-    ? `${memberRoleLabel} · ${groupDisplayName}`
-    : null;
 
   const styles = useThemedStyles(({ spacing }) => ({
     content: { gap: spacing.lg },
@@ -92,7 +63,7 @@ export default function ClinicAccountProfileScreen() {
     );
   }
 
-  const openMemberProfile = () => router.push(CLINIC_PROFILE_MEMBER);
+  const openMemberProfile = () => router.push(CLINIC_PROFILE_LOCATIONS);
 
   return (
     <ProfileDetailScreen
@@ -102,33 +73,14 @@ export default function ClinicAccountProfileScreen() {
         <ClinicProfileHero
           email={user?.email}
           profile={clinicProfile}
-          displayName={isGroup ? memberName || 'Your profile' : null}
-          identityLine={groupIdentityLine}
           editable
-          plan={billing?.plan ?? 'free'}
           memberPhotoUri={isGroup ? memberPhotoUri : null}
-          memberDisplayName={isGroup ? memberName || 'Your profile' : null}
           onAvatarPress={isGroup ? openMemberProfile : undefined}
           hideClinicMeta={isGroup}
           isGroup={isGroup}
         />
 
         <ProfileSettingsGroup>
-          {groupsEnabled && isGroup ? (
-            <ProfileSettingsRow
-              icon="person-outline"
-              title="Your profile"
-              subtitle={getClinicMemberProfileSubtitle({
-                displayName: membership?.display_name,
-                title: membership?.title,
-                hasPhoto: hasMemberPhoto,
-                hasBio: Boolean(membership?.bio?.trim()),
-              })}
-              iconColor={colors.primary}
-              iconBackgroundColor={colors.primarySubtle}
-              onPress={openMemberProfile}
-            />
-          ) : null}
           {!isGroup ? (
             <ProfileSettingsRow
               icon="business-outline"
@@ -139,35 +91,10 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_PRACTICE)}
             />
           ) : null}
-          {groupsEnabled && isGroup && isOwner ? (
+          {groupsEnabled && (isOwner || isGroup) ? (
             <ProfileSettingsRow
               icon="business-outline"
-              title="Group profile"
-              subtitle={getClinicGroupProfileSubtitle(clinicProfile, {
-                doctorCount: clinicProfile?.practice_doctors?.length ?? 0,
-              })}
-              iconColor={colors.primary}
-              iconBackgroundColor={colors.primarySubtle}
-              onPress={() => router.push(CLINIC_PROFILE_GROUP)}
-            />
-          ) : null}
-          {!isGroup ? (
-            <ProfileSettingsRow
-              icon="document-text-outline"
-              title="About"
-              subtitle={getClinicAboutSubtitle(clinicProfile, {
-                isGroup: false,
-                doctorCount: clinicProfile?.practice_doctors?.length ?? 0,
-              })}
-              iconColor={colors.secondary}
-              iconBackgroundColor={colors.secondarySubtle}
-              onPress={() => router.push(CLINIC_PROFILE_ABOUT)}
-            />
-          ) : null}
-          {groupsEnabled && isGroup ? (
-            <ProfileSettingsRow
-              icon="business-outline"
-              title="Locations"
+              title={isGroup ? 'Group & clinics' : 'Clinics'}
               subtitle={getClinicLocationsSubtitle({
                 locations,
                 isOwner,
@@ -178,20 +105,17 @@ export default function ClinicAccountProfileScreen() {
               onPress={() => router.push(CLINIC_PROFILE_LOCATIONS)}
             />
           ) : null}
-          {groupsEnabled && isGroup ? (
-            <ProfileSettingsRow
-              icon="people-outline"
-              title="Team & access"
-              subtitle={
-                isOwner
-                  ? `Manage access for ${groupDisplayName}`
-                  : 'Your manager access'
-              }
-              iconColor={colors.info}
-              iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
-              onPress={() => router.push(CLINIC_PROFILE_TEAM)}
-            />
-          ) : null}
+          <ProfileSettingsRow
+            icon="chatbubble-ellipses-outline"
+            title="Text alerts"
+            subtitle={getClinicTextAlertsSubtitle({
+              storedPhone: clinicProfile?.phone,
+              verified: isClinicTextPhoneVerified(user, clinicProfile?.phone),
+            })}
+            iconColor={colors.primary}
+            iconBackgroundColor={colors.primarySubtle}
+            onPress={() => router.push(CLINIC_PROFILE_TEXT_ALERTS)}
+          />
           <ProfileSettingsRow
             icon="notifications-outline"
             title="Notifications"
@@ -201,28 +125,6 @@ export default function ClinicAccountProfileScreen() {
             iconColor={colors.info}
             iconBackgroundColor={colorWithAlpha(colors.info, 0.094)}
             onPress={() => router.push(CLINIC_PROFILE_NOTIFICATIONS)}
-          />
-          <ProfileSettingsRow
-            icon="chatbubbles-outline"
-            title="Messaging"
-            subtitle={getClinicMessagingSubtitle(clinicProfile, {
-              locked: isClinicBillingFeatureLocked(
-                billing,
-                isBillingReady,
-                'canUseGeneralCandidateMessaging',
-              ),
-            })}
-            iconColor={colors.success}
-            iconBackgroundColor={colorWithAlpha(colors.success, 0.094)}
-            onPress={() => router.push(CLINIC_PROFILE_MESSAGING)}
-          />
-          <ProfileSettingsRow
-            icon="card-outline"
-            title="Plans & billing"
-            subtitle={getClinicBillingSubtitle(getClinicPlanLabel(billing?.plan ?? 'free'))}
-            iconColor={colors.warning}
-            iconBackgroundColor={colorWithAlpha(colors.warning, 0.094)}
-            onPress={() => router.push(CLINIC_PROFILE_BILLING)}
           />
           {isCompact ? (
             <ProfileSettingsRow

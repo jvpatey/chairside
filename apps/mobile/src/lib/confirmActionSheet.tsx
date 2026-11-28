@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 
-import { ActionMenuSheet } from '@/components/ui/ActionMenuSheet';
+import { ActionMenuSheet, type ActionMenuSheetDetail } from '@/components/ui/ActionMenuSheet';
 
 export type ConfirmActionSheetRequest = {
   title: string;
   message?: string;
+  /** Optional checklist shown under the message. */
+  details?: ActionMenuSheetDetail[];
   confirmLabel: string;
   destructive?: boolean;
   onConfirm: () => void | Promise<void>;
@@ -31,6 +33,7 @@ export function ConfirmActionSheetHost() {
       visible={request != null}
       title={request?.title}
       message={request?.message}
+      details={request?.details}
       actions={
         request
           ? [

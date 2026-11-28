@@ -63,9 +63,9 @@ export function CustomScreeningQuestionSheetBody({
     },
     input: {
       fontSize: typography.body.fontSize,
-      backgroundColor: colors.backgroundGrouped,
+      backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
-      borderColor: colors.separator,
+      borderColor: colors.fieldBorder,
       borderRadius: 12,
       paddingHorizontal: spacing.md,
       paddingVertical: 12,

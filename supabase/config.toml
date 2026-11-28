@@ -10,5 +10,8 @@ verify_jwt = false
 [functions.pingram-sms-inbound]
 verify_jwt = false
 
+[functions.send-auth-sms]
+verify_jwt = false
+
 [functions.revenuecat-webhook]
 verify_jwt = false

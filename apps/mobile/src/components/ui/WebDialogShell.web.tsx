@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View, Animated, type StyleProp, type ViewStyle } from 'react-native';
 
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { useWebEscapeKey } from '@/hooks/useWebEscapeKey';
 import { useDialogEnter } from '@/lib/webMotion.web';
 import { webHover, webIconButtonHoverStyles, webPointer } from '@/lib/webPressableStyles';
@@ -107,7 +107,7 @@ export function WebDialogShell({
             },
           ]}
         >
-          <LiquidGlassSurface borderRadius={radii.xxl} style={style}>
+          <SheetSurface borderRadius={radii.xxl} style={style}>
             <View style={[styles.panel, showCloseButton && styles.panelWithClose]}>
               {showCloseButton ? (
                 <View style={styles.topChrome}>
@@ -127,7 +127,7 @@ export function WebDialogShell({
               ) : null}
               <View style={styles.body}>{children}</View>
             </View>
-          </LiquidGlassSurface>
+          </SheetSurface>
         </Animated.View>
       </View>
     </Modal>

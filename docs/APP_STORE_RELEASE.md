@@ -194,13 +194,15 @@ Password reset and sign-up confirmation emails use **Supabase Auth** for tokens 
 1. Verify the from-domain in Pingram **Domains** (`chairsidedental.app` or `chairside.app`).
 2. Pingram **Email Playground → SMTP & Supabase → Integrate with Supabase** (or manual: `smtp.ca.pingram.io`, port 465, username `auth_emails`).
 3. In Supabase **Authentication → SMTP**, confirm **Custom SMTP** is enabled and the from-address matches the verified domain.
-4. Enable **Confirm email** only after a test message appears in Pingram logs (not only `confirmation_sent_at`).
+4. Keep **Confirm email** **Off** for worker email OTP (code-in-app). Turn it On only if clinic password signup must require a link click; then Confirm signup must still include `{{ .Token }}`.
 5. **URL Configuration:** Site URL `https://chairsidedental.app`; Redirect URLs include `https://chairsidedental.app/**`, `https://chairside.app/**` (if used), and `chairside://**`.
-6. Prove it: new signup confirmation and password reset both arrive; the confirm link opens `https://chairsidedental.app/auth/callback` and finishes setup.
+6. Prove it: worker email OTP arrives as a 6-digit code; password reset arrives; optional confirm link opens `https://chairsidedental.app/auth/callback`.
 7. Replace the default Auth email HTML (old green Supabase template) with the Chairside templates:
-   - [supabase/templates/confirm-signup.html](../supabase/templates/confirm-signup.html) → **Authentication → Emails → Confirm signup**
+   - [supabase/templates/confirm-signup.html](../supabase/templates/confirm-signup.html) → **Authentication → Emails → Confirm signup** (code + optional link)
    - [supabase/templates/reset-password.html](../supabase/templates/reset-password.html) → **Reset password**
-   Subjects: `Confirm your Chairside email` and `Reset your Chairside password`.
+   - [supabase/templates/magic-link.html](../supabase/templates/magic-link.html) → **Magic Link** (must include `{{ .Token }}` for email OTP codes)
+   Subjects: `Your Chairside confirmation code`, `Reset your Chairside password`, and `Your Chairside sign-in code`.
+   Set **Email OTP length** to **6**.
 
 ## Quick reference
 

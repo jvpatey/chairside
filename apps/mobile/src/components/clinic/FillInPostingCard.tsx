@@ -1,6 +1,6 @@
 import type { ShiftPost } from '@chairside/api';
 import { router } from 'expo-router';
-import { LayoutAnimation, Platform, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, Text, UIManager, View } from 'react-native';
 
 import { ShiftPostDetailView } from '@/components/clinic/ShiftPostDetailView';
 import { ShiftPostManageMenu } from '@/components/clinic/ShiftPostManageMenu';
@@ -29,7 +29,7 @@ import {
   getEditShiftRoute,
   type FillInReturnTarget,
 } from '@/lib/routing';
-import { useThemedStyles, type GradientAccent } from '@/theme';
+import { fontSemibold, useThemedStyles, type GradientAccent } from '@/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -73,21 +73,22 @@ export function FillInPostingCard({
   const { siteName, placeLabel } = resolveClinicJobLocationParts(shift, locations, clinicProfile);
   const location = resolveClinicJobLocationLabel(shift, locations, clinicProfile);
   const subtitleName = isGroup ? siteName || clinicName : clinicName;
-  const shiftMeta = formatShiftPostMeta(shift);
+  const whenLabel = formatShiftPostMeta(shift);
+  const roleTitle = formatShiftPostRoleTitle(shift.role_type);
   const metaRows = buildFillInListingMetaRows({
     location: placeLabel,
-    shiftMeta,
+    shiftMeta: null,
     postedAt: shift.created_at,
     viewCount,
   });
 
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing }) => ({
     actions: {
       gap: spacing.sm,
     },
     actionsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
       gap: spacing.sm,
     },
     actionButton: {
@@ -96,7 +97,14 @@ export function FillInPostingCard({
     subtitleStack: {
       gap: spacing.xs,
       minWidth: 0,
-      alignSelf: 'stretch',
+      alignSelf: 'stretch' as const,
+    },
+    roleLine: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
+      color: colors.secondary,
     },
   }));
 
@@ -120,9 +128,12 @@ export function FillInPostingCard({
     <BrowseListRow
       paddingless
       avatar={<ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />}
-      title={formatShiftPostRoleTitle(shift.role_type)}
+      title={whenLabel}
       subtitle={
         <View style={styles.subtitleStack}>
+          <Text style={styles.roleLine} numberOfLines={1}>
+            {roleTitle}
+          </Text>
           <ListingClinicSubtitle name={subtitleName} isGroup={isGroup} />
           {statusBadges}
         </View>
@@ -144,8 +155,7 @@ export function FillInPostingCard({
       onToggleExpand={toggleExpanded}
       variant={embedded ? 'inner' : 'default'}
       accent={accent}
-      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+      cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}>
       <ShiftPostDetailView
         shift={shift}
         variant="embedded"

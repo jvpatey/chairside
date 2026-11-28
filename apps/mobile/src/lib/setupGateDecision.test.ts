@@ -96,7 +96,30 @@ describe('getClinicSetupGateDecision', () => {
       }),
     ).toEqual({ type: 'redirect', href: '/(tabs)' });
   });
+
+  it('shows children for incomplete clinics after ready (soft gate)', () => {
+    expect(
+      getClinicSetupGateDecision({
+        isAuthReady: true,
+        session: {},
+        profile: { id: 'u1', role: 'clinic' } as never,
+        isProfileReady: true,
+        isClinicProfileReady: true,
+        clinicProfile: {
+          id: 'clinic-1',
+          account_type: 'individual',
+          clinic_name: null,
+          setup_completed_at: null,
+        } as never,
+        membership: null,
+        isOwner: true,
+        isClinicGroupsEnabled: false,
+        isClinicSetupComplete: () => false,
+      }),
+    ).toEqual({ type: 'children' });
+  });
 });
+
 
 describe('getWorkerSetupGateDecision', () => {
   it('stays loading while session exists but auth profile has not settled', () => {
@@ -107,13 +130,11 @@ describe('getWorkerSetupGateDecision', () => {
         profile: null,
         isProfileReady: false,
         isWorkerProfileReady: false,
-        workerProfile: null,
-        isWorkerSetupComplete: () => false,
       }),
     ).toEqual({ type: 'loading' });
   });
 
-  it('redirects to setup when worker profile is null after ready', () => {
+  it('shows children for incomplete workers after ready', () => {
     expect(
       getWorkerSetupGateDecision({
         isAuthReady: true,
@@ -121,10 +142,8 @@ describe('getWorkerSetupGateDecision', () => {
         profile: { id: 'u1', role: 'worker' } as never,
         isProfileReady: true,
         isWorkerProfileReady: true,
-        workerProfile: null,
-        isWorkerSetupComplete: () => false,
       }),
-    ).toEqual({ type: 'redirect', href: '/(worker-setup)/basics' });
+    ).toEqual({ type: 'children' });
   });
 
   it('redirects clinic users away from worker tabs', () => {
@@ -135,13 +154,11 @@ describe('getWorkerSetupGateDecision', () => {
         profile: { id: 'u1', role: 'clinic' } as never,
         isProfileReady: true,
         isWorkerProfileReady: true,
-        workerProfile: null,
-        isWorkerSetupComplete: () => false,
       }),
     ).toEqual({ type: 'redirect', href: '/(clinic-tabs)' });
   });
 
-  it('shows children when worker setup is complete', () => {
+  it('shows children when worker role is set', () => {
     expect(
       getWorkerSetupGateDecision({
         isAuthReady: true,
@@ -149,8 +166,6 @@ describe('getWorkerSetupGateDecision', () => {
         profile: { id: 'u1', role: 'worker' } as never,
         isProfileReady: true,
         isWorkerProfileReady: true,
-        workerProfile: { setup_completed_at: '2026-01-01T00:00:00.000Z' },
-        isWorkerSetupComplete: () => true,
       }),
     ).toEqual({ type: 'children' });
   });

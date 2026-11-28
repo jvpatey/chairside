@@ -187,8 +187,8 @@ export default function WorkerFillInsSetupScreen() {
           <Text style={styles.onBannerTitle}>Fill-in alerts are on</Text>
           <Text style={styles.onBannerBody}>
             {textsOn
-              ? 'You’ll get fill-ins by notification and text.'
-              : 'You’ll get a notification when clinics near you post. Add texts below so you never miss one.'}
+              ? 'Text alerts are on by default for your number. Turn them off below if you prefer push only.'
+              : 'Push alerts are on. Turn on text alerts below for faster same-day coverage.'}
           </Text>
         </View>
         <Pressable

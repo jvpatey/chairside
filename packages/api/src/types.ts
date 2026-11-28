@@ -701,6 +701,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      clear_own_auth_phone: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       record_job_post_listing_view: {
         Args: { p_job_post_id: string };
         Returns: undefined;
@@ -774,6 +778,18 @@ export type Database = {
       confirm_fill_in_applicant: {
         Args: { application_id: string };
         Returns: ApplicationRow;
+      };
+      create_fill_in_decision_token: {
+        Args: { p_application_id: string };
+        Returns: string;
+      };
+      get_fill_in_decision_preview: {
+        Args: { p_application_id: string; p_token: string };
+        Returns: Record<string, unknown> | null;
+      };
+      decide_fill_in_from_sms: {
+        Args: { p_application_id: string; p_token: string; p_decision: string };
+        Returns: Record<string, unknown>;
       };
       cancel_confirmed_fill_in: {
         Args: { application_id: string; message?: string | null };

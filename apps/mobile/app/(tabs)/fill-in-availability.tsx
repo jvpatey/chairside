@@ -1,18 +1,29 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { FormScreen } from '@/components/ui/FormScreen';
 import { FillInAvailabilityManageView } from '@/components/worker/FillInAvailabilityManageView';
-import { WORKER_FILLINS } from '@/lib/routing';
+import {
+  navigateToWorkerProfileHub,
+  WORKER_FILLINS,
+} from '@/lib/routing';
 
 export default function FillInAvailabilityScreen() {
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const fromProfile = returnTo === 'profile';
+
   return (
     <FormScreen
-      atmosphereAccent="secondary"
-      accent="secondary"
-      title="Fill-in availability"
-      subtitle="Alerts, outreach, and your available days."
-      onBack={() => router.replace(WORKER_FILLINS)}
-    >
+      atmosphereAccent="primary"
+      accent="primary"
+      title="Text alerts"
+      subtitle="We’ll text you when a fill-in opens nearby."
+      onBack={() => {
+        if (fromProfile) {
+          navigateToWorkerProfileHub(router);
+          return;
+        }
+        router.replace(WORKER_FILLINS);
+      }}>
       <FillInAvailabilityManageView />
     </FormScreen>
   );

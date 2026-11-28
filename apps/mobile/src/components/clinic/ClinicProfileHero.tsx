@@ -1,11 +1,9 @@
 import type { ClinicProfile } from '@chairside/api';
-import type { ClinicPlan } from '@chairside/config';
-import { getProvinceLabel, SPECIALTY_OPTIONS } from '@chairside/config';
+import { getProvinceLabel } from '@chairside/config';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccountTypeBadge } from '@/components/account/AccountTypeBadge';
-import { PlanTierBadge } from '@/components/billing/PlanTierBadge';
 import { ClinicLogoAvatar } from '@/components/clinic/ClinicLogoAvatar';
 import { WorkerProfileAvatar } from '@/components/worker/WorkerProfileAvatar';
 import { ProfilePhotoCropEditor } from '@/components/worker/ProfilePhotoCropEditor';
@@ -34,7 +32,6 @@ export type ClinicIdentityHeroCardProps = {
   showAccountBadge?: boolean;
   /** When true, badge reads "Clinic group account" instead of "Clinic account". */
   isGroup?: boolean;
-  plan?: ClinicPlan | null;
   emptyMetaFallback?: string;
 };
 
@@ -54,7 +51,6 @@ export function ClinicIdentityHeroCard({
   avatarAccessibilityLabel,
   showAccountBadge = false,
   isGroup = false,
-  plan,
   emptyMetaFallback,
 }: ClinicIdentityHeroCardProps) {
   const { colors } = useTheme();
@@ -193,16 +189,13 @@ export function ClinicIdentityHeroCard({
           ) : null}
           {email?.trim() ? <Text style={styles.email}>{email.trim()}</Text> : null}
           {metaLine ? <Text style={styles.meta}>{metaLine}</Text> : null}
-          {showAccountBadge || plan ? (
+          {showAccountBadge ? (
             <View style={styles.badgeRow}>
               <BadgeRow>
-                {showAccountBadge ? (
-                  <AccountTypeBadge
-                    label={getAccountTypeLabel('clinic', { isGroup })}
-                    inRow
-                  />
-                ) : null}
-                {plan ? <PlanTierBadge plan={plan} size="sm" /> : null}
+                <AccountTypeBadge
+                  label={getAccountTypeLabel('clinic', { isGroup })}
+                  inRow
+                />
               </BadgeRow>
             </View>
           ) : null}
@@ -220,10 +213,8 @@ type ClinicProfileHeroProps = {
   identityLine?: string | null;
   identityInline?: boolean;
   editable?: boolean;
-  plan?: ClinicPlan | null;
   /** Group: show member photo / person avatar instead of org logo. */
   memberPhotoUri?: string | null;
-  memberDisplayName?: string | null;
   /** When set, overrides default avatar press (e.g. open Your profile). */
   onAvatarPress?: () => void;
   isUploadingAvatar?: boolean;
@@ -239,9 +230,7 @@ export function ClinicProfileHero({
   identityLine,
   identityInline = false,
   editable = false,
-  plan,
   memberPhotoUri,
-  memberDisplayName,
   onAvatarPress,
   isUploadingAvatar,
   hideClinicMeta = false,
@@ -257,9 +246,8 @@ export function ClinicProfileHero({
   } = useClinicLogo();
   const name =
     displayName?.trim() || profile?.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel = hideClinicMeta
-    ? null
-    : SPECIALTY_OPTIONS.find((item) => item.value === profile?.specialty)?.label ?? null;
+  // Practice type (specialty) is intentionally not shown on the settings hero.
+  const specialtyLabel: string | null = null;
   const locationLabel = hideClinicMeta
     ? null
     : [profile?.city, profile?.province ? getProvinceLabel(profile.province) : null]
@@ -275,7 +263,6 @@ export function ClinicProfileHero({
       <ClinicIdentityHeroCard
         clinicName={name}
         logoUri={avatarUri}
-        personName={memberDisplayName || name}
         avatarKind={usePersonAvatar ? 'person' : 'clinic'}
         specialtyLabel={specialtyLabel}
         locationLabel={locationLabel || null}
@@ -292,9 +279,8 @@ export function ClinicProfileHero({
               ? 'Change profile photo'
               : 'Change clinic logo'
         }
-        showAccountBadge
+        showAccountBadge={isGroup}
         isGroup={isGroup}
-        plan={plan}
         emptyMetaFallback={
           hideClinicMeta ? undefined : 'Complete your clinic profile to get started'
         }

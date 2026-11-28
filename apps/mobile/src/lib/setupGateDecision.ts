@@ -1,12 +1,7 @@
 import type { ClinicProfile, Profile } from '@chairside/api';
 import type { Href } from 'expo-router';
 
-import {
-  CLINIC_SETUP_ACCOUNT_TYPE,
-  CLINIC_SETUP_BASICS,
-  getHomeRouteForRole,
-  WORKER_SETUP_BASICS,
-} from '@/lib/routing';
+import { getHomeRouteForRole } from '@/lib/routing';
 
 export type SetupGateDecision =
   | { type: 'loading' }
@@ -24,6 +19,7 @@ type ClinicGateInput = {
   membership: unknown;
   isOwner: boolean;
   isClinicGroupsEnabled: boolean;
+  /** Kept for call-site compatibility; profile completeness is soft-gated on post. */
   isClinicSetupComplete: (profile: ClinicProfile) => boolean;
 };
 
@@ -34,8 +30,6 @@ type WorkerGateInput = {
   /** False while session exists but auth profile fetch has not settled. */
   isProfileReady: boolean;
   isWorkerProfileReady: boolean;
-  workerProfile: { setup_completed_at?: string | null } | null;
-  isWorkerSetupComplete: (profile: NonNullable<WorkerGateInput['workerProfile']>) => boolean;
 };
 
 function getSessionUserId(session: unknown): string | null {
@@ -54,12 +48,14 @@ function isStaleAuthProfile(session: unknown, profile: Profile | null): boolean 
   return Boolean(sessionUserId && profile.id !== sessionUserId);
 }
 
+/**
+ * Soft clinic tab gate — mirrors workers. Incomplete clinic profiles are nudged
+ * at post time via guardClinicPosting, not blocked from the app shell.
+ */
 export function getClinicSetupGateDecision(input: ClinicGateInput): SetupGateDecision {
   if (!input.isAuthReady) return { type: 'loading' };
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
-  // Session recovered but profile still loading — do not treat null as "pick role".
   if (!input.isProfileReady) return { type: 'loading' };
-  // Previous account's profile must not drive routing after a switch.
   if (isStaleAuthProfile(input.session, input.profile)) return { type: 'loading' };
   if (input.profile === null) {
     return { type: 'redirect', href: '/(onboarding)/role?fromAuth=1' };
@@ -69,34 +65,12 @@ export function getClinicSetupGateDecision(input: ClinicGateInput): SetupGateDec
   }
   if (!input.isClinicProfileReady) return { type: 'loading' };
 
-  if (input.membership && !input.isOwner) {
-    return { type: 'children' };
-  }
-
-  if (input.clinicProfile === null) {
-    return {
-      type: 'redirect',
-      href: input.isClinicGroupsEnabled ? CLINIC_SETUP_ACCOUNT_TYPE : CLINIC_SETUP_BASICS,
-    };
-  }
-
-  if (!input.isClinicSetupComplete(input.clinicProfile)) {
-    return {
-      type: 'redirect',
-      href:
-        input.isClinicGroupsEnabled && !input.clinicProfile.account_type
-          ? CLINIC_SETUP_ACCOUNT_TYPE
-          : CLINIC_SETUP_BASICS,
-    };
-  }
-
   return { type: 'children' };
 }
 
 export function getWorkerSetupGateDecision(input: WorkerGateInput): SetupGateDecision {
   if (!input.isAuthReady) return { type: 'loading' };
   if (!input.session) return { type: 'redirect', href: '/(onboarding)/welcome' };
-  // Session recovered but profile still loading — do not treat null as "pick role".
   if (!input.isProfileReady) return { type: 'loading' };
   if (isStaleAuthProfile(input.session, input.profile)) return { type: 'loading' };
   if (input.profile === null) {
@@ -106,10 +80,6 @@ export function getWorkerSetupGateDecision(input: WorkerGateInput): SetupGateDec
     return { type: 'redirect', href: getHomeRouteForRole('clinic') };
   }
   if (!input.isWorkerProfileReady) return { type: 'loading' };
-
-  if (input.workerProfile === null || !input.isWorkerSetupComplete(input.workerProfile)) {
-    return { type: 'redirect', href: WORKER_SETUP_BASICS };
-  }
 
   return { type: 'children' };
 }

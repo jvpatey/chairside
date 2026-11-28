@@ -41,12 +41,12 @@ export function ChipSelector<T extends string>({
     wrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: compact ? spacing.xs : spacing.sm,
+      gap: compact ? spacing.sm : spacing.md,
     },
     horizontalContent: {
       flexDirection: 'row',
-      gap: compact ? spacing.xs : spacing.sm,
-      paddingRight: spacing.xs,
+      gap: compact ? spacing.sm : spacing.md,
+      paddingRight: spacing.sm,
     },
     chip: {
       borderRadius: 999,
@@ -54,7 +54,7 @@ export function ChipSelector<T extends string>({
       borderColor: colors.separator,
       backgroundColor: colors.surface,
       paddingHorizontal: compact ? spacing.sm : spacing.md,
-      paddingVertical: compact ? 4 : spacing.sm,
+      paddingVertical: compact ? spacing.xs : spacing.sm,
       ...webPointer(),
     },
     chipHovered: webChipHoverStyles(colors),

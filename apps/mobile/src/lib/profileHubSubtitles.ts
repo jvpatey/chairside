@@ -10,34 +10,35 @@ import {
   isClinicProfileComplete,
   isWorkerProfileComplete,
 } from '@chairside/api';
-import { getProvinceLabel, formatRoleTypesLabel, getSpecialtyLabel } from '@chairside/config';
+import { getProvinceLabel, formatRoleTypesLabel } from '@chairside/config';
 
-import { getFillInSmsSubtitlePart } from '@/lib/fillInAvailabilitySummary';
+import {
+  getFillInSmsStatus,
+  getFillInSmsSubtitlePart,
+} from '@/lib/fillInAvailabilitySummary';
 import { formatPhoneNumber } from '@/lib/phone';
 
 export function getAccountTypeLabel(
   role: UserRole,
   options?: { isGroup?: boolean },
 ): string {
-  if (role === 'worker') return 'Find work';
+  if (role === 'worker') return 'Worker';
   return options?.isGroup ? 'Clinic group' : 'Clinic';
 }
 
 export function getProfessionalBackgroundSubtitle(profile: WorkerProfile | null): string {
   if (!profile) {
-    return 'Add roles, experience, and location';
+    return 'Add your role and city';
   }
 
   if (!isWorkerProfileComplete(profile)) {
     const hasRoles = getWorkerRoleTypes(profile).length > 0;
-    const hasLocation = Boolean(
-      profile.address_line1?.trim() && profile.city?.trim() && profile.postal_code?.trim(),
-    );
+    const hasPlace = Boolean(profile.city?.trim() && profile.province?.trim());
 
-    if (!hasRoles && !hasLocation) return 'Add roles and location to complete';
-    if (!hasRoles) return 'Add your roles to complete';
-    if (!hasLocation) return 'Add your location to complete';
-    return 'Finish required details';
+    if (!hasRoles && !hasPlace) return 'Add role and city for fill-in texts';
+    if (!hasRoles) return 'Add your role';
+    if (!hasPlace) return 'Add your city';
+    return 'Add your mobile number';
   }
 
   const roleLabel = formatRoleTypesLabel(getWorkerRoleTypes(profile)) || null;
@@ -55,11 +56,11 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
   const hasNote = Boolean(profile?.default_cover_message?.trim());
 
   if (!hasResume && !hasPhoto && !hasNote) {
-    return 'Add a resume, photo, and note for clinics';
+    return 'Resume and note for clinics';
   }
 
   if (hasResume && hasPhoto && hasNote) {
-    return 'Resume, photo, and note clinics see when you apply';
+    return 'Resume, photo, and note ready';
   }
 
   const added: string[] = [];
@@ -76,11 +77,48 @@ export function getApplicationKitSubtitle(profile: WorkerProfile | null): string
       ? `Add a ${missing[0]}`
       : missing.length === 2
         ? `Add ${missing[0]} and ${missing[1]}`
-        : 'Add a resume, photo, and note';
+        : 'Add resume and note';
 
   return added.length > 0 ? `${added[0]} · ${missingLabel}` : missingLabel;
 }
 
+/** Short On / Off / Add phone — account menu trailing status. */
+export function getTextAlertsStatusLabel(profile: WorkerProfile | null): string {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return 'Off';
+  if (smsActive) return 'On';
+  if (smsNeedsPhone) return 'Add phone';
+  return 'Off';
+}
+
+/** Tone for account-menu Text alerts detail color. */
+export type TextAlertsStatusTone = 'on' | 'off' | 'needs_phone';
+
+export function getTextAlertsStatusTone(profile: WorkerProfile | null): TextAlertsStatusTone {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (smsActive) return 'on';
+  if (fillInsOn && smsNeedsPhone) return 'needs_phone';
+  return 'off';
+}
+
+/** Hub row for SMS-first text alerts (includes phone when on). */
+export function getTextAlertsSubtitle(profile: WorkerProfile | null): string {
+  const { fillInsOn, smsActive, smsNeedsPhone } = getFillInSmsStatus(profile);
+  if (!fillInsOn) return 'Off';
+  if (smsActive) {
+    const phone = profile?.phone?.trim();
+    return phone ? `On · ${formatPhoneNumber(phone)}` : 'On';
+  }
+  if (smsNeedsPhone) return 'Add phone';
+  return 'Off';
+}
+
+/** Push / in-app prefs — SMS lives on Text alerts. */
+export function getOtherAlertsSubtitle(): string {
+  return 'Push · fill-ins and roles';
+}
+
+/** @deprecated Prefer getOtherAlertsSubtitle for the settings hub. */
 export function getNotificationsSubtitle(profile: WorkerProfile | null): string {
   const fillInsOn = profile?.short_notice_available ?? false;
   const jobsOn = profile?.job_notification_opt_in ?? true;
@@ -102,45 +140,13 @@ export function getClinicPracticeSubtitle(profile: ClinicProfile | null): string
     return 'Incomplete';
   }
 
-  const specialty = profile.specialty ? getSpecialtyLabel(profile.specialty) : null;
   const location = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
     .filter(Boolean)
     .join(', ');
+  const phone = profile.phone?.trim() ? formatPhoneNumber(profile.phone) : null;
 
-  if (specialty && location) return `${specialty} · ${location}`;
-  return specialty ?? location ?? 'Complete';
-}
-
-export function getClinicGroupDetailsSubtitle(profile: ClinicProfile | null): string {
-  const name = profile?.clinic_name?.trim();
-  const phone = profile?.phone?.trim();
-  if (name && phone) return `${name} · ${formatPhoneNumber(phone)}`;
-  if (name) return name;
-  if (phone) return formatPhoneNumber(phone);
-  return 'Add group name and phone';
-}
-
-/** Combined group identity + about subtitle for the Group profile settings row. */
-export function getClinicGroupProfileSubtitle(
-  profile: ClinicProfile | null,
-  options?: { doctorCount?: number },
-): string {
-  const name = profile?.clinic_name?.trim();
-  const hasDescription = Boolean(profile?.description?.trim());
-  const hasWebsite = Boolean(profile?.website?.trim());
-  const doctorCount = options?.doctorCount ?? profile?.practice_doctors?.length ?? 0;
-
-  if (!name) return 'Add group name, story, and doctors';
-
-  const extras: string[] = [];
-  if (hasDescription) extras.push('description');
-  if (hasWebsite) extras.push('website');
-  if (doctorCount > 0) {
-    extras.push(`${doctorCount} doctor${doctorCount === 1 ? '' : 's'}`);
-  }
-
-  if (extras.length === 0) return `${name} · Add story and doctors`;
-  return `${name} · ${extras.join(', ')}`;
+  if (location && phone) return `${location} · ${phone}`;
+  return location || phone || 'Complete';
 }
 
 export function getClinicLocationsSubtitle(input: {
@@ -152,79 +158,29 @@ export function getClinicLocationsSubtitle(input: {
   const count = input.activeCount ?? active.length;
 
   if (count === 0) {
-    return input.isOwner ? 'Add clinic locations' : 'Clinics you manage';
+    return input.isOwner ? 'Add a clinic' : 'Clinics you manage';
   }
 
   const incomplete = active.find((location) => !isClinicLocationRecordComplete(location));
   if (incomplete) {
-    const label = incomplete.name?.trim() || 'a location';
-    if (!incomplete.software_used?.length) return `Add software to ${label}`;
+    const label = incomplete.name?.trim() || 'a clinic';
     return `Finish address for ${label}`;
   }
 
-  return `${count} location${count === 1 ? '' : 's'}`;
-}
-
-export function getClinicAboutSubtitle(
-  profile: ClinicProfile | null,
-  options?: { isGroup?: boolean; doctorCount?: number },
-): string {
-  const hasDescription = Boolean(profile?.description?.trim());
-  const hasWebsite = Boolean(profile?.website?.trim());
-  const doctorCount = options?.doctorCount ?? profile?.practice_doctors?.length ?? 0;
-
-  if (options?.isGroup && doctorCount > 0) {
-    if (hasDescription && hasWebsite) {
-      return `Description, website, and ${doctorCount} doctor${doctorCount === 1 ? '' : 's'}`;
-    }
-    return `${doctorCount} doctor${doctorCount === 1 ? '' : 's'} added`;
+  if (count === 1 && input.isOwner) {
+    return '1 clinic · Add another anytime';
   }
 
-  if (hasDescription && hasWebsite) return 'Description and website added';
-  if (hasDescription) return 'Description added';
-  if (hasWebsite) return 'Website added';
-  return 'Add description and website';
-}
-
-export function getClinicMemberProfileSubtitle(input: {
-  displayName?: string | null;
-  title?: string | null;
-  hasPhoto?: boolean;
-  hasBio?: boolean;
-}): string {
-  const name = input.displayName?.trim();
-  const title = input.title?.trim();
-  if (!name) return 'Add your name, photo, and bio';
-  const extras: string[] = [];
-  if (input.hasPhoto) extras.push('photo');
-  if (input.hasBio) extras.push('bio');
-  if (title && extras.length > 0) return `${title} · ${extras.join(' + ')}`;
-  if (title) return title;
-  if (extras.length > 0) return extras.map((item) => item[0]!.toUpperCase() + item.slice(1)).join(' + ');
-  return 'Add a photo and bio';
-}
-
-export function getClinicMessagingSubtitle(
-  profile: ClinicProfile | null,
-  options?: { locked?: boolean },
-): string {
-  if (options?.locked) return 'Upgrade for open inquiries';
-  return profile?.accepts_general_candidate_messages
-    ? 'Open to inquiries'
-    : 'Not open to inquiries';
+  return `${count} clinic${count === 1 ? '' : 's'}`;
 }
 
 export function getClinicNotificationsSubtitle(options?: {
   isGroupOwner?: boolean;
 }): string {
   if (options?.isGroupOwner) {
-    return 'Mute apps & messages when managers handle day-to-day';
+    return 'Mute alerts when managers handle day-to-day';
   }
   return 'Manage push alerts';
-}
-
-export function getClinicBillingSubtitle(planLabel?: string | null): string {
-  return planLabel ? `${planLabel} plan` : 'Free plan';
 }
 
 export function getSupportSubtitle(): string {

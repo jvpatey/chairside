@@ -8,7 +8,6 @@ import {
   createEmptyAddressValue,
   type AddressFormValue,
 } from '@/components/clinic/AddressAutocomplete';
-import { AuthField } from '@/components/onboarding/AuthField';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
 import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormScreen } from '@/components/ui/FormScreen';
@@ -19,7 +18,7 @@ import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
 import { useWorkerSetupSave } from '@/hooks/useWorkerSetupSave';
 import { useWorkerSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
-import { validateAddressStep } from '@/lib/setupStepValidation';
+import { validateWorkerPlaceStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 function buildFormattedAddress(
@@ -60,7 +59,6 @@ export default function WorkerLocationScreen() {
   const [address, setAddress] = useState<AddressFormValue>(() =>
     workerProfile ? profileToAddress(workerProfile) : createEmptyAddressValue(),
   );
-  const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
@@ -74,7 +72,7 @@ export default function WorkerLocationScreen() {
     isEditMode,
   );
 
-  const validation = validateAddressStep(address);
+  const validation = validateWorkerPlaceStep(address);
 
   const styles = useThemedStyles(({ spacing }) => ({
     form: { gap: spacing.md },
@@ -83,7 +81,6 @@ export default function WorkerLocationScreen() {
   useEffect(() => {
     if (workerProfile) {
       setAddress(profileToAddress(workerProfile));
-      setBio(workerProfile.bio ?? '');
     }
   }, [workerProfile]);
 
@@ -97,14 +94,13 @@ export default function WorkerLocationScreen() {
     setIsSubmitting(true);
     try {
       await save({
-        address_line1: address.address_line1.trim(),
+        address_line1: address.address_line1.trim() || null,
         address_line2: address.address_line2.trim() || null,
         city: address.city.trim(),
         province: address.province.trim() || 'NS',
-        postal_code: address.postal_code.trim(),
+        postal_code: address.postal_code.trim() || null,
         latitude: address.latitude,
         longitude: address.longitude,
-        bio: bio.trim() || null,
       });
       if (isEditMode) {
         router.replace(exitHref);
@@ -123,8 +119,8 @@ export default function WorkerLocationScreen() {
   return (
     <FormScreen
       {...setupFormProps}
-      title="Professional background · Location & bio"
-      subtitle="Your province determines which roles you can browse."
+      title="Where you work"
+      subtitle="City and province are enough for nearby fill-in texts. Street address is optional."
       onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
       footer={
         <SetupStepFooter
@@ -144,17 +140,8 @@ export default function WorkerLocationScreen() {
         <AddressAutocomplete
           value={address}
           onChange={setAddress}
-          required
+          required={false}
           sectionIcon="location-outline"
-        />
-        <AuthField
-          label="Short bio"
-          placeholder="Optional short bio"
-          value={bio}
-          onChangeText={setBio}
-          autoCapitalize="sentences"
-          multiline
-          icon="document-text-outline"
         />
       </View>
     </FormScreen>

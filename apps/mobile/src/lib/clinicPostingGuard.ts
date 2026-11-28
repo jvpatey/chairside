@@ -6,9 +6,9 @@ import {
   getManagerAccessBannerCopy,
   getManagerAccessBlockReason,
 } from '@/lib/clinicManagerAccess';
+import { getClinicMissingDetails, type ClinicMissingDetail } from '@/lib/clinicProfileMissingCopy';
 import { getClinicPostingSetupHref } from '@/lib/clinicPostingSetupRouting';
 import { showConfirmActionSheet } from '@/lib/confirmActionSheet';
-import { CLINIC_PROFILE_TEAM } from '@/lib/routing';
 
 type GuardClinicMemberAccessInput = {
   isProfileComplete: boolean;
@@ -34,10 +34,12 @@ function showPostingBlockedAlert(
   confirmLabel: string,
   setupHref: Href,
   onNavigate: (href: Href) => void,
+  details?: ClinicMissingDetail[],
 ) {
   showConfirmActionSheet({
     title,
     message,
+    details,
     confirmLabel,
     onConfirm: () => onNavigate(setupHref),
   });
@@ -54,8 +56,8 @@ export function guardClinicMemberAccess({
   isGroup,
   isOwner,
   assignedLocationIds = [],
-  ownerTitle = 'Complete your clinic profile',
-  ownerMessage = 'Finish your clinic profile to continue.',
+  ownerTitle = 'A few details first',
+  ownerMessage = 'Add your clinic name, phone, and address to post fill-ins.',
   onNavigate,
 }: GuardClinicMemberAccessInput): boolean {
   if (isProfileComplete) return true;
@@ -73,24 +75,31 @@ export function guardClinicMemberAccess({
 
   if (managerReason || (isGroup && !treatAsOwner)) {
     const copy = getManagerAccessBannerCopy(managerReason ?? 'no_clinic_assigned');
-    showPostingBlockedAlert(
-      copy.title,
-      copy.message,
-      'View Team & access',
-      CLINIC_PROFILE_TEAM,
-      onNavigate,
-    );
+    showConfirmActionSheet({
+      title: copy.title,
+      message: copy.message,
+      confirmLabel: 'OK',
+      onConfirm: () => {},
+    });
     return false;
   }
 
   const missing = getMissingClinicProfileFields(clinicProfile, { locations });
-  const message =
-    missing.length > 0
-      ? `Add the following before continuing: ${missing.join(', ')}`
-      : ownerMessage;
   const setupHref = getClinicPostingSetupHref(missing, isGroup);
 
-  showPostingBlockedAlert(ownerTitle, message, 'Continue setup', setupHref, onNavigate);
+  if (missing.length > 0) {
+    showPostingBlockedAlert(
+      ownerTitle,
+      'Add these details first. Professionals use them to find and reach your clinic.',
+      'Finish profile',
+      setupHref,
+      onNavigate,
+      getClinicMissingDetails(missing),
+    );
+    return false;
+  }
+
+  showPostingBlockedAlert(ownerTitle, ownerMessage, 'Continue', setupHref, onNavigate);
   return false;
 }
 

@@ -1,26 +1,33 @@
 import { router } from 'expo-router';
 
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
-import { WorkerProfessionalView } from '@/components/worker/WorkerProfessionalView';
-import { getSetupEditRoute } from '@/hooks/useSetupEditMode';
+import { WorkerYouProfileView } from '@/components/worker/WorkerYouProfileView';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
 export default function WorkerProfileProfessionalScreen() {
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { user, profile, refreshProfile } = useAuth();
+  const { workerProfile, refreshWorkerProfile } = useWorkerProfile();
 
-  if (!isWorkerProfileReady) return null;
+  if (!user?.id) return null;
 
   return (
     <ProfileDetailScreen
-      title="Professional background"
-      subtitle="Your roles, experience, location, and skills clinics use to understand your fit."
-      actionLabel="Edit"
-      onActionPress={() =>
-        router.push(getSetupEditRoute('/(worker-setup)/basics', 'worker-professional'))
-      }
+      title="Profile"
+      subtitle="Photo, contact, role, and city — edit everything here."
       onBack={() => navigateToWorkerProfileHub(router)}>
-      <WorkerProfessionalView profile={workerProfile} />
+      <WorkerYouProfileView
+        user={user}
+        displayName={profile?.display_name}
+        firstName={profile?.first_name}
+        lastName={profile?.last_name}
+        workerProfile={workerProfile}
+        onProfileRefresh={async () => {
+          await refreshProfile();
+          await refreshWorkerProfile();
+        }}
+      />
     </ProfileDetailScreen>
   );
 }

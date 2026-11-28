@@ -186,10 +186,10 @@ export const FILL_INS_LIST_MODE_OPTIONS: { value: FillInsListMode; label: string
 ];
 
 export const FILL_INS_TAB_MODE_OPTIONS: { value: FillInsTabMode; label: string }[] = [
-  { value: 'open', label: 'Open' },
-  { value: 'pending', label: 'Pending' },
+  { value: 'pending', label: 'Requested' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'history', label: 'History' },
+  { value: 'open', label: 'Nearby' },
 ];
 
 export function isFillInsTabMode(value: string | undefined): value is FillInsTabMode {

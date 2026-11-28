@@ -4,7 +4,11 @@ vi.mock('@chairside/api', () => ({
   getWorkerRoleTypes: () => [],
 }));
 
-import { validateWorkerBasicsStep, getClinicSetupStepGuard } from './setupStepValidation';
+import {
+  getClinicSetupStepGuard,
+  validateWorkerBasicsStep,
+  validateWorkerPlaceStep,
+} from './setupStepValidation';
 
 describe('validateWorkerBasicsStep', () => {
   it('requires both first and last name', () => {
@@ -13,6 +17,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: '',
         lastName: 'Doe',
         roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: false, message: 'Enter your first and last name.' });
 
@@ -21,6 +26,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: 'Jane',
         lastName: '',
         roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: false, message: 'Enter your first and last name.' });
   });
@@ -31,6 +37,7 @@ describe('validateWorkerBasicsStep', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         roleTypes: [],
+        phone: '9025551234',
       }),
     ).toEqual({
       ok: false,
@@ -38,18 +45,63 @@ describe('validateWorkerBasicsStep', () => {
     });
   });
 
-  it('passes when first, last, and roles are present', () => {
+  it('requires a valid mobile phone', () => {
     expect(
       validateWorkerBasicsStep({
         firstName: 'Jane',
         lastName: 'Doe',
         roleTypes: ['hygienist'],
+        phone: '',
+      }),
+    ).toEqual({
+      ok: false,
+      message: 'Enter a 10-digit mobile number for fill-in texts.',
+    });
+  });
+
+  it('passes when first, last, roles, and phone are present', () => {
+    expect(
+      validateWorkerBasicsStep({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        roleTypes: ['hygienist'],
+        phone: '9025551234',
       }),
     ).toEqual({ ok: true, message: null });
   });
 });
 
+describe('validateWorkerPlaceStep', () => {
+  it('requires city and province only', () => {
+    expect(validateWorkerPlaceStep({ city: '', province: 'NS' })).toEqual({
+      ok: false,
+      message: 'Enter your city to continue.',
+    });
+    expect(validateWorkerPlaceStep({ city: 'Halifax', province: '' })).toEqual({
+      ok: false,
+      message: 'Select your province to continue.',
+    });
+    expect(validateWorkerPlaceStep({ city: 'Halifax', province: 'NS' })).toEqual({
+      ok: true,
+      message: null,
+    });
+  });
+});
+
 describe('getClinicSetupStepGuard', () => {
+  it('keeps thin path on basics until name and phone are set', () => {
+    expect(
+      getClinicSetupStepGuard(
+        {
+          account_type: 'individual',
+          clinic_name: '',
+          phone: '',
+        } as never,
+        'location',
+      ),
+    ).toBe('/(clinic-setup)/basics');
+  });
+
   it('does not bounce group review to locations based on org profile address', () => {
     const group = {
       account_type: 'group' as const,
@@ -64,6 +116,6 @@ describe('getClinicSetupStepGuard', () => {
 
     expect(getClinicSetupStepGuard(group as never, 'review')).toBeNull();
     expect(getClinicSetupStepGuard(group as never, 'about')).toBeNull();
-    expect(getClinicSetupStepGuard(group as never, 'practice')).toEqual('/(clinic-setup)/about');
+    expect(getClinicSetupStepGuard(group as never, 'practice')).toBeNull();
   });
 });

@@ -121,12 +121,13 @@ function mapClinicBillingState(row: ClinicBillingStateRow): ClinicBillingState {
     canUseGeneralCandidateMessaging: row.can_use_general_candidate_messaging ?? false,
     canUseBulkOutreach: row.can_use_bulk_outreach ?? false,
     canUseHiringInsights: row.can_use_hiring_insights ?? false,
-    customScreeningLimit: row.custom_screening_limit ?? 0,
+    // null = unlimited; only default when an older server omits the field.
+    customScreeningLimit: row.custom_screening_limit === undefined ? 0 : row.custom_screening_limit,
     locationCount: row.location_count ?? 0,
-    maxLocations: row.max_locations ?? 1,
+    maxLocations: row.max_locations === undefined ? 1 : row.max_locations,
     canAddLocation: row.can_add_location ?? true,
     managerCount: row.manager_count ?? 0,
-    maxManagers: row.max_managers ?? 0,
+    maxManagers: row.max_managers === undefined ? 0 : row.max_managers,
     canAddManager: row.can_add_manager ?? false,
     currentPeriodEnd: row.current_period_end,
   };

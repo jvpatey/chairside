@@ -21,7 +21,6 @@ type DashboardBodyLayoutProps = {
   checklist?: ReactNode;
   messages?: ReactNode;
   /** Owner team pulse — after messages. */
-  teamPulse?: ReactNode;
   planUsage?: ReactNode;
 };
 
@@ -42,7 +41,6 @@ export function DashboardBodyLayout({
   insights,
   checklist,
   messages,
-  teamPulse,
   planUsage,
 }: DashboardBodyLayoutProps) {
   const { isWide } = useResponsiveLayout();
@@ -54,7 +52,6 @@ export function DashboardBodyLayout({
     <View style={styles.asideStack}>
       {insights}
       {messages}
-      {teamPulse}
       {calendar}
       {coverage}
       {planUsage}
@@ -68,7 +65,6 @@ export function DashboardBodyLayout({
     hasRenderableContent(calendar) ||
     hasRenderableContent(coverage) ||
     hasRenderableContent(messages) ||
-    hasRenderableContent(teamPulse) ||
     hasRenderableContent(checklist);
 
   // Don't wrap on phone — an empty wrapper still consumes flex `gap` and doubles
@@ -114,7 +110,6 @@ export function DashboardBodyLayout({
       {!IS_WEB ? calendar : null}
       {!IS_WEB ? coverage : null}
       {messages}
-      {teamPulse}
       {planUsage}
       {insights}
       {checklist}

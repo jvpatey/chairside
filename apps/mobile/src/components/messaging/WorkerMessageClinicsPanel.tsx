@@ -19,7 +19,12 @@ import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { getWorkerConversationRoute, getWorkerClinicProfileRoute, WORKER_PROFILE } from '@/lib/routing';
+import {
+  getWorkerConversationRoute,
+  getWorkerClinicProfileRoute,
+  WORKER_FINISH_PROFILE,
+} from '@/lib/routing';
+import { isWorkerSetupComplete } from '@/lib/setupCompletion';
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -180,7 +185,7 @@ export function WorkerMessageClinicsPanel({
     }
   };
 
-  const profileComplete = Boolean(workerProfile?.setup_completed_at);
+  const profileComplete = isWorkerSetupComplete(workerProfile);
 
   const body = (
     <View style={styles.content}>
@@ -193,7 +198,10 @@ export function WorkerMessageClinicsPanel({
           <Text style={styles.emptyBody}>
             Finish your profile setup before messaging clinics directly.
           </Text>
-          <OnboardingButton label="Go to profile" onPress={() => router.push(WORKER_PROFILE)} />
+          <OnboardingButton
+            label="Go to profile"
+            onPress={() => router.push(WORKER_FINISH_PROFILE)}
+          />
         </View>
       ) : (
         <>

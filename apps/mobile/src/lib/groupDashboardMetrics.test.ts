@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   addDaysIso,
   buildLocationGlanceRows,
-  buildTeamPulseCounts,
   buildWeekCoverageRows,
   formatLocationGlanceCounts,
 } from './groupDashboardMetrics';
@@ -184,21 +183,4 @@ describe('groupDashboardMetrics', () => {
     ).toBe('No open activity');
   });
 
-  it('counts pending invites and unassigned managers only', () => {
-    expect(
-      buildTeamPulseCounts({
-        invitations: [
-          { status: 'pending' },
-          { status: 'pending' },
-          { status: 'accepted' },
-        ],
-        memberships: [
-          { role: 'owner', status: 'active', location_ids: [] },
-          { role: 'manager', status: 'active', location_ids: [] },
-          { role: 'manager', status: 'active', location_ids: ['loc-a'] },
-          { role: 'manager', status: 'removed', location_ids: [] },
-        ],
-      }),
-    ).toEqual({ pendingInvites: 2, unassignedManagers: 1 });
-  });
 });

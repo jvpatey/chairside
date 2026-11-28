@@ -44,11 +44,10 @@ export function NotificationCategoryPreferences({
       return meta;
     }
 
+    // Web has no Expo push — these toggles only affect in-app alert surfacing copy.
     return {
       title: meta.title,
-      hint: meta.hint
-        .replace(/^Push when/, 'In-app alerts when')
-        .replace(/^Push for/, 'In-app alerts for'),
+      hint: meta.hint.replace(/^Push for/, 'In-app for').replace(/\bPush\b/g, 'In-app'),
     };
   };
 

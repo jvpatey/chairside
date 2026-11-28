@@ -47,7 +47,7 @@ describe('dashboardWelcomeCopy', () => {
 
     expect(groupCopy.subtitle).toContain('clinic group is live');
     expect(groupCopy.subtitle).toContain('locations');
-    expect(groupCopy.bullets).toHaveLength(3);
+    expect(groupCopy.bullets).toHaveLength(2);
   });
 });
 

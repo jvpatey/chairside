@@ -20,6 +20,7 @@ import { useMobileTabDockInset } from '@/components/navigation/mobileTabDockInse
 import { AppAtmosphere } from '@/components/navigation/AppAtmosphere';
 import { PageHeader, PageHeaderCompactBar, type PageHeaderVariant } from '@/components/ui/PageHeader';
 import { AppText } from '@/components/ui/AppText';
+import { SoftEdgeDivider } from '@/components/ui/SoftEdgeDivider';
 import { ThemedRefreshControl } from '@/components/ui/ThemedRefreshControl';
 import { WebPageEnter } from '@/components/ui/WebPageEnter';
 import { useTabAtmosphere, useTabAtmosphereAccent } from '@/contexts/TabAtmosphereContext';
@@ -38,8 +39,12 @@ export type ScreenProps = {
   onBack?: () => void;
   backLabel?: string;
   headerAccessory?: ReactNode;
+  /** Rendered directly under the page title (e.g. the group location switcher). */
+  scopeAccessory?: ReactNode;
   headerVariant?: PageHeaderVariant;
   constrainWidth?: boolean;
+  /** Soft edge-faded divider under the page title (Fill-ins / Roles hubs). */
+  softHeaderDivider?: boolean;
   scroll?: boolean;
   scrollEnabled?: boolean;
   fillsContainer?: boolean;
@@ -80,8 +85,10 @@ export function Screen({
   onBack,
   backLabel = 'Back',
   headerAccessory,
+  scopeAccessory,
   headerVariant,
   constrainWidth = true,
+  softHeaderDivider = false,
   scroll = true,
   scrollEnabled = true,
   fillsContainer = false,
@@ -99,6 +106,8 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { colors, spacing } = useTheme();
   const { contentMaxWidth, isTablet } = useResponsiveLayout();
+  // Tablet scenes sit beside the sidebar; don't re-center a viewport maxWidth in that pane.
+  const applyWidthConstraint = constrainWidth && !isTablet;
   const variant = resolveHeaderVariant(headerVariant, isTablet, onBack, showHeader);
   const collapseLargeTitle =
     collapseHeader && showHeader && Boolean(title) && variant === 'hub';
@@ -135,9 +144,11 @@ export function Screen({
   const containerBackground =
     showAtmosphere || transparentBackground ? 'transparent' : colors.backgroundGrouped;
   const showTopBar = showHeader || showNotifications || Boolean(headerAccessory) || Boolean(onBack);
+  // Mobile web often reports 0 safe-area top; give hub titles a bit more breathing room.
+  const phoneTopExtra = Platform.OS === 'web' ? spacing.lg + spacing.xs : spacing.md;
   const topPadding = isTablet
     ? getTabletTopPadding(insets.top, { applyIosFloor: Platform.OS === 'ios' })
-    : insets.top + 16;
+    : insets.top + phoneTopExtra;
 
   const styles = useThemedStyles(({ spacing }) => ({
     container: {
@@ -148,7 +159,7 @@ export function Screen({
       flexGrow: fillsContainer ? 1 : undefined,
       paddingHorizontal: spacing.lg,
       width: '100%',
-      ...(constrainWidth && contentMaxWidth
+      ...(applyWidthConstraint && contentMaxWidth
         ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const }
         : {}),
     },
@@ -167,14 +178,25 @@ export function Screen({
       marginBottom: spacing.lg,
       ...(fillsContainer ? { flexShrink: 0 } : {}),
     },
+    headerWithSoftDivider: {
+      // Matches softDivider marginTop so the line is centered in the gap.
+      marginBottom: spacing.md,
+    },
     headerHidden: {
       marginBottom: 0,
     },
     headerCompact: {
       marginBottom: spacing.sm,
     },
+    scopeRow: {
+      marginTop: spacing.md,
+      alignItems: 'flex-start' as const,
+    },
     tabletSubtitle: {
       marginBottom: spacing.md,
+    },
+    softDivider: {
+      marginTop: spacing.md,
     },
     compactHeader: {
       position: 'absolute' as const,
@@ -220,16 +242,33 @@ export function Screen({
       </AppText>
     ) : null;
 
+  const softDividerBlock = softHeaderDivider ? (
+    <SoftEdgeDivider style={styles.softDivider} />
+  ) : null;
+
   const headerBaseStyle = [
     styles.header,
+    softHeaderDivider && styles.headerWithSoftDivider,
     !showTopBar && styles.headerHidden,
     !showHeader && showTopBar && styles.headerCompact,
   ];
 
+  const scopeBlock = scopeAccessory && showHeader ? (
+    <View style={styles.scopeRow}>{scopeAccessory}</View>
+  ) : null;
+
+  const headerInner = (
+    <>
+      {pageHeader}
+      {scopeBlock}
+      {softDividerBlock}
+    </>
+  );
+
   const headerBlock = collapseLargeTitle ? (
-    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{pageHeader}</Animated.View>
+    <Animated.View style={[...headerBaseStyle, largeTitleStyle]}>{headerInner}</Animated.View>
   ) : (
-    <View style={headerBaseStyle}>{pageHeader}</View>
+    <View style={headerBaseStyle}>{headerInner}</View>
   );
 
   const compactHeader =
@@ -266,6 +305,7 @@ export function Screen({
             ]}
           >
             {headerBlock}
+            {tabletSubtitleBlock}
             <View ref={scrollContentRef} style={styles.body}>
               {children}
             </View>

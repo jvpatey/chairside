@@ -252,6 +252,7 @@ export function AddressAutocomplete({
               onChangeText={handleQueryChange}
               autoCapitalize="words"
               required={required}
+              validated={Boolean(value.formatted.trim())}
             />
           )}
           {isSearching ? <ActivityIndicator color={colors.primary} /> : null}
@@ -303,6 +304,7 @@ export function AddressAutocomplete({
             }
             autoCapitalize="words"
             required={required}
+            validated={Boolean(value.address_line1.trim())}
           />
           <AuthField
             label="City"
@@ -311,6 +313,7 @@ export function AddressAutocomplete({
             onChangeText={(city) => onChange({ ...value, city, formatted: '', latitude: null, longitude: null })}
             autoCapitalize="words"
             required={required}
+            validated={Boolean(value.city.trim())}
           />
           <AuthField
             label="Postal code"
@@ -321,6 +324,7 @@ export function AddressAutocomplete({
             }
             autoCapitalize="characters"
             required={required}
+            validated={Boolean(value.postal_code.trim())}
           />
           <Pressable
             accessibilityRole="button"

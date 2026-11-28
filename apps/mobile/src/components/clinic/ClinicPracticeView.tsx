@@ -1,78 +1,151 @@
 import type { ClinicProfile } from '@chairside/api';
-import { SPECIALTY_OPTIONS, getProvinceLabel, getTeamSizeRangeLabel } from '@chairside/config';
-import { Text, View } from 'react-native';
+import { getProvinceLabel } from '@chairside/config';
+import { useEffect, useRef, useState } from 'react';
+import { Text } from 'react-native';
 
-import { PracticeDoctorFieldValue } from '@/components/clinic/PracticeDoctorList';
-import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
 import {
-  FieldBlock,
-  FieldDivider,
-  FieldValue,
+  AddressAutocomplete,
+  createEmptyAddressValue,
+  type AddressFormValue,
+} from '@/components/clinic/AddressAutocomplete';
+import { ClinicIdentityHeroCard } from '@/components/clinic/ClinicProfileHero';
+import { AuthField } from '@/components/onboarding/AuthField';
+import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
+import {
   ProfileDetailStack,
   ProfileEmptyState,
-  ProfileTagRow,
   SectionPanel,
   profileSettingsHintStyle,
 } from '@/components/profile/ProfileDetailBlocks';
-import { CardInfoPanel, CardInfoPanelText } from '@/components/ui/CardInfoPanel';
-import { EditPillButton } from '@/components/ui/EditPillButton';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicLogo } from '@/hooks/useClinicLogo';
+import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
+import { formatPhoneNumber, PHONE_NUMBER_PLACEHOLDER } from '@/lib/phone';
+import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
 type ClinicPracticeViewProps = {
   profile: ClinicProfile | null;
-  onEditContact?: () => void;
-  onEditLocation?: () => void;
-  onEditPractice?: () => void;
 };
 
-function sectionEditAccessory(onPress?: () => void) {
-  return onPress ? <EditPillButton label="Edit" onPress={onPress} /> : undefined;
+const ADDRESS_KEYS = ['address_line1', 'address_line2', 'city', 'province', 'postal_code'] as const;
+
+function profileToAddress(profile: ClinicProfile): AddressFormValue {
+  const address_line1 = profile.address_line1 ?? '';
+  const cityLine = [profile.city, profile.province, profile.postal_code].filter(Boolean).join(', ');
+  const hasCoordinates = profile.latitude != null && profile.longitude != null;
+  return {
+    address_line1,
+    address_line2: profile.address_line2 ?? '',
+    city: profile.city ?? '',
+    province: profile.province ?? 'NS',
+    postal_code: profile.postal_code ?? '',
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    formatted: hasCoordinates && address_line1 ? [address_line1, cityLine].filter(Boolean).join(', ') : '',
+  };
 }
 
-export function ClinicPracticeView({
-  profile,
-  onEditContact,
-  onEditLocation,
-  onEditPractice,
-}: ClinicPracticeViewProps) {
-  const { locations } = useClinicProfile();
+/** Practice details edited inline, matching Group & clinics: save bar appears only when something changed. */
+export function ClinicPracticeView({ profile }: ClinicPracticeViewProps) {
+  const { isGroup, isOwner } = useClinicProfile();
+  const { save } = useClinicSetupSave();
   const { logoUri } = useClinicLogo();
-  const doctorLocations = locations
-    .filter((location) => location.is_active)
-    .map((location) => ({ id: location.id, name: location.name }));
-  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, typography }) => ({
     hint: profileSettingsHintStyle({ typography, colors }),
-    doctorsBlock: { gap: spacing.sm },
+    savedText: {
+      color: colors.success,
+      fontWeight: '600' as const,
+    },
   }));
+
+  const initialName = profile?.clinic_name?.trim() ?? '';
+  const initialPhone = profile?.phone ? formatPhoneNumber(profile.phone) : '';
+  const [name, setName] = useState(initialName);
+  const [phone, setPhone] = useState(initialPhone);
+  const [address, setAddress] = useState<AddressFormValue>(() =>
+    profile ? profileToAddress(profile) : createEmptyAddressValue(),
+  );
+  const [showValidation, setShowValidation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-sync from the saved profile after a save or refresh.
+  useEffect(() => {
+    setName(initialName);
+    setPhone(initialPhone);
+    if (profile) setAddress(profileToAddress(profile));
+  }, [initialName, initialPhone, profile]);
+
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
 
   if (!profile) {
     return (
       <ProfileEmptyState
         icon="business-outline"
         title="Add practice details"
-        description="Add your practice details, location, and contact info to start posting."
+        description="Add your clinic name, phone, and address to start posting."
       />
     );
   }
 
+  const original = profileToAddress(profile);
+  const addressChanged = ADDRESS_KEYS.some(
+    (key) => (address[key] ?? '').trim() !== (original[key] ?? '').trim(),
+  );
+  const isDirty = name.trim() !== initialName || phone.trim() !== initialPhone || addressChanged;
+
+  const nameInvalid = !name.trim();
+  // Posting needs a phone too (isClinicProfileComplete), so it is required here.
+  const phoneInvalid = !phone.trim();
+  const addressValidation = validateAddressStep(address);
+  const canSave = !nameInvalid && !phoneInvalid && addressValidation.ok && isOwner && !isSaving;
+  const validationMessage = nameInvalid
+    ? 'Enter your clinic name.'
+    : phoneInvalid
+      ? 'Enter your clinic phone.'
+      : addressValidation.message;
+
+  const handleSave = async () => {
+    if (!canSave) {
+      setShowValidation(true);
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await save({
+        clinic_name: name.trim(),
+        phone: phone.trim() || null,
+        address_line1: address.address_line1.trim(),
+        address_line2: address.address_line2.trim() || null,
+        city: address.city.trim(),
+        province: address.province.trim() || 'NS',
+        postal_code: address.postal_code.trim(),
+        latitude: address.latitude,
+        longitude: address.longitude,
+        account_type: isGroup ? 'group' : 'individual',
+      });
+      setShowValidation(false);
+      setJustSaved(true);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setJustSaved(false), 2000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const clinicName = profile.clinic_name?.trim() || 'Your practice';
-  const specialtyLabel =
-    SPECIALTY_OPTIONS.find((item) => item.value === profile.specialty)?.label ?? null;
   const locationLabel = [profile.city, profile.province ? getProvinceLabel(profile.province) : null]
-    .filter(Boolean)
-    .join(', ');
-  const teamSizeLabel = getTeamSizeRangeLabel(profile.team_size_range ?? null);
-  const softwareUsed = profile.software_used ?? [];
-  const practiceDoctors = profile.practice_doctors ?? [];
-  const address = [
-    profile.address_line1,
-    profile.address_line2,
-    profile.city,
-    getProvinceLabel(profile.province),
-    profile.postal_code,
-  ]
     .filter(Boolean)
     .join(', ');
 
@@ -81,94 +154,56 @@ export function ClinicPracticeView({
       <ClinicIdentityHeroCard
         clinicName={clinicName}
         logoUri={logoUri}
-        specialtyLabel={specialtyLabel}
+        specialtyLabel={null}
         locationLabel={locationLabel || null}
-        emptyMetaFallback="Add your specialty and location so candidates know where you are."
+        emptyMetaFallback="Add your clinic address."
       />
 
-      <CardInfoPanel variant="info" icon="information-circle-outline" title="What candidates see">
-        <CardInfoPanelText>
-          Candidates use your contact details, location, and practice setup to decide whether a
-          role or fill-in is a good fit before they apply or accept an interview.
-        </CardInfoPanelText>
-      </CardInfoPanel>
-
-      <SectionPanel
-        icon="call-outline"
-        title="Contact"
-        headerAccessory={sectionEditAccessory(onEditContact)}>
+      <SectionPanel icon="call-outline" title="Contact">
         <Text style={styles.hint}>
-          Your practice name and who candidates can reach.
+          Your clinic name and phone. Cover-request texts for fill-ins go to this number.
         </Text>
-        <FieldBlock label="Clinic name">
-          <FieldValue value={profile.clinic_name} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Contact name">
-          <FieldValue value={profile.contact_name} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Phone">
-          <FieldValue value={profile.phone} />
-        </FieldBlock>
+        <AuthField
+          label="Clinic name"
+          placeholder="Clinic name"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          autoComplete="off"
+          required
+          validated={!nameInvalid}
+          invalid={showValidation && nameInvalid}
+        />
+        <AuthField
+          label="Phone"
+          placeholder={PHONE_NUMBER_PLACEHOLDER}
+          value={phone}
+          onChangeText={(text) => setPhone(formatPhoneNumber(text))}
+          keyboardType="phone-pad"
+          required
+          validated={!phoneInvalid}
+          invalid={showValidation && phoneInvalid}
+        />
       </SectionPanel>
 
-      <SectionPanel
-        icon="location-outline"
-        title="Location"
-        headerAccessory={sectionEditAccessory(onEditLocation)}>
-        <Text style={styles.hint}>
-          Where your practice is based — shown on roles, fill-ins, and your public clinic profile.
-        </Text>
-        <FieldBlock label="City & province">
-          <FieldValue value={locationLabel || null} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Full address">
-          <FieldValue value={address || null} />
-        </FieldBlock>
+      <SectionPanel icon="location-outline" title="Location">
+        <Text style={styles.hint}>Where your practice is based. Shown on fill-ins and roles.</Text>
+        <AddressAutocomplete value={address} onChange={setAddress} required />
       </SectionPanel>
 
-      <SectionPanel
-        icon="medkit-outline"
-        title="Practice setup"
-        headerAccessory={sectionEditAccessory(onEditPractice)}>
-        <Text style={styles.hint}>
-          Your clinical environment, team size, and doctors help candidates understand day-to-day
-          work at your practice.
-        </Text>
-        <FieldBlock label="Specialty">
-          <FieldValue value={specialtyLabel} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Software">
-          <ProfileTagRow
-            tags={softwareUsed}
-            emptyText="Add the software systems your team uses."
-          />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Operatories">
-          <FieldValue value={profile.operatories_count?.toString() ?? null} />
-        </FieldBlock>
-        <FieldDivider />
-        <FieldBlock label="Team size">
-          <FieldValue value={teamSizeLabel} />
-        </FieldBlock>
-        {practiceDoctors.length > 0 ? (
-          <>
-            <FieldDivider />
-            <FieldBlock label="Doctors">
-              <View style={styles.doctorsBlock}>
-                <PracticeDoctorFieldValue
-                  doctors={practiceDoctors}
-                  locations={doctorLocations}
-                />
-              </View>
-            </FieldBlock>
-          </>
-        ) : null}
-      </SectionPanel>
+      {isDirty || saveError ? (
+        <SetupStepFooter
+          canContinue={canSave}
+          validationMessage={validationMessage}
+          showValidation={showValidation}
+          submitError={saveError}
+          isSubmitting={isSaving}
+          continueLabel="Save changes"
+          onContinue={() => void handleSave()}
+        />
+      ) : justSaved ? (
+        <Text style={styles.savedText}>Saved</Text>
+      ) : null}
     </ProfileDetailStack>
   );
 }

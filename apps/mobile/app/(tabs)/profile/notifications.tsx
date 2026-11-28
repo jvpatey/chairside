@@ -1,18 +1,14 @@
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import { ProfileDetailStack } from '@/components/profile/ProfileDetailBlocks';
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { NotificationCategoryPreferences } from '@/components/notifications/NotificationCategoryPreferences';
 import { ProfileDetailScreen } from '@/components/profile/ProfileDetailScreen';
-import { FillInSettingsLink } from '@/components/worker/FillInSettingsLink';
-import { WorkerJobNotificationPreferences } from '@/components/worker/WorkerJobNotificationPreferences';
-import { WorkerOpenInquiryPreferences } from '@/components/worker/WorkerOpenInquiryPreferences';
 import { NOTIFICATION_PREFERENCE_CATEGORIES } from '@chairside/config';
 import { navigateToWorkerProfileHub } from '@/lib/routing';
 
-const pushAlertsTitle = Platform.OS === 'web' ? 'In-app alerts' : 'Push alerts';
+const channelTitle = Platform.OS === 'web' ? 'In-app' : 'Push';
 
 export default function WorkerProfileNotificationsScreen() {
   return (
@@ -20,35 +16,21 @@ export default function WorkerProfileNotificationsScreen() {
       title="Notifications"
       subtitle={
         Platform.OS === 'web'
-          ? 'Choose which events show in-app alerts. Notification history stays available.'
-          : 'Choose which alerts send push notifications. In-app history stays available.'
+          ? 'In-app alerts for fill-ins and matching roles. Texts are under Text alerts.'
+          : 'Push and in-app for fill-ins and matching roles. Texts are under Text alerts.'
       }
       onBack={() => navigateToWorkerProfileHub(router)}>
       <ProfileDetailStack>
         <ProfileSettingsCard
-          title={pushAlertsTitle}
+          title={channelTitle}
           icon="notifications-outline"
-          iconAccent="secondary">
+          iconAccent="primary">
           <NotificationCategoryPreferences
             categories={[
-              NOTIFICATION_PREFERENCE_CATEGORIES.messages,
-              NOTIFICATION_PREFERENCE_CATEGORIES.applicationsInterviews,
-              NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
               NOTIFICATION_PREFERENCE_CATEGORIES.fillInAlerts,
+              NOTIFICATION_PREFERENCE_CATEGORIES.jobAlerts,
             ]}
           />
-        </ProfileSettingsCard>
-
-        <ProfileSettingsCard title="Permanent roles" icon="briefcase-outline" iconAccent="secondary">
-          <WorkerJobNotificationPreferences />
-        </ProfileSettingsCard>
-
-        <ProfileSettingsCard title="Fill-in shifts" icon={FILL_IN_ICON.outline} iconAccent="secondary">
-          <FillInSettingsLink />
-        </ProfileSettingsCard>
-
-        <ProfileSettingsCard title="Open inquiries" icon="chatbubbles-outline" iconAccent="primary">
-          <WorkerOpenInquiryPreferences />
         </ProfileSettingsCard>
       </ProfileDetailStack>
     </ProfileDetailScreen>

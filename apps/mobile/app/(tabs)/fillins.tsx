@@ -18,8 +18,7 @@ import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState'
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader';
-import { FillInAlertsNudgeCard } from '@/components/worker/FillInAlertsNudgeCard';
-import { FillInAvailabilitySummaryCard } from '@/components/worker/FillInAvailabilitySummaryCard';
+import { FillInAvailabilityStatusRow } from '@/components/worker/FillInAvailabilityStatusRow';
 import { FillInListingCard } from '@/components/worker/FillInListingCard';
 import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
@@ -29,6 +28,7 @@ import { WorkerBrowseViewTransition } from '@/components/worker/WorkerBrowseView
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
+import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { WorkerApplicationListCard } from '@/components/worker/WorkerApplicationListCard';
 import { Screen } from '@/components/ui/Screen';
@@ -57,7 +57,7 @@ import {
   DEFAULT_WORKER_FILLIN_BROWSE_FILTERS,
   filterAndSortLiveShifts,
 } from '@/lib/workerBrowseFilters';
-import { getWorkerShiftDetailRoute } from '@/lib/routing';
+import { getWorkerShiftDetailRoute, WORKER_FILLIN_AVAILABILITY } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
@@ -72,7 +72,8 @@ export default function FillInsScreen() {
   const params = useLocalSearchParams<{ mode?: string; date?: string; tab?: string }>();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
-  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('open');
+  /** Status hub first — Open browse is a secondary escape hatch. */
+  const [selectedMode, setSelectedMode] = useState<FillInsTabMode>('pending');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [searchQuery, setSearchQuery] = useState(DEFAULT_WORKER_FILLIN_BROWSE_FILTERS.searchQuery);
   const [roleTypeFilter, setRoleTypeFilter] = useState(
@@ -157,7 +158,7 @@ export default function FillInsScreen() {
       return;
     }
     if (tab === 'availability') {
-      setSelectedMode('open');
+      router.push(WORKER_FILLIN_AVAILABILITY);
     }
   }, [params.tab]);
 
@@ -314,32 +315,32 @@ export default function FillInsScreen() {
   const fillInTabs = useMemo(
     () => [
       {
-        value: 'open' as const,
-        label: 'Open',
-        count: filteredShifts.length,
-        accent: 'secondary' as const,
-        icon: FILL_IN_ICON.outline,
-      },
-      {
         value: 'pending' as const,
-        label: 'Pending',
+        label: 'Requested',
         count: pendingFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'hourglass-outline' as const,
       },
       {
         value: 'confirmed' as const,
         label: 'Confirmed',
         count: confirmedFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'checkmark-circle-outline' as const,
       },
       {
         value: 'history' as const,
         label: 'History',
         count: historyFillInCount,
-        accent: 'secondary' as const,
+        accent: 'primary' as const,
         icon: 'time-outline' as const,
+      },
+      {
+        value: 'open' as const,
+        label: 'Nearby',
+        count: filteredShifts.length,
+        accent: 'primary' as const,
+        icon: FILL_IN_ICON.outline,
       },
     ],
     [confirmedFillInCount, filteredShifts.length, historyFillInCount, pendingFillInCount],
@@ -352,57 +353,111 @@ export default function FillInsScreen() {
   const showOpenFeaturedDivider =
     featuredOpenShifts.length > 0 && standardOpenShifts.length > 0;
 
+  const openBrowseControls = (
+    <View style={styles.controlsBlock}>
+      <View style={styles.browseControlsRow}>
+        <View style={styles.searchField}>
+          <WorkerBrowseSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by clinic, city, or date"
+            accessibilityLabel="Search open fill-ins"
+          />
+        </View>
+        <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
+        <WorkerFillInBrowseFilters
+          roleTypeFilter={roleTypeFilter}
+          sort={sort}
+          distanceFilter={distanceFilter}
+          softwareFilter={softwareFilter}
+          payListedFilter={payListedFilter}
+          availabilityFilter={availabilityFilter}
+          savedOnlyFilter={savedOnlyFilter}
+          onRoleTypeChange={setRoleTypeFilter}
+          onSortChange={setSort}
+          onDistanceFilterChange={setDistanceFilter}
+          onSoftwareFilterChange={setSoftwareFilter}
+          onPayListedFilterChange={setPayListedFilter}
+          onAvailabilityFilterChange={setAvailabilityFilter}
+          onSavedOnlyFilterChange={setSavedOnlyFilter}
+        />
+      </View>
+    </View>
+  );
+
   const openListContent = isLoading ? (
     <PageLoadingList rowCount={4} />
   ) : filteredShifts.length === 0 ? (
     <DashboardEmptyState
       embedded
+      accent="primary"
       icon={FILL_IN_ICON.outline}
-      title={hasActiveFillInFilters ? 'No fill-ins match your search' : 'No open fill-ins'}
+      title={hasActiveFillInFilters ? 'No fill-ins match your filters' : 'No open fill-ins nearby yet'}
       message={
         hasActiveFillInFilters
-          ? 'Try a different search term or adjust your filters.'
-          : 'New temp shifts in your province will appear here.'
+          ? 'Try another city, role, or date — texts still arrive for matching cover.'
+          : 'We’ll text you when same-day cover opens near you.'
       }
     />
   ) : (
     <View style={styles.cardList}>
-      <StaggeredList>
-        {featuredOpenShifts.length > 0 ? (
-          <FeaturedListingsSectionHeader
-            label="Featured"
-            variant="featured"
-            accent="secondary"
-          />
-        ) : null}
-        {featuredOpenShifts.map((shift) => (
-          <FillInListingCard
-            key={shift.id}
-            shift={shift}
-            distanceLabel={shift.distanceLabel}
-            isSaved={savedShiftIds.has(shift.id)}
-            onToggleSaved={() =>
-              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-            }
-            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
-          />
-        ))}
-        {showOpenFeaturedDivider ? (
-          <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
-        ) : null}
-        {standardOpenShifts.map((shift) => (
-          <FillInListingCard
-            key={shift.id}
-            shift={shift}
-            distanceLabel={shift.distanceLabel}
-            isSaved={savedShiftIds.has(shift.id)}
-            onToggleSaved={() =>
-              void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
-            }
-            onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
-          />
-        ))}
-      </StaggeredList>
+      {featuredOpenShifts.length > 0 ? (
+        <FeaturedListingsSectionHeader
+          label="Featured"
+          variant="featured"
+          accent="primary"
+        />
+      ) : null}
+      {featuredOpenShifts.length > 0 ? (
+        <CoverageCardGrid>
+          {featuredOpenShifts.map((shift) => (
+            <FillInListingCard
+              key={shift.id}
+              shift={shift}
+              distanceLabel={shift.distanceLabel}
+              isSaved={savedShiftIds.has(shift.id)}
+              onToggleSaved={() =>
+                void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+              }
+              onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+            />
+          ))}
+        </CoverageCardGrid>
+      ) : null}
+      {showOpenFeaturedDivider ? (
+        <FeaturedListingsSectionHeader label="More fill-ins" variant="rest" />
+      ) : null}
+      {standardOpenShifts.length > 0 ? (
+        <CoverageCardGrid>
+          {standardOpenShifts.map((shift) => (
+            <FillInListingCard
+              key={shift.id}
+              shift={shift}
+              distanceLabel={shift.distanceLabel}
+              isSaved={savedShiftIds.has(shift.id)}
+              onToggleSaved={() =>
+                void handleToggleSavedShift(shift.id, !savedShiftIds.has(shift.id))
+              }
+              onPress={() => router.push(getWorkerShiftDetailRoute(shift.id, 'fill-ins-tab'))}
+            />
+          ))}
+        </CoverageCardGrid>
+      ) : null}
+    </View>
+  );
+
+  const openPanelBody = (
+    <View style={[styles.panel, fillMapViewport ? styles.panelFill : null]}>
+      {openBrowseControls}
+      {useWebSplitMap ? (
+        <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
+      ) : (
+        <WorkerBrowseViewTransition
+          mode={showOpenMap ? 'map' : 'list'}
+          style={showOpenMap ? styles.mapPanel : undefined}>
+          {showOpenMap ? mapElement : openListContent}
+        </WorkerBrowseViewTransition>
+      )}
     </View>
   );
 
@@ -410,13 +465,14 @@ export default function FillInsScreen() {
     <>
       <Screen
         title="Fill-ins"
-        subtitle="Temp shifts and your availability."
+        subtitle="Same-day cover by text — manage requests and confirmed shifts here."
+        softHeaderDivider
         fillsContainer={fillMapViewport}
         scroll={!fillMapViewport}
         scrollEnabled={!fillMapViewport}
         refreshing={fillMapViewport ? undefined : refreshing}
         onRefresh={fillMapViewport ? undefined : onRefresh}
-        refreshAccent="secondary"
+        refreshAccent="primary"
       >
         <View style={[styles.content, fillMapViewport ? styles.contentFill : null]}>
           {loadError ? (
@@ -425,34 +481,7 @@ export default function FillInsScreen() {
               onRetry={() => void load()}
             />
           ) : null}
-          <FillInAlertsNudgeCard variant="inline" openFillInCount={shifts.length} />
-          <FillInAvailabilitySummaryCard />
-          {selectedMode === 'open' && !isLoading && shifts.length > 0 ? (
-            <View style={styles.controlsBlock}>
-              <View style={styles.browseControlsRow}>
-                <View style={styles.searchField}>
-                  <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
-                </View>
-                <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
-                <WorkerFillInBrowseFilters
-                  roleTypeFilter={roleTypeFilter}
-                  sort={sort}
-                  distanceFilter={distanceFilter}
-                  softwareFilter={softwareFilter}
-                  payListedFilter={payListedFilter}
-                  availabilityFilter={availabilityFilter}
-                  savedOnlyFilter={savedOnlyFilter}
-                  onRoleTypeChange={setRoleTypeFilter}
-                  onSortChange={setSort}
-                  onDistanceFilterChange={setDistanceFilter}
-                  onSoftwareFilterChange={setSoftwareFilter}
-                  onPayListedFilterChange={setPayListedFilter}
-                  onAvailabilityFilterChange={setAvailabilityFilter}
-                  onSavedOnlyFilterChange={setSavedOnlyFilter}
-                />
-              </View>
-            </View>
-          ) : null}
+          <FillInAvailabilityStatusRow />
 
           <View style={fillMapViewport ? styles.panelFill : undefined}>
             <FileTabWell
@@ -461,18 +490,7 @@ export default function FillInsScreen() {
               onSelect={setSelectedMode}
               fillHeight={fillMapViewport}
             >
-            {selectedMode === 'open' ? (
-              useWebSplitMap ? (
-                <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
-              ) : (
-                <WorkerBrowseViewTransition
-                  mode={showOpenMap ? 'map' : 'list'}
-                  style={showOpenMap ? styles.mapPanel : undefined}
-                >
-                  {showOpenMap ? mapElement : openListContent}
-                </WorkerBrowseViewTransition>
-              )
-            ) : null}
+            {selectedMode === 'open' ? openPanelBody : null}
 
             {selectedMode === 'pending' ? (
               isLoading ? (
@@ -480,9 +498,10 @@ export default function FillInsScreen() {
               ) : pendingFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="primary"
                   icon="hourglass-outline"
-                  title="No pending cover requests"
-                  message="When you request to cover a fill-in, it stays here until the clinic confirms or declines."
+                  title="No requested cover yet"
+                  message="Request an open fill-in and it stays here until the clinic responds."
                 />
               ) : (
                 <View style={styles.applicationGroup}>
@@ -505,9 +524,10 @@ export default function FillInsScreen() {
               ) : confirmedFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="primary"
                   icon="checkmark-circle-outline"
                   title="No confirmed fill-ins yet"
-                  message="When a clinic confirms your cover request, the shift will appear here."
+                  message="Confirmed cover shows up here with the shift details."
                 />
               ) : (
                 <View style={styles.applicationGroup}>
@@ -531,9 +551,10 @@ export default function FillInsScreen() {
               ) : historyFillInCount === 0 ? (
                 <DashboardEmptyState
                   embedded
+                  accent="primary"
                   icon="time-outline"
                   title="No fill-in history yet"
-                  message="Declined requests, cancelled shifts, and past fill-ins will appear here."
+                  message="Past cover — filled, declined, or cancelled — lands here."
                 />
               ) : (
                 <>

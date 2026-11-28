@@ -6,14 +6,12 @@ import {
   WELCOME_STAGGER,
   enterFadeUp,
 } from '@/components/onboarding/onboardingAnimations';
-import { ONBOARDING_SUBTITLE } from '@/constants';
-import { fontExtraBold, useThemedStyles } from '@/theme';
+import { fontExtraBold, fontSemibold, useThemedStyles } from '@/theme';
 
-const MOBILE_HEADLINE = 'Dental staffing, simplified.';
-
+const MOBILE_HEADLINE = 'Fill the chair today.';
 export function WelcomeHero() {
   const reducedMotion = useReducedMotion();
-  const styles = useThemedStyles(({ spacing, typography }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     container: {
       alignItems: 'center',
       gap: spacing.md,
@@ -40,6 +38,12 @@ export function WelcomeHero() {
       lineHeight: 23,
       textAlign: 'center',
       maxWidth: 330,
+      color: colors.labelSecondary,
+    },
+    yes: {
+      color: colors.labelPrimary,
+      fontFamily: fontSemibold,
+      fontWeight: '600' as const,
     },
   }));
 
@@ -54,7 +58,10 @@ export function WelcomeHero() {
         <Text style={styles.headline}>{MOBILE_HEADLINE}</Text>
       </Animated.View>
       <Animated.View entering={enterFadeUp(WELCOME_STAGGER.subtitle, reducedMotion)}>
-        <Text style={styles.subtitle}>{ONBOARDING_SUBTITLE}</Text>
+        <Text style={styles.subtitle}>
+          Post a fill-in and nearby professionals get it by text.{' '}
+          <Text style={styles.yes}>You choose who covers.</Text>
+        </Text>
       </Animated.View>
     </View>
   );

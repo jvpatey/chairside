@@ -1,4 +1,11 @@
-import { listLiveJobPosts, listWorkerJobApplicationStatuses, getWorkerSavedJobPostIds, saveJobPost, unsaveJobPost, type LiveJobPost } from '@chairside/api';
+import {
+  listLiveJobPosts,
+  listWorkerJobApplicationStatuses,
+  getWorkerSavedJobPostIds,
+  saveJobPost,
+  unsaveJobPost,
+  type LiveJobPost,
+} from '@chairside/api';
 import { isActiveApplicationStatus } from '@chairside/config';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,6 +14,7 @@ import { Alert, View } from 'react-native';
 import { WorkerBrowseWebLayout } from '@/components/web/browse/WorkerBrowseWebLayout';
 
 import { RoleListingCard } from '@/components/worker/RoleListingCard';
+import { RolesStatusRow } from '@/components/worker/RolesStatusRow';
 import { FeaturedListingsSectionHeader } from '@/components/worker/FeaturedListingsDivider';
 import { WorkerBrowseMap } from '@/components/worker/WorkerBrowseMap';
 import { WorkerBrowseViewToggle } from '@/components/worker/WorkerBrowseViewToggle';
@@ -15,12 +23,10 @@ import { WorkerRoleBrowseFilters } from '@/components/clinic/PostingFilters';
 import { DashboardEmptyState } from '@/components/dashboard/DashboardEmptyState';
 import { DashboardErrorBanner } from '@/components/dashboard/DashboardErrorBanner';
 import { dashboardSectionGap } from '@/components/dashboard/dashboardLayout';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
-import { StaggeredList } from '@/components/ui/StaggeredList';
+import { CoverageCardGrid } from '@/components/dashboard/CoverageCardGrid';
 import { Screen } from '@/components/ui/Screen';
 import { FileTabWell } from '@/components/dashboard/FileTabWell';
-import { WorkerClinicsDirectoryIconButton } from '@/components/worker/WorkerClinicsDirectoryEntryCard';
 import { WorkerBrowseSearchBar } from '@/components/worker/WorkerBrowseSearchBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
@@ -35,9 +41,8 @@ import {
   filterAndSortLiveJobs,
   type EnrichedLiveJobPost,
 } from '@/lib/workerBrowseFilters';
-import { buildLiveJobMatchDisplayContext, computeJobMatchBreakdown } from '@/lib/workerMatch';
 import { partitionByPriorityListing } from '@/lib/listingPriority';
-import { getWorkerClinicsDirectoryRoute, getWorkerJobDetailRoute } from '@/lib/routing';
+import { getWorkerJobDetailRoute } from '@/lib/routing';
 import {
   countUnmappablePosts,
   groupWorkerMapItemsByClinic,
@@ -49,7 +54,6 @@ function renderRoleListingCard(
   job: EnrichedLiveJobPost,
   applicationStatuses: Record<string, string>,
   savedJobIds: Set<string>,
-  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
   onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
   const status = applicationStatuses[job.id];
@@ -61,10 +65,6 @@ function renderRoleListingCard(
       isSaved={savedJobIds.has(job.id)}
       onToggleSaved={() => onToggleSaved(job.id, !savedJobIds.has(job.id))}
       distanceLabel={job.distanceLabel}
-      jobMatch={workerProfile ? computeJobMatchBreakdown(workerProfile, job) : null}
-      matchContext={
-        workerProfile ? buildLiveJobMatchDisplayContext(workerProfile, job) : undefined
-      }
       onPress={() => router.push(getWorkerJobDetailRoute(job.id, 'browse-tab'))}
     />
   );
@@ -74,27 +74,34 @@ function renderRoleListingCards(
   jobs: EnrichedLiveJobPost[],
   applicationStatuses: Record<string, string>,
   savedJobIds: Set<string>,
-  workerProfile: ReturnType<typeof useWorkerProfile>['workerProfile'],
   onToggleSaved: (jobId: string, nextSaved: boolean) => void,
 ) {
   const { featured, standard } = partitionByPriorityListing(jobs);
   const showDivider = featured.length > 0 && standard.length > 0;
 
   return (
-    <StaggeredList>
+    <>
       {featured.length > 0 ? (
         <FeaturedListingsSectionHeader label="Featured" variant="featured" />
       ) : null}
-      {featured.map((job) =>
-        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
-      )}
+      {featured.length > 0 ? (
+        <CoverageCardGrid>
+          {featured.map((job) =>
+            renderRoleListingCard(job, applicationStatuses, savedJobIds, onToggleSaved),
+          )}
+        </CoverageCardGrid>
+      ) : null}
       {showDivider ? (
         <FeaturedListingsSectionHeader label="More roles" variant="rest" />
       ) : null}
-      {standard.map((job) =>
-        renderRoleListingCard(job, applicationStatuses, savedJobIds, workerProfile, onToggleSaved),
-      )}
-    </StaggeredList>
+      {standard.length > 0 ? (
+        <CoverageCardGrid>
+          {standard.map((job) =>
+            renderRoleListingCard(job, applicationStatuses, savedJobIds, onToggleSaved),
+          )}
+        </CoverageCardGrid>
+      ) : null}
+    </>
   );
 }
 
@@ -103,7 +110,6 @@ export default function BrowseScreen() {
   const { user } = useAuth();
   const { workerProfile } = useWorkerProfile();
   const province = workerProfile?.province ?? 'NS';
-  const profileComplete = Boolean(workerProfile?.setup_completed_at);
   const [selectedMode, setSelectedMode] = useState<RolesBrowseMode>('open');
   const [viewMode, setViewMode] = useState<WorkerBrowseViewMode>('list');
   const [jobs, setJobs] = useState<LiveJobPost[]>([]);
@@ -247,11 +253,11 @@ export default function BrowseScreen() {
   const mapGroups = useMemo(
     () =>
       groupWorkerMapItemsByClinic(
-        toWorkerMapItemsFromJobs(tabJobs, savedJobIds, appliedJobIds),
+        toWorkerMapItemsFromJobs(openJobs, savedJobIds, appliedJobIds),
       ),
-    [appliedJobIds, tabJobs, savedJobIds],
+    [appliedJobIds, openJobs, savedJobIds],
   );
-  const unmappableJobCount = useMemo(() => countUnmappablePosts(tabJobs), [tabJobs]);
+  const unmappableJobCount = useMemo(() => countUnmappablePosts(openJobs), [openJobs]);
   const workerCoords =
     workerProfile?.latitude != null && workerProfile?.longitude != null
       ? { latitude: workerProfile.latitude, longitude: workerProfile.longitude }
@@ -266,11 +272,7 @@ export default function BrowseScreen() {
     matchTierFilter !== DEFAULT_WORKER_ROLE_BROWSE_FILTERS.matchTierFilter;
 
   const hasMapResults =
-    canUseMap &&
-    !isLoading &&
-    jobs.length > 0 &&
-    viewMode === 'map' &&
-    tabJobs.length > 0;
+    canUseMap && !isLoading && viewMode === 'map' && openJobs.length > 0;
 
   const mapElement = (
     <WorkerBrowseMap
@@ -283,12 +285,12 @@ export default function BrowseScreen() {
     />
   );
 
-  const useWebSplitMap = IS_WEB && isWide && canUseMap && viewMode === 'map' && tabJobs.length > 0;
+  const useWebSplitMap = IS_WEB && isWide && canUseMap && viewMode === 'map' && openJobs.length > 0;
   const fillMapViewport = hasMapResults && !useWebSplitMap;
 
   const styles = useThemedStyles(({ spacing }) => ({
-    wrap: { gap: spacing.lg },
-    wrapFill: { flex: 1, minHeight: 0 },
+    content: { gap: spacing.lg },
+    contentFill: { flex: 1, minHeight: 0 },
     panel: { gap: spacing.lg },
     panelFill: { flex: 1, minHeight: 0 },
     controlsBlock: {
@@ -297,12 +299,8 @@ export default function BrowseScreen() {
       flexGrow: 0,
       gap: spacing.md,
     },
-    controlRow: {
-      width: '100%',
-      flexShrink: 0,
-    },
     cardList: { gap: dashboardSectionGap(spacing) },
-    searchRow: {
+    browseControlsRow: {
       width: '100%',
       flexShrink: 0,
       flexDirection: 'row',
@@ -317,8 +315,6 @@ export default function BrowseScreen() {
       minHeight: 0,
     },
   }));
-
-  const showBrowseControls = !isLoading && jobs.length > 0;
 
   const browseTabs = useMemo(
     () => [
@@ -347,18 +343,18 @@ export default function BrowseScreen() {
     [appliedJobs.length, openJobs.length, savedJobs.length],
   );
 
-  const browseControls = showBrowseControls ? (
+  const openBrowseControls = (
     <View style={styles.controlsBlock}>
-      <View style={styles.searchRow}>
+      <View style={styles.browseControlsRow}>
         <View style={styles.searchField}>
-          <WorkerBrowseSearchBar value={searchQuery} onChange={setSearchQuery} />
-        </View>
-        {profileComplete ? (
-          <WorkerClinicsDirectoryIconButton
-            onPress={() => router.push(getWorkerClinicsDirectoryRoute('browse-tab'))}
+          <WorkerBrowseSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by clinic, city, or role"
+            accessibilityLabel="Search permanent roles"
           />
-        ) : null}
-        {canUseMap ? <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} /> : null}
+        </View>
+        <WorkerBrowseViewToggle selected={viewMode} onChange={setViewMode} />
         <WorkerRoleBrowseFilters
           roleTypeFilter={roleTypeFilter}
           sort={sort}
@@ -375,114 +371,128 @@ export default function BrowseScreen() {
         />
       </View>
     </View>
-  ) : null;
+  );
 
-  const emptyTabState = (() => {
-    switch (selectedMode) {
-      case 'open':
-        return {
-          icon: 'briefcase-outline' as const,
-          title: 'No open roles in this filter',
-          message: hasActiveFilters
-            ? 'Try a different search or filter, or check the Applied or Saved tab.'
-            : 'Check back soon for new opportunities.',
-        };
-      case 'applied':
-        return {
-          icon: 'checkmark-circle-outline' as const,
-          title: 'No active applications',
-          message:
-            'Roles you apply to appear here while they are in progress. Hired and closed applications move to Applications → Past.',
-        };
-      case 'saved':
-        return {
-          icon: 'bookmark-outline' as const,
-          title: 'No saved roles',
-          message: hasActiveFilters
-            ? 'Try a different search or filter, or save roles from the Open tab.'
-            : 'Save roles you are interested in to find them here.',
-        };
-    }
-  })();
+  const openListContent = isLoading ? (
+    <PageLoadingList rowCount={4} />
+  ) : openJobs.length === 0 ? (
+    <DashboardEmptyState
+      embedded
+      accent="primary"
+      icon="briefcase-outline"
+      title={hasActiveFilters ? 'No roles match your filters' : 'No matching roles nearby yet'}
+      message={
+        hasActiveFilters
+          ? 'Try another city, role, or distance — or check Applied and Saved.'
+          : 'Permanent openings that match your role and area will show up here.'
+      }
+    />
+  ) : (
+    <View style={styles.cardList}>
+      {renderRoleListingCards(
+        openJobs,
+        applicationStatuses,
+        savedJobIds,
+        handleToggleSavedJob,
+      )}
+    </View>
+  );
 
-  const listContent =
-    filteredJobs.length === 0 ? (
-      <EmptyState
-        embedded
-        icon="filter-outline"
-        title="No roles match your search"
-        message={
-          hasActiveFilters
-            ? 'Try a different search term or adjust your filters.'
-            : 'Check back soon for new opportunities.'
-        }
-      />
-    ) : tabJobs.length === 0 ? (
-      <DashboardEmptyState
-        embedded
-        icon={emptyTabState.icon}
-        title={emptyTabState.title}
-        message={emptyTabState.message}
-      />
-    ) : (
-      <View style={styles.cardList}>
-        {renderRoleListingCards(
-          tabJobs,
-          applicationStatuses,
-          savedJobIds,
-          workerProfile,
-          handleToggleSavedJob,
-        )}
-      </View>
-    );
+  const openPanelBody = (
+    <View style={[styles.panel, fillMapViewport ? styles.panelFill : null]}>
+      {openBrowseControls}
+      {useWebSplitMap ? (
+        <WorkerBrowseWebLayout showMap list={openListContent} map={mapElement} />
+      ) : (
+        <WorkerBrowseViewTransition
+          mode={hasMapResults ? 'map' : 'list'}
+          style={hasMapResults ? styles.mapPanel : undefined}
+        >
+          {hasMapResults ? mapElement : openListContent}
+        </WorkerBrowseViewTransition>
+      )}
+    </View>
+  );
+
+  const appliedPanelBody = isLoading ? (
+    <PageLoadingList rowCount={3} />
+  ) : appliedJobs.length === 0 ? (
+    <DashboardEmptyState
+      embedded
+      accent="primary"
+      icon="checkmark-circle-outline"
+      title="No applications yet"
+      message="Apply to a permanent role and it stays here until the clinic responds."
+    />
+  ) : (
+    <View style={styles.cardList}>
+      {renderRoleListingCards(
+        appliedJobs,
+        applicationStatuses,
+        savedJobIds,
+        handleToggleSavedJob,
+      )}
+    </View>
+  );
+
+  const savedPanelBody = isLoading ? (
+    <PageLoadingList rowCount={3} />
+  ) : savedJobs.length === 0 ? (
+    <DashboardEmptyState
+      embedded
+      accent="primary"
+      icon="bookmark-outline"
+      title="No saved roles"
+      message={
+        hasActiveFilters
+          ? 'Try another search or filter, or save roles from Open.'
+          : 'Save openings you like so you can come back to them here.'
+      }
+    />
+  ) : (
+    <View style={styles.cardList}>
+      {renderRoleListingCards(
+        savedJobs,
+        applicationStatuses,
+        savedJobIds,
+        handleToggleSavedJob,
+      )}
+    </View>
+  );
 
   return (
     <Screen
       title="Roles"
-      subtitle="Open roles in your province."
+      subtitle="Permanent openings matched to your role and area."
+      softHeaderDivider
       fillsContainer={fillMapViewport}
       scroll={!fillMapViewport}
       scrollEnabled={!fillMapViewport}
       refreshing={fillMapViewport ? undefined : refreshing}
       onRefresh={fillMapViewport ? undefined : onRefresh}
+      refreshAccent="primary"
     >
-      <View style={[styles.wrap, fillMapViewport ? styles.wrapFill : null]}>
+      <View style={[styles.content, fillMapViewport ? styles.contentFill : null]}>
         {loadError ? (
           <DashboardErrorBanner
             message="Could not load roles."
             onRetry={() => void load()}
           />
         ) : null}
-        {isLoading ? (
-          <PageLoadingList message="Loading roles…" />
-        ) : loadError ? null : jobs.length === 0 ? (
-          <EmptyState
-            icon="briefcase-outline"
-            title="No open roles"
-            message="Check back soon for new opportunities in your province."
-          />
-        ) : (
-          <View style={[styles.panel, fillMapViewport ? styles.panelFill : null]}>
-            {browseControls}
-            <FileTabWell
-              tabs={browseTabs}
-              selected={selectedMode}
-              onSelect={setSelectedMode}
-              fillHeight={fillMapViewport}
-            >
-              {useWebSplitMap ? (
-                <WorkerBrowseWebLayout showMap list={listContent} map={mapElement} />
-              ) : (
-                <WorkerBrowseViewTransition
-                  mode={hasMapResults ? 'map' : 'list'}
-                  style={hasMapResults ? styles.mapPanel : undefined}
-                >
-                  {hasMapResults ? mapElement : listContent}
-                </WorkerBrowseViewTransition>
-              )}
-            </FileTabWell>
-          </View>
-        )}
+        <RolesStatusRow />
+
+        <View style={fillMapViewport ? styles.panelFill : undefined}>
+          <FileTabWell
+            tabs={browseTabs}
+            selected={selectedMode}
+            onSelect={setSelectedMode}
+            fillHeight={fillMapViewport}
+          >
+            {selectedMode === 'open' ? openPanelBody : null}
+            {selectedMode === 'applied' ? appliedPanelBody : null}
+            {selectedMode === 'saved' ? savedPanelBody : null}
+          </FileTabWell>
+        </View>
       </View>
     </Screen>
   );

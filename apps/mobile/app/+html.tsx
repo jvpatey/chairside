@@ -1,4 +1,4 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
 import { getPublicWebBaseUrl } from '@/constants/legal';
@@ -15,8 +15,10 @@ const OG_IMAGE_URL = `${SITE_ORIGIN}/og-share.png`;
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
 export default function Root({ children }: { children: ReactNode }) {
+  const { headNodes, bodyNodes, htmlAttributes, bodyAttributes } = useServerDocumentContext();
+
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -49,8 +51,13 @@ export default function Root({ children }: { children: ReactNode }) {
         <ScrollViewStyleReset />
 
         <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

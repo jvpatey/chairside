@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colorWithAlpha, useTheme, type GradientAccent } from '@/theme';
 
 /**
- * Featured listings: quiet elevation via soft tint, hairline brand border, and
- * a short accent rail — clear priority without glow or heavy chrome.
+ * Featured listings: quiet elevation via soft tint and hairline brand border —
+ * clear priority without glow or heavy chrome.
  */
 export function useFeaturedListingTreatment(accent: GradientAccent = 'primary') {
   const { colors, isDark } = useTheme();

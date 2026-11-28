@@ -88,7 +88,9 @@
         {
           "RNMapboxMapsVersion": "11.20.1"
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

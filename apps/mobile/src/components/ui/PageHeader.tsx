@@ -93,7 +93,7 @@ export function PageHeader({
     textBlock: {
       flex: 1,
       minWidth: 0,
-      gap: isTabletSection ? 0 : spacing.xs,
+      gap: isTabletSection ? 0 : spacing.sm,
     },
     eyebrow: isWeb
       ? { ...webTypography.eyebrow, color: colors.labelTertiary }

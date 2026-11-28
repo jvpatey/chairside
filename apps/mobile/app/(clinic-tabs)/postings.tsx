@@ -12,7 +12,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {
   CLINIC_FILL_INS,
   CLINIC_POST_JOB,
-  getClinicDiscoverRoute,
   getClinicRoleApplicationsRoute,
   getClinicApplicationRoute,
   getJobDetailRoute,
@@ -38,12 +37,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageLoadingList } from '@/components/ui/PageLoadingState';
 import { ResponsiveGrid } from '@/components/ui/ResponsiveLayout';
 import { Screen } from '@/components/ui/Screen';
-import { ClinicDiscoverBrowseLink } from '@/components/clinic/ClinicDiscoverBrowseLink';
 import { BrowseListGroup } from '@/components/ui/BrowseListGroup';
 import { BrowseListRow } from '@/components/ui/BrowseListRow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
-import { ClinicLocationScopeChip } from '@/components/clinic/ClinicLocationScopeChip';
+import { ClinicLocationScopeSwitcher } from '@/components/clinic/ClinicLocationScopeSwitcher';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
 import { useClinicListingViewMode } from '@/hooks/useClinicListingViewMode';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
@@ -66,7 +64,6 @@ import { summarizeJobApplicantPreviews } from '@/lib/dashboardAttention';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
-  isClinicBillingFeatureLocked,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { useTheme, useThemedStyles } from '@/theme';
@@ -84,7 +81,7 @@ export default function ClinicPostingsScreen() {
     useClinicActingContext();
   const { clinicProfile, isProfileComplete, locations, membership } = useClinicProfile();
   const roleTableColumns = useMemo(() => getClinicRoleTableColumns(isGroup), [isGroup]);
-  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade, showDiscoverUpgrade } =
+  const { billing, isBillingReady, refreshBilling, upgradePrompt, showPublishUpgrade } =
     useClinicUpgradePrompt();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [jobs, setJobs] = useState<JobPost[]>([]);
@@ -276,17 +273,15 @@ export default function ClinicPostingsScreen() {
   const historyDetail =
     historyCounts.archived === 1 ? '1 archived role' : `${historyCounts.archived} archived roles`;
 
-  const showScopeChip = isGroup && accessibleLocations.length > 1;
-
   return (
     <>
       {upgradePrompt}
       <Screen
         title="Roles"
-        subtitle="Open roles at your clinic."
+        subtitle="Permanent openings — alert matched professionals."
         refreshing={refreshing}
         onRefresh={onRefresh}
-        headerAccessory={showScopeChip ? <ClinicLocationScopeChip /> : undefined}>
+        scopeAccessory={<ClinicLocationScopeSwitcher />}>
         <View style={styles.wrap}>
           <DashboardQuickActionTile
             label="Post role"
@@ -296,19 +291,6 @@ export default function ClinicPostingsScreen() {
             dimmed={roleLimitReached}
             onPress={handlePostRolePress}
           />
-
-          {!isTablet ? (
-            <ClinicDiscoverBrowseLink
-              title="Roles from other clinics"
-              onPress={() => {
-                if (isClinicBillingFeatureLocked(billing, isBillingReady, 'canUseClinicDiscover')) {
-                  showDiscoverUpgrade();
-                  return;
-                }
-                router.push(getClinicDiscoverRoute('roles', 'postings-tab'));
-              }}
-            />
-          ) : null}
 
           {roleLimitReached && billing ? (
             <PlanUpgradeCallout

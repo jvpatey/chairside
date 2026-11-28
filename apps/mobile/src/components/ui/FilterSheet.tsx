@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
-import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { SheetSurface } from '@/components/ui/SheetSurface';
 import { SHEET_ENTER } from '@/components/ui/sheetAnimations';
 import { getGlassTokens, useTheme, useThemedStyles, type GradientAccent } from '@/theme';
 
@@ -128,7 +128,7 @@ export function FilterSheet({
         {visible ? (
           <Animated.View entering={SHEET_ENTER} style={styles.sheetWrap}>
             <Pressable onPress={(event) => event.stopPropagation()}>
-              <LiquidGlassSurface borderRadius={20} style={styles.sheet}>
+              <SheetSurface borderRadius={20} style={styles.sheet}>
                 <View style={styles.handle} />
                 <View style={styles.header}>
                   <Text style={styles.title}>{title}</Text>
@@ -146,7 +146,7 @@ export function FilterSheet({
                 <View style={styles.footer}>
                   <OnboardingButton label="Done" accent={accent} onPress={onClose} />
                 </View>
-              </LiquidGlassSurface>
+              </SheetSurface>
             </Pressable>
           </Animated.View>
         ) : null}

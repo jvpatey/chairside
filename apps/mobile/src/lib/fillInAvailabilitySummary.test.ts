@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getFillInAvailabilityCollapsedSummary,
+  getFillInSmsBadgePresentation,
   getFillInSmsStatus,
   getFillInSmsSubtitlePart,
 } from '@/lib/fillInAvailabilitySummary';
@@ -68,6 +69,38 @@ describe('getFillInSmsSubtitlePart', () => {
   });
 });
 
+describe('getFillInSmsBadgePresentation', () => {
+  it('returns null when fill-ins are off', () => {
+    expect(
+      getFillInSmsBadgePresentation({ short_notice_available: false } as never),
+    ).toBeNull();
+  });
+
+  it('maps on, off, and needs phone', () => {
+    expect(
+      getFillInSmsBadgePresentation({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '9025551234',
+      } as never),
+    ).toEqual({ tone: 'on', label: 'Text alerts on', showDot: true });
+    expect(
+      getFillInSmsBadgePresentation({
+        short_notice_available: true,
+        fill_in_sms_opt_in: false,
+        phone: '9025551234',
+      } as never),
+    ).toEqual({ tone: 'off', label: 'Text alerts off', showDot: false });
+    expect(
+      getFillInSmsBadgePresentation({
+        short_notice_available: true,
+        fill_in_sms_opt_in: true,
+        phone: '',
+      } as never),
+    ).toEqual({ tone: 'needs_phone', label: 'Add phone for texts', showDot: false });
+  });
+});
+
 describe('getFillInAvailabilityCollapsedSummary', () => {
   it('includes texts status when available', () => {
     const textsOn = getFillInAvailabilityCollapsedSummary(
@@ -79,27 +112,36 @@ describe('getFillInAvailabilityCollapsedSummary', () => {
       } as never,
       [],
     );
-    expect(textsOn.primary).toBe('Available · Texts on · All fill-ins');
+    expect(textsOn.primary).toBe('Open to fill-ins · Texts on');
     expect(textsOn.primarySegments).toEqual([
-      { text: 'Available', tone: 'positive' },
+      { text: 'Open to fill-ins', tone: 'positive' },
       { text: 'Texts on', tone: 'positive' },
-      { text: 'All fill-ins', tone: 'default' },
     ]);
 
     const textsOff = getFillInAvailabilityCollapsedSummary(
       {
         short_notice_available: true,
-        fill_in_notification_mode: 'available_days_only',
+        fill_in_notification_mode: 'all',
         fill_in_sms_opt_in: false,
         phone: '9025551234',
       } as never,
       [],
     );
-    expect(textsOff.primary).toBe('Available · Texts off · Matching days only');
+    expect(textsOff.primary).toBe('Open to fill-ins · Texts off');
     expect(textsOff.primarySegments).toEqual([
-      { text: 'Available', tone: 'positive' },
+      { text: 'Open to fill-ins', tone: 'positive' },
       { text: 'Texts off', tone: 'negative' },
-      { text: 'Matching days only', tone: 'default' },
     ]);
+
+    const needsPhone = getFillInAvailabilityCollapsedSummary(
+      {
+        short_notice_available: true,
+        fill_in_notification_mode: 'all',
+        fill_in_sms_opt_in: true,
+        phone: null,
+      } as never,
+      [],
+    );
+    expect(needsPhone.primary).toBe('Open to fill-ins · Needs phone');
   });
 });

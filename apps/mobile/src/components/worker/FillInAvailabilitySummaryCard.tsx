@@ -9,9 +9,9 @@ import {
 import { ProfileSettingsCard } from '@/components/profile/ProfileSettingsCard';
 import { ProfileSettingsRow } from '@/components/profile/ProfileSettingsRow';
 import { EditPillButton } from '@/components/ui/EditPillButton';
-import { PillBadge } from '@/components/ui/PillBadge';
 import { AvailabilityScheduleSummary } from '@/components/worker/AvailabilityScheduleSummary';
 import { FillInAvailabilityPrimaryToggle } from '@/components/worker/FillInAvailabilityPrimaryToggle';
+import { TextAlertsStatusBadge } from '@/components/worker/TextAlertsStatusBadge';
 import { useWorkerProfile } from '@/contexts/WorkerProfileContext';
 import { FILL_IN_ICON } from '@/lib/fillInIcons';
 import {
@@ -19,7 +19,7 @@ import {
   getFillInSmsStatus,
 } from '@/lib/fillInAvailabilitySummary';
 import { WORKER_FILLIN_AVAILABILITY, WORKER_SETUP_AVAILABILITY_SCHEDULE } from '@/lib/routing';
-import { colorWithAlpha, useTheme, useThemedStyles } from '@/theme';
+import { useTheme, useThemedStyles } from '@/theme';
 
 function navigateToManageAvailability() {
   router.push(WORKER_FILLIN_AVAILABILITY);
@@ -30,7 +30,7 @@ function navigateToEditSchedule() {
 }
 
 export function FillInAvailabilitySummaryCard() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { workerProfile, availabilityBlocks } = useWorkerProfile();
   const summary = getFillInAvailabilityCollapsedSummary(workerProfile, availabilityBlocks);
   const isAvailable = workerProfile?.short_notice_available ?? false;
@@ -104,16 +104,7 @@ export function FillInAvailabilitySummaryCard() {
                   </Text>
                 ))}
               </Text>
-              {smsActive ? (
-                <PillBadge
-                  label="Text alerts on"
-                  color={colors.secondary}
-                  backgroundColor={colorWithAlpha(colors.secondary, isDark ? 0.16 : 0.1)}
-                  borderColor={colorWithAlpha(colors.secondary, isDark ? 0.28 : 0.18)}
-                  size="sm"
-                  showDot
-                />
-              ) : null}
+              <TextAlertsStatusBadge />
             </View>
           </FieldBlock>
           <FieldDivider />

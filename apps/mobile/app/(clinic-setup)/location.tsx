@@ -1,5 +1,4 @@
-import { router } from 'expo-router';
-import { CLINIC_SETUP_LOCATIONS, CLINIC_SETUP_PRACTICE } from '@/lib/routing';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -9,14 +8,13 @@ import {
   type AddressFormValue,
 } from '@/components/clinic/AddressAutocomplete';
 import { SetupStepFooter } from '@/components/onboarding/SetupStepFooter';
-import { SetupStepProgress } from '@/components/onboarding/SetupStepProgress';
 import { FormScreen } from '@/components/ui/FormScreen';
 import { useClinicProfile } from '@/contexts/ClinicProfileContext';
 import { useClinicSetupSave } from '@/hooks/useClinicSetupSave';
 import { useClinicSetupStepGuard } from '@/hooks/useSetupStepGuard';
 import { useSetupEditMode } from '@/hooks/useSetupEditMode';
 import { useSetupFormScreenProps } from '@/hooks/useSetupFormScreenProps';
-import { useSetupStepProgress } from '@/hooks/useSetupStepProgress';
+import { CLINIC_CAPTURE_ADDRESS } from '@/lib/routing';
 import { validateAddressStep } from '@/lib/setupStepValidation';
 import { useThemedStyles } from '@/theme';
 
@@ -27,7 +25,9 @@ function buildFormattedAddress(
   return [profile.address_line1, cityLine].filter(Boolean).join(', ');
 }
 
-function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfile>['clinicProfile']>): AddressFormValue {
+function profileToAddress(
+  profile: NonNullable<ReturnType<typeof useClinicProfile>['clinicProfile']>,
+): AddressFormValue {
   const address_line1 = profile.address_line1 ?? '';
   const city = profile.city ?? '';
   const postal_code = profile.postal_code ?? '';
@@ -46,6 +46,7 @@ function profileToAddress(profile: NonNullable<ReturnType<typeof useClinicProfil
   };
 }
 
+/** Settings edit only — signup uses /(onboarding)/capture-clinic-address. */
 export default function ClinicLocationScreen() {
   const { clinicProfile, isClinicProfileReady, isGroup } = useClinicProfile();
   const { save } = useClinicSetupSave();
@@ -60,7 +61,6 @@ export default function ClinicLocationScreen() {
 
   useClinicSetupStepGuard('location', clinicProfile, isClinicProfileReady, isEditMode);
 
-  const progress = useSetupStepProgress('location', { role: 'clinic' });
   const validation = validateAddressStep(address);
 
   const styles = useThemedStyles(({ spacing }) => ({
@@ -72,6 +72,10 @@ export default function ClinicLocationScreen() {
       setAddress(profileToAddress(clinicProfile));
     }
   }, [clinicProfile]);
+
+  if (!isEditMode) {
+    return <Redirect href={CLINIC_CAPTURE_ADDRESS} />;
+  }
 
   const handleContinue = async () => {
     if (!validation.ok) {
@@ -92,13 +96,7 @@ export default function ClinicLocationScreen() {
         longitude: address.longitude,
         account_type: isGroup ? 'group' : 'individual',
       });
-      if (isEditMode) {
-        router.replace(exitHref);
-      } else if (isGroup) {
-        router.push(CLINIC_SETUP_LOCATIONS);
-      } else {
-        router.push(CLINIC_SETUP_PRACTICE);
-      }
+      router.replace(exitHref);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Could not save. Please try again.');
     } finally {
@@ -111,13 +109,9 @@ export default function ClinicLocationScreen() {
   return (
     <FormScreen
       {...setupFormProps}
-      title="Clinic location"
-      subtitle={
-        isGroup
-          ? 'Start with your main clinic address. You can add more locations next.'
-          : 'Where is your practice located?'
-      }
-      onBack={() => (isEditMode ? router.replace(exitHref) : router.back())}
+      title="Clinic address"
+      subtitle="Your practice location. Add more clinics later under Settings if you need them."
+      onBack={() => router.replace(exitHref)}
       footer={
         <SetupStepFooter
           canContinue={validation.ok}
@@ -125,13 +119,10 @@ export default function ClinicLocationScreen() {
           showValidation={showValidation}
           submitError={submitError}
           isSubmitting={isSubmitting}
-          continueLabel={isEditMode ? 'Save changes' : 'Continue'}
+          continueLabel="Save changes"
           onContinue={handleContinue}
         />
       }>
-      {progress.visible ? (
-        <SetupStepProgress step={progress.step} total={progress.total} />
-      ) : null}
       <View style={styles.form}>
         <AddressAutocomplete
           value={address}

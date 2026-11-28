@@ -11,19 +11,19 @@ export {
 export const APP_STORE_URL: string | null = null;
 
 export const ONBOARDING_SUBTITLE =
-  'Permanent roles and same-day fill-ins — one platform for clinics and professionals.';
+  'Post a fill-in and nearby professionals get it by text. You choose who covers.';
 
 export const ROLE_OPTIONS = [
   {
     role: 'worker' as const,
     title: 'Find work',
-    description: 'Browse permanent roles and fill-in shifts',
+    description: 'Get fill-in texts, request cover, and browse permanent roles',
     icon: 'briefcase-outline' as const,
   },
   {
     role: 'clinic' as const,
     title: 'Hire staff',
-    description: 'Post roles and fill chairs faster',
+    description: 'Post fill-ins by text, confirm cover, and list permanent roles',
     icon: 'business-outline' as const,
   },
 ];

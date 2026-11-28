@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { WebLandingCtaStrip } from '@/components/web/marketing/WebLandingCtaStrip.web';
 import { WebLandingFaq } from '@/components/web/marketing/WebLandingFaq.web';
-import { WebLandingFeatures } from '@/components/web/marketing/WebLandingFeatures.web';
 import { WebLandingHero } from '@/components/web/marketing/WebLandingHero.web';
 import { WebLandingStory } from '@/components/web/marketing/WebLandingStory.web';
 import { WebMarketingFooter } from '@/components/web/marketing/WebMarketingFooter.web';
@@ -17,6 +16,13 @@ import {
 import { webScrollbarStyles } from '@/lib/webScrollbarStyles';
 import { useThemedStyles } from '@/theme';
 
+/** Old Features deep-links land on How it works after the features section was removed. */
+function resolveWelcomeSection(section: string | undefined) {
+  if (!section) return null;
+  if (section === 'features') return 'how-it-works';
+  return section;
+}
+
 function WelcomeWebLayoutInner() {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -24,9 +30,10 @@ function WelcomeWebLayoutInner() {
   const marketingScroll = useWebMarketingScroll();
 
   useEffect(() => {
-    if (!section || !marketingScroll) return;
+    const target = resolveWelcomeSection(section);
+    if (!target || !marketingScroll) return;
     const timer = window.setTimeout(() => {
-      marketingScroll.scrollToSection(section);
+      marketingScroll.scrollToSection(target);
     }, 120);
     return () => window.clearTimeout(timer);
   }, [section, marketingScroll]);
@@ -70,7 +77,6 @@ function WelcomeWebLayoutInner() {
         >
           <WebLandingHero />
           <WebLandingStory />
-          <WebLandingFeatures />
           <WebLandingFaq />
           <WebLandingCtaStrip />
           <WebMarketingFooter />

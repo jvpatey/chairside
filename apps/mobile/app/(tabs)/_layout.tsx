@@ -4,27 +4,27 @@ import { Tabs } from 'expo-router';
 import { renderWorkerTabBar } from '@/components/navigation/AdaptiveTabBar';
 import { WorkerSetupGate } from '@/components/onboarding/SetupGate';
 import { getDashboardTabOptions } from '@/components/navigation/dashboardTabOptions';
+import { hiddenTabScreenOptions } from '@/components/navigation/hiddenTabScreenOptions';
 import { useAdaptiveTabScreenOptions } from '@/components/navigation/useAdaptiveTabScreenOptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarCollapseProvider } from '@/contexts/SidebarCollapseContext';
 import { TabAtmosphereShell } from '@/contexts/TabAtmosphereContext';
-import { MessageUnreadProvider, useMessageUnread } from '@/contexts/MessageUnreadContext';
+import { MessageUnreadProvider } from '@/contexts/MessageUnreadContext';
 import { ApplicationTabBadgeProvider, useApplicationTabBadge } from '@/contexts/ApplicationTabBadgeContext';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { fillInTabIcon } from '@/lib/fillInIcons';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
 };
 
 function WorkerTabNavigator() {
-  const { unreadCount } = useMessageUnread();
-  const { pendingCount: applicationPendingCount, fillInPendingCount } = useApplicationTabBadge();
+  const { fillInPendingCount } = useApplicationTabBadge();
   const { isTablet } = useResponsiveLayout();
-  const screenOptions = useAdaptiveTabScreenOptions();
+  const screenOptions = useAdaptiveTabScreenOptions('worker');
 
   return (
-    <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions}>
+    <Tabs tabBar={renderWorkerTabBar} screenOptions={screenOptions} backBehavior="initialRoute">
       <Tabs.Screen name="index" options={getDashboardTabOptions(isTablet)} />
       <Tabs.Screen
         name="browse"
@@ -35,21 +35,7 @@ function WorkerTabNavigator() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="applications"
-        options={{
-          title: 'Applications',
-          tabBarAccessibilityLabel: 'Applications',
-          tabBarBadge: applicationPendingCount > 0 ? applicationPendingCount : undefined,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'document-text' : 'document-text-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="applications" options={hiddenTabScreenOptions} />
       <Tabs.Screen
         name="fillins"
         options={{
@@ -60,42 +46,29 @@ function WorkerTabNavigator() {
           ),
         }}
       />
+      <Tabs.Screen name="calendar" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="messages" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="message-clinics" options={hiddenTabScreenOptions} />
       <Tabs.Screen
-        name="calendar"
+        name="profile"
         options={{
-          title: 'Calendar',
+          title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'today' : 'today-outline'} size={22} color={color} />
+            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen name="message-clinics" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="admin" options={{ href: null }} />
-      <Tabs.Screen name="application" options={{ href: null }} />
-      <Tabs.Screen name="conversation/[id]" options={{ href: null }} />
-      <Tabs.Screen name="job/[id]" options={{ href: null }} />
-      <Tabs.Screen name="shift/[id]" options={{ href: null }} />
-      <Tabs.Screen name="clinic/[clinicId]" options={{ href: null }} />
-      <Tabs.Screen name="apply" options={{ href: null }} />
-      <Tabs.Screen name="apply-screening" options={{ href: null }} />
-      <Tabs.Screen name="open-fill-ins" options={{ href: null }} />
-      <Tabs.Screen name="past-fill-ins" options={{ href: null }} />
-      <Tabs.Screen name="fill-in-availability" options={{ href: null }} />
+      <Tabs.Screen name="admin" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="application" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="conversation/[id]" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="job/[id]" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="shift/[id]" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="clinic/[clinicId]" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="apply" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="apply-screening" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="open-fill-ins" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="past-fill-ins" options={hiddenTabScreenOptions} />
+      <Tabs.Screen name="fill-in-availability" options={hiddenTabScreenOptions} />
     </Tabs>
   );
 }
@@ -105,7 +78,7 @@ export default function TabLayout() {
   const userId = session?.user?.id ?? 'signed-out';
 
   return (
-    <SidebarCollapseProvider>
+    <SidebarCollapseProvider defaultCollapsed>
       <MessageUnreadProvider role="worker">
         <ApplicationTabBadgeProvider role="worker">
           <TabAtmosphereShell role="worker">

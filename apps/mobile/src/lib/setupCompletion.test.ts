@@ -10,7 +10,12 @@ vi.mock('@chairside/api', () => ({
   isClinicProfileComplete: mocks.isClinicProfileComplete,
 }));
 
-import { isClinicSetupComplete, isWorkerSetupComplete } from '@/lib/setupCompletion';
+import {
+  canAccessClinicTabs,
+  canAccessWorkerTabs,
+  isClinicSetupComplete,
+  isWorkerSetupComplete,
+} from '@/lib/setupCompletion';
 
 describe('isWorkerSetupComplete', () => {
   it('treats setup_completed_at as enough even if address fields are missing', () => {
@@ -39,6 +44,22 @@ describe('isWorkerSetupComplete', () => {
         postal_code: null,
       }),
     ).toBe(false);
+  });
+});
+
+describe('canAccessWorkerTabs', () => {
+  it('is true only for the worker role', () => {
+    expect(canAccessWorkerTabs({ role: 'worker' })).toBe(true);
+    expect(canAccessWorkerTabs({ role: 'clinic' })).toBe(false);
+    expect(canAccessWorkerTabs(null)).toBe(false);
+  });
+});
+
+describe('canAccessClinicTabs', () => {
+  it('is true only for the clinic role (soft gate; completeness not required)', () => {
+    expect(canAccessClinicTabs({ role: 'clinic' })).toBe(true);
+    expect(canAccessClinicTabs({ role: 'worker' })).toBe(false);
+    expect(canAccessClinicTabs(null)).toBe(false);
   });
 });
 

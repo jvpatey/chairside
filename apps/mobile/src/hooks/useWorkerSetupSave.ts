@@ -1,5 +1,9 @@
 import type { WorkerProfileUpdate } from '@chairside/api';
-import { upsertWorkerProfile } from '@chairside/api';
+import {
+  completeWorkerSetup,
+  isWorkerProfileComplete,
+  upsertWorkerProfile,
+} from '@chairside/api';
 import { useCallback } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +16,11 @@ export function useWorkerSetupSave() {
   const save = useCallback(
     async (partial: WorkerProfileUpdate) => {
       if (!user?.id) throw new Error('Not signed in');
-      const saved = await upsertWorkerProfile(user.id, partial);
+      let saved = await upsertWorkerProfile(user.id, partial);
+      // Soft setup: stamp setup_completed_at once core fields exist (SMS eligibility).
+      if (!saved.setup_completed_at && isWorkerProfileComplete(saved)) {
+        saved = await completeWorkerSetup(user.id);
+      }
       await refreshWorkerProfile();
       return saved;
     },

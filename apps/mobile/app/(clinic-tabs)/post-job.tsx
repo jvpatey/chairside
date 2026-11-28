@@ -2,7 +2,6 @@ import {
   createJobPost,
   getErrorMessage,
   getJobPostWithScreening,
-  screeningQuestionInputFromSelection,
   updateJobPost,
   type EmploymentType,
   type JobPostWithScreening,
@@ -12,7 +11,7 @@ import {
   normalizeRoleEmploymentType,
   ROLE_EMPLOYMENT_TYPE_OPTIONS,
   ROLE_TYPE_OPTIONS,
-  type ScreeningKnockoutRule,
+  THIN_PERMANENT_ROLES,
 } from '@chairside/config';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CLINIC_POSTINGS } from '@/lib/routing';
@@ -20,12 +19,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { ChipSelector } from '@/components/clinic/ChipSelector';
-import { OfferingsInput } from '@/components/clinic/OfferingsInput';
-import { ScheduleInput } from '@/components/clinic/ScheduleInput';
-import {
-  ScreeningToggleSection,
-  type CustomScreeningQuestion,
-} from '@/components/clinic/ScreeningToggleSection';
 import { WageRangeInput } from '@/components/clinic/WageRangeInput';
 import { AuthField } from '@/components/onboarding/AuthField';
 import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
@@ -36,50 +29,25 @@ import { FormSectionHeader } from '@/components/ui/FormSectionHeader';
 import { PlanUpgradeCallout } from '@/components/billing/PlanUpgradeCallout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicActingContext } from '@/hooks/useClinicActingContext';
+import { resolveActiveLocationId } from '@/lib/clinicLocationScope';
 import { useClinicUpgradePrompt } from '@/hooks/useClinicUpgradePrompt';
 import { useFormSectionScroll } from '@/hooks/useFormSectionScroll';
 import { usePostingFormScreenProps } from '@/hooks/usePostingFormScreenProps';
 import {
   getClinicPostingLimitReachedMessage,
   getClinicPostingLimitTitle,
-  isClinicBillingFeatureLocked,
   isRolePostingLimitReached,
 } from '@/lib/clinicPlanPresentation';
 import { showFormError } from '@/lib/formErrors';
 import { useThemedStyles } from '@/theme';
 
 function applyJobToForm(job: JobPostWithScreening) {
-  const catalogSlugs = job.screening_questions
-    .filter((question) => question.catalogSlug)
-    .map((question) => question.catalogSlug!);
-
-  const customQuestions: CustomScreeningQuestion[] = job.screening_questions
-    .filter((question) => question.customPrompt)
-    .map((question) => ({
-      id: question.id,
-      prompt: question.customPrompt!,
-      type: question.type,
-    }));
-
-  const knockouts: Record<string, ScreeningKnockoutRule | undefined> = {};
-  for (const question of job.screening_questions) {
-    if (!question.knockout?.enabled) continue;
-    const key = question.catalogSlug ?? question.id;
-    knockouts[key] = question.knockout;
-  }
-
   return {
     roleType: job.role_type,
     employmentType: normalizeRoleEmploymentType(job.employment_type),
     title: job.title,
     wageRange: job.wage_range ?? '',
-    schedule: job.schedule ?? '',
-    offerings: job.offerings ?? [],
     description: job.description ?? '',
-    screeningEnabled: job.screening_enabled,
-    selectedCatalogSlugs: catalogSlugs,
-    customQuestions,
-    knockouts,
   };
 }
 
@@ -88,13 +56,7 @@ const DEFAULT_CREATE_FORM = {
   employmentType: 'permanent' as EmploymentType,
   title: '',
   wageRange: '',
-  schedule: '',
-  offerings: [] as string[],
   description: '',
-  screeningEnabled: false,
-  selectedCatalogSlugs: [] as string[],
-  customQuestions: [] as CustomScreeningQuestion[],
-  knockouts: {} as Record<string, ScreeningKnockoutRule | undefined>,
 };
 
 export default function PostJobScreen() {
@@ -102,17 +64,13 @@ export default function PostJobScreen() {
   const {
     clinicId,
     accessibleLocations,
+    locationScope,
     isGroup,
-    attribution,
-    attributionLabel,
   } = useClinicActingContext();
   const {
     billing,
-    isBillingReady,
     upgradePrompt,
     showPublishUpgrade,
-    showScreeningUpgrade,
-    showScreeningCapUpgrade,
     handleBillingError,
   } = useClinicUpgradePrompt();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -126,17 +84,9 @@ export default function PostJobScreen() {
   const [employmentType, setEmploymentType] = useState<EmploymentType>('permanent');
   const [title, setTitle] = useState('');
   const [wageRange, setWageRange] = useState('');
-  const [schedule, setSchedule] = useState('');
-  const [offerings, setOfferings] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [screeningEnabled, setScreeningEnabled] = useState(false);
-  const [selectedCatalogSlugs, setSelectedCatalogSlugs] = useState<string[]>([]);
-  const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
-  const [knockouts, setKnockouts] = useState<Record<string, ScreeningKnockoutRule | undefined>>({});
   const [locationId, setLocationId] = useState<string | null>(
-    accessibleLocations.find((location) => location.is_primary)?.id ??
-      accessibleLocations[0]?.id ??
-      null,
+    resolveActiveLocationId(locationScope, accessibleLocations),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditing);
@@ -147,7 +97,7 @@ export default function PostJobScreen() {
 
   const styles = useThemedStyles(({ spacing, typography, colors }) => ({
     form: { gap: spacing.lg },
-    screeningBlock: {
+    noticeBlock: {
       gap: spacing.sm,
     },
     section: { gap: spacing.sm },
@@ -165,13 +115,7 @@ export default function PostJobScreen() {
     setEmploymentType(DEFAULT_CREATE_FORM.employmentType);
     setTitle(DEFAULT_CREATE_FORM.title);
     setWageRange(DEFAULT_CREATE_FORM.wageRange);
-    setSchedule(DEFAULT_CREATE_FORM.schedule);
-    setOfferings(DEFAULT_CREATE_FORM.offerings);
     setDescription(DEFAULT_CREATE_FORM.description);
-    setScreeningEnabled(DEFAULT_CREATE_FORM.screeningEnabled);
-    setSelectedCatalogSlugs(DEFAULT_CREATE_FORM.selectedCatalogSlugs);
-    setCustomQuestions(DEFAULT_CREATE_FORM.customQuestions);
-    setKnockouts(DEFAULT_CREATE_FORM.knockouts);
     setTitleError(null);
     setWageValid(true);
     setFormKey((current) => current + 1);
@@ -198,13 +142,7 @@ export default function PostJobScreen() {
       setEmploymentType(form.employmentType);
       setTitle(form.title);
       setWageRange(form.wageRange);
-      setSchedule(form.schedule);
-      setOfferings(form.offerings);
       setDescription(form.description);
-      setScreeningEnabled(form.screeningEnabled);
-      setSelectedCatalogSlugs(form.selectedCatalogSlugs);
-      setCustomQuestions(form.customQuestions);
-      setKnockouts(form.knockouts);
       setLocationId(job.location_id ?? null);
       setFormKey((current) => current + 1);
     } catch (error) {
@@ -243,23 +181,6 @@ export default function PostJobScreen() {
       return;
     }
 
-    if (screeningEnabled && selectedCatalogSlugs.length === 0 && customQuestions.length === 0) {
-      const message = 'Select at least one question or turn off screening.';
-      setFormError(showFormError(message, { title: 'Screening questions' }));
-      scrollToFirstSection(['screening']);
-      return;
-    }
-
-    const customLimit = billing?.customScreeningLimit ?? null;
-    if (
-      screeningEnabled &&
-      customLimit != null &&
-      customQuestions.length > customLimit
-    ) {
-      showScreeningCapUpgrade();
-      return;
-    }
-
     if (!isEditing && billing && !billing.canPublishRole) {
       showPublishUpgrade();
       return;
@@ -269,20 +190,15 @@ export default function PostJobScreen() {
     setFormError(null);
     setTitleError(null);
     try {
-      const screeningQuestions = screeningEnabled
-        ? screeningQuestionInputFromSelection(selectedCatalogSlugs, customQuestions, knockouts)
-        : [];
-
       const payload = {
         role_type: roleType,
         employment_type: employmentType,
         title: title.trim(),
         wage_range: wageRange.trim() || undefined,
-        schedule: schedule.trim() || undefined,
-        offerings,
         description: description.trim() || undefined,
-        screening_enabled: screeningEnabled,
-        screeningQuestions,
+        ...(THIN_PERMANENT_ROLES
+          ? { screening_enabled: false, screeningQuestions: [] as const }
+          : {}),
         ...(isGroup ? { location_id: locationId } : {}),
       };
 
@@ -292,11 +208,9 @@ export default function PostJobScreen() {
       } else {
         await createJobPost(clinicId, {
           ...payload,
-          offerings: offerings.length > 0 ? offerings : undefined,
           status: 'live',
           organization_id: clinicId,
           location_id: locationId,
-          ...attribution,
         });
         resetForm();
         router.replace(CLINIC_POSTINGS);
@@ -325,7 +239,7 @@ export default function PostJobScreen() {
             : 'Publishing…'
           : isEditing
             ? 'Save changes'
-            : 'Publish role'
+            : 'Post role & alert matches'
       }
       disabled={isSubmitting || roleLimitReached}
       onPress={handleSubmit}
@@ -352,132 +266,99 @@ export default function PostJobScreen() {
         title={isEditing ? 'Edit role' : 'Post a role'}
         subtitle={
           isEditing
-            ? 'Update your job posting details.'
-            : 'Create a full-time or part-time job posting.'
+            ? 'Update role title, location, pay, and description.'
+            : 'Matched professionals get an in-app alert — no screening or interview steps.'
         }
         onBack={() => router.back()}
         footer={submitButton}
         afterCard={
-          <>
-            <View ref={setSectionRef('screening')} style={styles.screeningBlock} collapsable={false}>
-              <ScreeningToggleSection
-                enabled={screeningEnabled}
-                selectedCatalogSlugs={selectedCatalogSlugs}
-                customQuestions={customQuestions}
-                knockouts={knockouts}
-                onEnabledChange={setScreeningEnabled}
-                onSelectedCatalogSlugsChange={setSelectedCatalogSlugs}
-                onCustomQuestionsChange={setCustomQuestions}
-                onKnockoutsChange={setKnockouts}
-                locked={isClinicBillingFeatureLocked(
-                  billing,
-                  isBillingReady,
-                  'canUseScreeningQuestions',
-                )}
-                onLockedPress={showScreeningUpgrade}
-                customScreeningLimit={
-                  billing?.customScreeningLimit != null && billing.customScreeningLimit > 0
-                    ? billing.customScreeningLimit
-                    : null
-                }
-                onCustomCapPress={showScreeningCapUpgrade}
+          roleLimitReached && billing ? (
+            <View style={styles.noticeBlock}>
+              <PlanUpgradeCallout
+                title={getClinicPostingLimitTitle('role')}
+                message={getClinicPostingLimitReachedMessage(billing, 'role')}
+                compact
               />
             </View>
-
-            {roleLimitReached && billing ? (
-              <View style={styles.screeningBlock}>
-                <PlanUpgradeCallout
-                  title={getClinicPostingLimitTitle('role')}
-                  message={getClinicPostingLimitReachedMessage(billing, 'role')}
-                  compact
-                />
-              </View>
-            ) : null}
-          </>
+          ) : null
         }
       >
         <FormErrorBanner message={formError} />
 
         <View style={styles.form}>
-        {isGroup ? (
-          <View ref={setSectionRef('location')} style={styles.section} collapsable={false}>
-            <FormSectionHeader icon="location-outline" label="Location" required />
+          {isGroup ? (
+            <View ref={setSectionRef('location')} style={styles.section} collapsable={false}>
+              <FormSectionHeader icon="location-outline" label="Location" required />
+              <ChipSelector
+                options={accessibleLocations.map((location) => ({
+                  value: location.id,
+                  label: location.name,
+                }))}
+                selected={locationId}
+                onChange={(value) => {
+                  setLocationId(value as string);
+                  setFormError(null);
+                }}
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.section}>
+            <FormSectionHeader icon="person-outline" label="Role type" />
             <ChipSelector
-              options={accessibleLocations.map((location) => ({
-                value: location.id,
-                label: location.name,
-              }))}
-              selected={locationId}
-              onChange={(value) => {
-                setLocationId(value as string);
+              options={ROLE_TYPE_OPTIONS}
+              selected={roleType}
+              onChange={(value) => setRoleType(value as RoleType)}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <FormSectionHeader icon="briefcase-outline" label="Employment type" />
+            <ChipSelector
+              options={ROLE_EMPLOYMENT_TYPE_OPTIONS}
+              selected={employmentType}
+              onChange={(value) => setEmploymentType(value as EmploymentType)}
+            />
+          </View>
+
+          <View ref={setSectionRef('title')} collapsable={false}>
+            <AuthField
+              label="Job title"
+              placeholder="Dental hygienist"
+              value={title}
+              onChangeText={(value) => {
+                setTitle(value);
+                setTitleError(null);
                 setFormError(null);
               }}
+              autoCapitalize="words"
+              required
+              invalid={Boolean(titleError)}
+              icon="create-outline"
             />
-            {attributionLabel ? (
-              <Text style={styles.helper}>Will show as posted by {attributionLabel}</Text>
-            ) : null}
+            {titleError ? <Text style={styles.fieldError}>{titleError}</Text> : null}
           </View>
-        ) : null}
 
-        <View style={styles.section}>
-          <FormSectionHeader icon="person-outline" label="Role type" />
-          <ChipSelector
-            options={ROLE_TYPE_OPTIONS}
-            selected={roleType}
-            onChange={(value) => setRoleType(value as RoleType)}
-          />
-        </View>
+          <View ref={setSectionRef('wage')} style={styles.section} collapsable={false}>
+            <FormSectionHeader icon="cash-outline" label="Compensation (optional)" />
+            <WageRangeInput
+              key={`wage-${formKey}`}
+              initialValue={wageRange}
+              onChange={setWageRange}
+              onValidationChange={setWageValid}
+              embedded
+            />
+          </View>
 
-        <View style={styles.section}>
-          <FormSectionHeader icon="briefcase-outline" label="Employment type" />
-          <ChipSelector
-            options={ROLE_EMPLOYMENT_TYPE_OPTIONS}
-            selected={employmentType}
-            onChange={(value) => setEmploymentType(value as EmploymentType)}
-          />
-        </View>
-
-        <View ref={setSectionRef('title')} collapsable={false}>
           <AuthField
-            label="Job title"
-            placeholder="Dental hygienist"
-            value={title}
-            onChangeText={(value) => {
-              setTitle(value);
-              setTitleError(null);
-              setFormError(null);
-            }}
-            autoCapitalize="words"
-            required
-            invalid={Boolean(titleError)}
-            icon="create-outline"
+            label="Description"
+            placeholder="Short summary of the role"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            autoCapitalize="sentences"
+            icon="document-text-outline"
           />
-          {titleError ? <Text style={styles.fieldError}>{titleError}</Text> : null}
-        </View>
-
-        <View ref={setSectionRef('wage')} style={styles.section} collapsable={false}>
-          <FormSectionHeader icon="cash-outline" label="Compensation" />
-          <WageRangeInput
-            key={`wage-${formKey}`}
-            initialValue={wageRange}
-            onChange={setWageRange}
-            onValidationChange={setWageValid}
-            embedded
-          />
-        </View>
-
-        <ScheduleInput key={`schedule-${formKey}`} initialValue={schedule} onChange={setSchedule} />
-        <OfferingsInput key={`offerings-${formKey}`} initialValue={offerings} onChange={setOfferings} />
-
-        <AuthField
-          label="Description"
-          placeholder="Role details and requirements"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          autoCapitalize="sentences"
-          icon="document-text-outline"
-        />
         </View>
       </FormScreen>
     </>

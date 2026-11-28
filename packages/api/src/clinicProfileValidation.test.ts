@@ -37,26 +37,26 @@ function buildLocation(
 }
 
 describe('isClinicProfileComplete', () => {
-  it('requires name, contact, address, and software for a single clinic', () => {
+  it('requires name, phone, and address — not contact name or software', () => {
     expect(isClinicProfileComplete(buildProfile())).toBe(true);
-    expect(isClinicProfileComplete(buildProfile({ software_used: [] }))).toBe(false);
+    expect(isClinicProfileComplete(buildProfile({ software_used: [] }))).toBe(true);
+    expect(isClinicProfileComplete(buildProfile({ contact_name: '' }))).toBe(true);
     expect(isClinicProfileComplete(buildProfile({ address_line1: '' }))).toBe(false);
-    expect(getMissingClinicProfileFields(buildProfile({ software_used: [] }))).toContain(
-      'Software used',
-    );
+    expect(isClinicProfileComplete(buildProfile({ phone: '' }))).toBe(false);
+    expect(isClinicProfileComplete(buildProfile({ clinic_name: '' }))).toBe(false);
   });
 
-  it('treats a group as complete when a location has address and software', () => {
+  it('accepts a complete address on clinic_locations when profile address is empty', () => {
     const group = buildProfile({
       account_type: 'group',
       address_line1: '',
       city: '',
       postal_code: '',
-      software_used: [],
+      contact_name: '',
     });
 
     expect(isClinicProfileComplete(group)).toBe(false);
-    expect(getMissingClinicProfileFields(group)).toContain('A clinic location');
+    expect(getMissingClinicProfileFields(group)).toContain('Street address');
     expect(
       isClinicProfileComplete(group, {
         locations: [buildLocation()],
@@ -64,29 +64,30 @@ describe('isClinicProfileComplete', () => {
     ).toBe(true);
     expect(
       getMissingClinicProfileFields(group, {
-        locations: [buildLocation({ software_used: [] })],
+        locations: [buildLocation({ address_line1: '' })],
       }),
-    ).toContain('A location with address and software');
+    ).toContain('A location with a complete address');
   });
 
-  it('never requires org address or software for groups', () => {
+  it('always requires phone even for group accounts', () => {
     const group = buildProfile({
       account_type: 'group',
+      phone: '',
+      contact_name: 'Office Manager',
       address_line1: '',
       city: '',
       postal_code: '',
-      software_used: [],
     });
 
     expect(
-      getMissingClinicProfileFields(group, {
+      isClinicProfileComplete(group, {
         locations: [buildLocation()],
       }),
-    ).not.toContain('Street address');
+    ).toBe(false);
     expect(
       getMissingClinicProfileFields(group, {
         locations: [buildLocation()],
       }),
-    ).not.toContain('Software used');
+    ).toContain('Phone');
   });
 });

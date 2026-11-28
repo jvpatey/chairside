@@ -172,10 +172,12 @@ export const CLINIC_SETUP_ACCOUNT_TYPE: Href = '/(clinic-setup)/account-type' as
 export const CLINIC_SETUP_BASICS: Href = '/(clinic-setup)/basics' as Href;
 export const CLINIC_SETUP_LOCATION: Href = '/(clinic-setup)/location' as Href;
 export const CLINIC_SETUP_LOCATIONS: Href = '/(clinic-setup)/locations' as Href;
-export const CLINIC_SETUP_TEAM: Href = '/(clinic-setup)/team' as Href;
 export const CLINIC_SETUP_PRACTICE: Href = '/(clinic-setup)/practice' as Href;
-export const CLINIC_SETUP_ABOUT: Href = '/(clinic-setup)/about' as Href;
 export const CLINIC_SETUP_REVIEW: Href = '/(clinic-setup)/review' as Href;
+/** Soft finish-profile — focused capture (not the clinic-setup wizard). */
+export const CLINIC_FINISH_PROFILE: Href = '/(onboarding)/capture-clinic-name' as Href;
+export const CLINIC_CAPTURE_PHONE: Href = '/(onboarding)/capture-clinic-phone' as Href;
+export const CLINIC_CAPTURE_ADDRESS: Href = '/(onboarding)/capture-clinic-address' as Href;
 export const CLINIC_ACCEPT_INVITE: Href = '/(onboarding)/accept-invite' as Href;
 export const WORKER_SETUP_BASICS: Href = '/(worker-setup)/basics' as Href;
 export const WORKER_SETUP_EXPERIENCE: Href = '/(worker-setup)/experience' as Href;
@@ -192,18 +194,13 @@ export const CLINIC_POST_SHIFT: Href = '/(clinic-tabs)/post-shift' as Href;
 export const CLINIC_POSTINGS: Href = '/(clinic-tabs)/postings' as Href;
 export const CLINIC_FILL_INS: Href = '/(clinic-tabs)/fill-ins' as Href;
 export const CLINIC_DISCOVER: Href = '/(clinic-tabs)/discover' as Href;
-export const CLINIC_FIND_AVAILABLE_WORKERS: Href = '/(clinic-tabs)/find-available-workers' as Href;
 export const CLINIC_OPEN_INQUIRY_CANDIDATES: Href = '/(clinic-tabs)/open-inquiry-candidates' as Href;
 export const CLINIC_APPLICATIONS: Href = '/(clinic-tabs)/applications' as Href;
 export const CLINIC_PROFILE: Href = '/(clinic-tabs)/profile' as Href;
 export const CLINIC_PROFILE_PRACTICE: Href = '/(clinic-tabs)/profile/practice' as Href;
-export const CLINIC_PROFILE_ABOUT: Href = '/(clinic-tabs)/profile/about' as Href;
-export const CLINIC_PROFILE_MEMBER: Href = '/(clinic-tabs)/profile/member' as Href;
-export const CLINIC_PROFILE_GROUP: Href = '/(clinic-tabs)/profile/group' as Href;
 export const CLINIC_PROFILE_LOCATIONS: Href = '/(clinic-tabs)/profile/locations' as Href;
-export const CLINIC_PROFILE_TEAM: Href = '/(clinic-tabs)/profile/team' as Href;
-export const CLINIC_PROFILE_MESSAGING: Href = '/(clinic-tabs)/profile/messaging' as Href;
 export const CLINIC_PROFILE_NOTIFICATIONS: Href = '/(clinic-tabs)/profile/notifications' as Href;
+export const CLINIC_PROFILE_TEXT_ALERTS: Href = '/(clinic-tabs)/profile/text-alerts' as Href;
 export const CLINIC_PROFILE_ACCOUNT: Href = '/(clinic-tabs)/profile/account' as Href;
 export const CLINIC_PROFILE_BILLING: Href = '/(clinic-tabs)/profile/billing' as Href;
 export const CLINIC_PROFILE_SUPPORT: Href = '/(clinic-tabs)/profile/support' as Href;
@@ -223,7 +220,24 @@ export function getWorkerApplicationsRoute(applicationId?: string): Href {
 }
 export const WORKER_FILLINS: Href = '/(tabs)/fillins' as Href;
 export const WORKER_FILLIN_AVAILABILITY: Href = '/(tabs)/fill-in-availability' as Href;
-export const WORKER_OPEN_FILLINS: Href = '/(tabs)/open-fill-ins' as Href;
+
+export type WorkerFillInAvailabilityReturn = 'profile' | 'fill-ins';
+
+/** Text alerts / fill-in availability — back target depends on entry point. */
+export function getWorkerFillInAvailabilityRoute(
+  returnTo: WorkerFillInAvailabilityReturn = 'fill-ins',
+): Href {
+  if (returnTo === 'profile') {
+    return {
+      pathname: '/(tabs)/fill-in-availability',
+      params: { returnTo: 'profile' },
+    } as Href;
+  }
+  return WORKER_FILLIN_AVAILABILITY;
+}
+
+/** Nearby open browse (escape hatch). Legacy `open-fill-ins` deep links still resolve here. */
+export const WORKER_OPEN_FILLINS: Href = '/(tabs)/fillins?tab=open' as Href;
 export const WORKER_PENDING_FILLINS: Href = '/(tabs)/fillins?tab=pending' as Href;
 export const WORKER_PAST_FILLINS: Href = '/(tabs)/fillins?tab=history' as Href;
 export const WORKER_PROFILE: Href = '/(tabs)/profile' as Href;
@@ -231,6 +245,11 @@ export const WORKER_PROFILE_PROFESSIONAL: Href = '/(tabs)/profile/professional' 
 export const WORKER_PROFILE_APPLICATION_KIT: Href = '/(tabs)/profile/application-kit' as Href;
 export const WORKER_PROFILE_NOTIFICATIONS: Href = '/(tabs)/profile/notifications' as Href;
 export const WORKER_PROFILE_ACCOUNT: Href = '/(tabs)/profile/account' as Href;
+/** Soft finish-profile destination (editable profile form, not the setup wizard). */
+export const WORKER_FINISH_PROFILE: Href = WORKER_PROFILE_PROFESSIONAL;
+/** Focused capture screens (same ones used right after sign-up). */
+export const WORKER_CAPTURE_PHONE: Href = '/(onboarding)/capture-phone' as Href;
+export const WORKER_CAPTURE_LOCATION: Href = '/(onboarding)/capture-location' as Href;
 export const WORKER_PROFILE_SUPPORT: Href = '/(tabs)/profile/support' as Href;
 export const WORKER_PROFILE_PRIVACY: Href = '/(tabs)/profile/privacy' as Href;
 export const WORKER_PROFILE_TERMS: Href = '/(tabs)/profile/terms' as Href;
@@ -328,13 +347,6 @@ export function getClinicPostingsRoute(tab?: PostingsTabParam): Href {
   return CLINIC_POSTINGS;
 }
 
-export function getFindAvailableWorkersRoute(returnTo: FillInReturnTarget = 'fill-ins-tab'): Href {
-  return {
-    pathname: '/(clinic-tabs)/find-available-workers',
-    params: { returnTo },
-  } as Href;
-}
-
 export function getClinicOutreachComposeRoute(params: {
   workerId: string;
   workerName: string;
@@ -415,6 +427,8 @@ export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href |
         return getClinicCalendarSidebarRoute();
       case 'messages':
         return getClinicMessagesRoute();
+      case 'profile':
+        return CLINIC_PROFILE;
       default:
         return null;
     }
@@ -433,6 +447,8 @@ export function getTabRootHref(tabName: string, role: TabAtmosphereRole): Href |
       return getWorkerCalendarSidebarRoute();
     case 'messages':
       return getWorkerMessagesRoute();
+    case 'profile':
+      return WORKER_PROFILE;
     default:
       return null;
   }
@@ -1056,7 +1072,16 @@ export function getFillInReturnRoute(returnTo?: string): Href {
 export function navigateAfterFillInSave(
   router: { replace: (href: Href) => void },
   returnTo?: string,
+  options?: { posted?: boolean },
 ) {
+  if (options?.posted) {
+    // Always land on the Fill-ins hub after publish so the SMS status loop is visible.
+    router.replace({
+      pathname: '/(clinic-tabs)/fill-ins',
+      params: { posted: '1' },
+    } as Href);
+    return;
+  }
   router.replace(getFillInReturnRoute(returnTo));
 }
 

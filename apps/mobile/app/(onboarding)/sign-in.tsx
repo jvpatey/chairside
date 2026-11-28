@@ -1,10 +1,19 @@
 import {
+  finishWorkerOtpAuth,
   getAuthErrorMessage,
+  getProfile,
   getSupabaseClient,
   resetPasswordForEmail,
+  resolvePhoneShellLogin,
   signInWithApple,
   signInWithEmail,
+  signInWithEmailOtp,
   signInWithGoogle,
+  signInWithPhoneOtp,
+  signOut,
+  verifyEmailOtp,
+  verifyPhoneOtp,
+  type OtpChannel,
 } from '@chairside/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -17,6 +26,7 @@ import { OnboardingButton } from '@/components/onboarding/OnboardingButton';
 import { AUTH_STAGGER, enterFadeUp } from '@/components/onboarding/onboardingAnimations';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SocialAuthButtons } from '@/components/onboarding/SocialAuthButtons';
+import { WorkerOtpAuthForm } from '@/components/onboarding/WorkerOtpAuthForm';
 import { FormSuccessBanner } from '@/components/ui/FormSuccessBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboarding } from '@/contexts/OnboardingContext';
@@ -46,14 +56,29 @@ export default function SignInScreen() {
     inviteToken?: string;
   }>();
   const reducedMotion = useReducedMotion();
+  const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
+  const preferPassword = Boolean(pendingInviteToken);
+
+  const [authMode, setAuthMode] = useState<'otp' | 'password'>(
+    preferPassword ? 'password' : 'otp',
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [channel, setChannel] = useState<OtpChannel>('phone');
+  const [otpStep, setOtpStep] = useState<'contact' | 'code'>('contact');
+  const [otpCode, setOtpCode] = useState('');
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetLinkSent, setResetLinkSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [resetHint, setResetHint] = useState<string | null>(null);
-  const pendingInviteToken = typeof inviteToken === 'string' ? inviteToken.trim() : '';
+
+  const canSendOtp =
+    channel === 'email' ? Boolean(email.trim()) : phone.replace(/\D/g, '').length === 10;
+  const canVerifyOtp = otpCode.trim().length >= 4;
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     form: {
@@ -97,6 +122,17 @@ export default function SignInScreen() {
     forgotTextDisabled: {
       color: colors.labelTertiary,
     },
+    modeSwitch: {
+      alignSelf: 'center',
+      paddingVertical: spacing.xs,
+      ...webPointer(),
+    },
+    modeSwitchHovered: webTextLinkHoverStyles(colors),
+    modeSwitchLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.primary,
+    },
     footer: {
       gap: spacing.md,
       marginTop: Platform.OS === 'web' ? 0 : spacing.lg,
@@ -137,6 +173,7 @@ export default function SignInScreen() {
   useEffect(() => {
     if (pendingInviteToken) {
       void saveClinicInviteToken(pendingInviteToken);
+      setAuthMode('password');
     }
   }, [pendingInviteToken]);
 
@@ -148,8 +185,6 @@ export default function SignInScreen() {
     setResetHint(null);
     let redirecting = false;
     try {
-      // Web OAuth resolves null after handing off to the provider; the page is
-      // unloading and /auth/callback owns routing on return.
       if ((await action()) === null) {
         redirecting = true;
         return;
@@ -174,7 +209,7 @@ export default function SignInScreen() {
     }
   };
 
-  const handleSignIn = async () => {
+  const handlePasswordSignIn = async () => {
     if (isSubmitting || isSendingReset) return;
 
     if (!email.trim() || !password) {
@@ -194,6 +229,85 @@ export default function SignInScreen() {
       if (!user) return;
 
       await handleAuthSuccess(refreshProfile, completeOnboarding, user.id);
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Sign in failed', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (isSubmitting || !canSendOtp) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setFormSuccess(null);
+    try {
+      if (channel === 'email') {
+        await signInWithEmailOtp(email);
+        setPhoneE164(null);
+        setFormSuccess(`We sent a code to ${email.trim()}.`);
+      } else {
+        const e164 = await signInWithPhoneOtp(phone, undefined, { createUser: false });
+        setPhoneE164(e164);
+        setFormSuccess('We sent a text with your code.');
+      }
+      setOtpStep('code');
+      setOtpCode('');
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setFormError(message);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Could not send code', message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (isSubmitting || !canVerifyOtp) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const session =
+        channel === 'email'
+          ? await verifyEmailOtp(email, otpCode)
+          : await verifyPhoneOtp(phoneE164 ?? phone, otpCode);
+
+      if (!session.user) {
+        throw new Error('Could not verify that code. Try again.');
+      }
+
+      // Returning phone users: keep verified number on worker profile when role is set.
+      const profile = await getProfile(session.user.id);
+      if (channel === 'phone' && phoneE164 && !profile?.role) {
+        // Empty phone-only shell from before Auth linking — don't send them through role pick.
+        try {
+          await resolvePhoneShellLogin(phoneE164);
+        } catch (shellError) {
+          try {
+            await signOut();
+          } catch {
+            // Session may already be invalid if the shell was deleted.
+          }
+          throw shellError;
+        }
+      }
+      if (profile?.role === 'worker' && channel === 'phone' && phoneE164) {
+        await finishWorkerOtpAuth({
+          userId: session.user.id,
+          role: 'worker',
+          phoneE164,
+        });
+      }
+
+      await handleAuthSuccess(refreshProfile, completeOnboarding, session.user.id);
     } catch (error) {
       const message = getAuthErrorMessage(error);
       setFormError(message);
@@ -241,6 +355,18 @@ export default function SignInScreen() {
 
   const signInBusy = isSubmitting || isSendingReset;
   const fieldsLocked = isSendingReset;
+  const primaryLabel =
+    authMode === 'password'
+      ? isSubmitting
+        ? 'Signing in…'
+        : 'Sign in'
+      : otpStep === 'code'
+        ? isSubmitting
+          ? 'Verifying…'
+          : 'Verify and sign in'
+        : isSubmitting
+          ? 'Sending code…'
+          : 'Send code';
 
   return (
     <OnboardingShell
@@ -249,11 +375,41 @@ export default function SignInScreen() {
         <View style={styles.footer}>
           <Animated.View entering={enterFadeUp(AUTH_STAGGER.primaryCta, reducedMotion)}>
             <OnboardingButton
-              label={isSubmitting ? 'Signing in…' : 'Sign in'}
-              disabled={signInBusy}
-              onPress={handleSignIn}
+              label={primaryLabel}
+              disabled={
+                signInBusy ||
+                (authMode === 'otp' &&
+                  (otpStep === 'code' ? !canVerifyOtp : !canSendOtp))
+              }
+              onPress={() => {
+                if (authMode === 'password') {
+                  void handlePasswordSignIn();
+                  return;
+                }
+                void (otpStep === 'code' ? handleVerifyOtp() : handleSendOtp());
+              }}
             />
           </Animated.View>
+          {!preferPassword ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setAuthMode((current) => (current === 'otp' ? 'password' : 'otp'));
+                setOtpStep('contact');
+                setOtpCode('');
+                setFormError(null);
+                setFormSuccess(null);
+              }}
+              style={({ pressed, hovered }) => [
+                styles.modeSwitch,
+                webHover(hovered, pressed, styles.modeSwitchHovered),
+                pressed && { opacity: 0.75 },
+              ]}>
+              <Text style={styles.modeSwitchLabel}>
+                {authMode === 'otp' ? 'Use password instead' : 'Use a phone or email code'}
+              </Text>
+            </Pressable>
+          ) : null}
           <View style={styles.switchRow}>
             <Text style={styles.switchMuted}>New to Chairside?</Text>
             <Pressable
@@ -269,25 +425,35 @@ export default function SignInScreen() {
                 styles.switchLinkPressable,
                 webHover(hovered, pressed, styles.switchLinkHovered),
                 pressed && { opacity: 0.75 },
-              ]}
-            >
+              ]}>
               <Text style={styles.switchLink}>
                 {pendingInviteToken ? 'Create clinic account' : 'Get started'}
               </Text>
             </Pressable>
           </View>
         </View>
-      }
-    >
+      }>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.header, reducedMotion)}>
         <AuthScreenHeader
           title={pendingInviteToken ? 'Join your clinic team' : 'Welcome back'}
           subtitle={
             pendingInviteToken
               ? 'Sign in with the email your invitation was sent to. You’ll review the invite next.'
-              : 'Sign in to pick up where you left off.'
+              : authMode === 'otp'
+                ? otpStep === 'code'
+                  ? 'Enter the code we just sent you.'
+                  : 'Sign in with a phone or email code.'
+                : 'Sign in with your email and password.'
           }
-          onBack={() => router.back()}
+          onBack={() => {
+            if (authMode === 'otp' && otpStep === 'code') {
+              setOtpStep('contact');
+              setOtpCode('');
+              setFormSuccess(null);
+              return;
+            }
+            router.back();
+          }}
         />
       </Animated.View>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.social, reducedMotion)}>
@@ -299,52 +465,87 @@ export default function SignInScreen() {
       </Animated.View>
       <Animated.View entering={enterFadeUp(AUTH_STAGGER.form, reducedMotion)} style={styles.form}>
         {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+        {formSuccess ? <FormSuccessBanner message={formSuccess} /> : null}
         {resetLinkSent ? <FormSuccessBanner message={PASSWORD_RESET_SENT_MESSAGE} /> : null}
-        <AuthField
-          label="Email"
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoComplete="email"
-          value={email}
-          onChangeText={(text) => {
-            setFormError(null);
-            setResetHint(null);
-            setResetLinkSent(false);
-            setEmail(text);
-          }}
-          editable={!fieldsLocked}
-        />
-        <AuthField
-          label="Password"
-          placeholder="Your password"
-          secureTextEntry
-          enablePasswordVisibilityToggle
-          autoComplete="current-password"
-          value={password}
-          onChangeText={(text) => {
-            setFormError(null);
-            setPassword(text);
-          }}
-          editable={!fieldsLocked}
-        />
-        {resetHint ? <Text style={styles.resetHint}>{resetHint}</Text> : null}
-        <Pressable
-          accessibilityRole="link"
-          accessibilityState={{ disabled: isSendingReset }}
-          disabled={isSendingReset}
-          onPress={() => void handleForgotPassword()}
-          style={({ pressed, hovered }) => [
-            styles.forgot,
-            isSendingReset && styles.forgotDisabled,
-            webHover(hovered, pressed, styles.forgotHovered, isSendingReset),
-            pressed && !isSendingReset && { opacity: 0.75 },
-            webOnlyStyle({ tabIndex: isSendingReset ? -1 : 0 } as never),
-          ]}
-        >
-          <Text style={[styles.forgotText, isSendingReset && styles.forgotTextDisabled]}>
-            {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
-          </Text>
-        </Pressable>
+
+        {authMode === 'otp' ? (
+          <WorkerOtpAuthForm
+            mode="sign-in"
+            step={otpStep}
+            channel={channel}
+            onChannelChange={setChannel}
+            firstName=""
+            lastName=""
+            onFirstNameChange={() => undefined}
+            onLastNameChange={() => undefined}
+            email={email}
+            onEmailChange={(text) => {
+              setFormError(null);
+              setEmail(text);
+            }}
+            phone={phone}
+            onPhoneChange={(text) => {
+              setFormError(null);
+              setPhone(text);
+            }}
+            code={otpCode}
+            onCodeChange={setOtpCode}
+            editable={!signInBusy}
+            onChangeContact={() => {
+              setOtpStep('contact');
+              setOtpCode('');
+              setFormSuccess(null);
+            }}
+            onResendCode={handleSendOtp}
+          />
+        ) : (
+          <>
+            <AuthField
+              label="Email"
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoComplete="email"
+              value={email}
+              onChangeText={(text) => {
+                setFormError(null);
+                setResetHint(null);
+                setResetLinkSent(false);
+                setEmail(text);
+              }}
+              editable={!fieldsLocked}
+            />
+            <AuthField
+              label="Password"
+              placeholder="Your password"
+              secureTextEntry
+              enablePasswordVisibilityToggle
+              autoComplete="current-password"
+              value={password}
+              onChangeText={(text) => {
+                setFormError(null);
+                setPassword(text);
+              }}
+              editable={!fieldsLocked}
+            />
+            {resetHint ? <Text style={styles.resetHint}>{resetHint}</Text> : null}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityState={{ disabled: isSendingReset }}
+              disabled={isSendingReset}
+              onPress={() => void handleForgotPassword()}
+              style={({ pressed, hovered }) => [
+                styles.forgot,
+                isSendingReset && styles.forgotDisabled,
+                webHover(hovered, pressed, styles.forgotHovered, isSendingReset),
+                pressed && !isSendingReset && { opacity: 0.75 },
+                webOnlyStyle({ tabIndex: isSendingReset ? -1 : 0 } as never),
+              ]}>
+              <Text style={[styles.forgotText, isSendingReset && styles.forgotTextDisabled]}>
+                {isSendingReset ? 'Sending reset link…' : 'Forgot password?'}
+              </Text>
+            </Pressable>
+          </>
+        )}
       </Animated.View>
     </OnboardingShell>
   );

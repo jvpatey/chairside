@@ -38,16 +38,20 @@ export function formFieldLabelStylePlain({ colors }: FormFieldTheme): TextStyle 
   };
 }
 
+/**
+ * Shared field shell for every native form input. Elevated fill + visible 1px
+ * border so fields read clearly on both grouped pages and cards.
+ */
 export function formFieldInputRowStyle(
-  { colors, spacing }: FormFieldTheme,
+  { colors }: FormFieldTheme,
   options?: { multiline?: boolean },
 ): ViewStyle {
   return {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.separator,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.fieldBorder,
     borderRadius: radii.md,
     minHeight: options?.multiline ? 120 : 50,
     ...(Platform.OS === 'web' ? { overflow: 'hidden' as const } : {}),

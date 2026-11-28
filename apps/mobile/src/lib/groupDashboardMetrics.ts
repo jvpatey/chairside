@@ -199,21 +199,3 @@ export function formatLocationGlanceCounts(row: LocationGlanceRow): string {
   return parts.length > 0 ? parts.join(' · ') : 'No open activity';
 }
 
-export type TeamPulseCounts = {
-  pendingInvites: number;
-  unassignedManagers: number;
-};
-
-export function buildTeamPulseCounts(input: {
-  invitations: { status: string }[];
-  memberships: { role: string; status: string; location_ids?: string[] | null }[];
-}): TeamPulseCounts {
-  const pendingInvites = input.invitations.filter((invite) => invite.status === 'pending').length;
-  const unassignedManagers = input.memberships.filter(
-    (member) =>
-      member.role === 'manager' &&
-      member.status === 'active' &&
-      (member.location_ids ?? []).length === 0,
-  ).length;
-  return { pendingInvites, unassignedManagers };
-}

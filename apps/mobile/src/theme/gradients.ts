@@ -4,9 +4,9 @@ export type GradientAccent = 'primary' | 'secondary' | 'tertiary';
 
 /** Hue-shift partners for richer brand gradients (kept within each accent family). */
 const GRADIENT_HUE_SHIFT = {
-  /** Blue-family end stop — not indigo/violet (avoids purple leak in role chrome). */
+  /** Blue-family end stop — unified brand blue across roles and fill-ins. */
   primaryEnd: '#3B8AE8',
-  secondaryEnd: '#8B5CF6',
+  secondaryEnd: '#3B8AE8',
   tertiaryEnd: '#2EC4A8',
 } as const;
 

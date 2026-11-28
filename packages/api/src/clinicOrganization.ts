@@ -253,6 +253,38 @@ export async function deleteIncompleteGroupLocationStubs(
   if (deleteError) throw deleteError;
 }
 
+async function readOrganizationAccountType(
+  organizationId: string,
+): Promise<'individual' | 'group'> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('clinic_organizations')
+    .select('account_type')
+    .eq('id', organizationId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.account_type === 'group' ? 'group' : 'individual';
+}
+
+async function writeOrganizationAccountType(
+  organizationId: string,
+  accountType: 'individual' | 'group',
+  now: string,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error: orgError } = await supabase
+    .from('clinic_organizations')
+    .update({ account_type: accountType, updated_at: now })
+    .eq('id', organizationId);
+  if (orgError) throw orgError;
+
+  const { error: profileError } = await supabase
+    .from('clinic_profiles')
+    .update({ account_type: accountType, updated_at: now })
+    .eq('id', organizationId);
+  if (profileError) throw profileError;
+}
+
 export async function createClinicLocation(
   organizationId: string,
   input: ClinicLocationInput,
@@ -273,6 +305,14 @@ export async function createClinicLocation(
   const locationName = input.name.trim();
   if (!locationName) {
     throw new Error('Location name is required.');
+  }
+
+  // Promote before inserting: the location limit trigger counts sites against the plan
+  // family, so a Free individual cannot hold a second site until the account is a group.
+  const previousAccountType =
+    existing.length >= 1 ? await readOrganizationAccountType(organizationId) : null;
+  if (previousAccountType === 'individual') {
+    await writeOrganizationAccountType(organizationId, 'group', now);
   }
 
   const { data, error } = await supabase
@@ -300,21 +340,15 @@ export async function createClinicLocation(
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Roll back the promotion when the site is rejected (for example, a plan location limit).
+    if (previousAccountType === 'individual') {
+      await writeOrganizationAccountType(organizationId, 'individual', new Date().toISOString());
+    }
+    throw error;
+  }
 
   const location = data as ClinicLocation;
-
-  // Adding a second location promotes the account to a group.
-  if (existing.length >= 1) {
-    await supabase
-      .from('clinic_organizations')
-      .update({ account_type: 'group', updated_at: now })
-      .eq('id', organizationId);
-    await supabase
-      .from('clinic_profiles')
-      .update({ account_type: 'group', updated_at: now })
-      .eq('id', organizationId);
-  }
 
   await syncPrimaryLocationToClinicProfile(location);
   return location;

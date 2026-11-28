@@ -180,7 +180,7 @@ export function RolePostingCard({
   );
 
   const clinicAvatar = (
-    <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={40} />
+    <ClinicLogoAvatar clinicName={clinicName} logoUri={logoUri} size={44} />
   );
 
   const surfaceVariant = embedded ? 'inner' : 'default';
@@ -195,7 +195,7 @@ export function RolePostingCard({
       style={styles.stretchCard}
       cardStyle={isFeatured ? featuredTreatment.cardStyle : undefined}
       contentStyle={styles.stretchCardContent}
-      accentRailColor={isFeatured ? featuredTreatment.railColor : undefined}>
+>
       <BrowseListRow
         layout={mobileEmbedded ? 'stacked' : 'split'}
         compact={mobileEmbedded}

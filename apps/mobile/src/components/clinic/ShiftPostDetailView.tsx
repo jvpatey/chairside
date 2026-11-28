@@ -37,7 +37,6 @@ type ShiftPostDetailViewProps = {
   featured?: boolean;
   /** Site location for group postings (Shift details section). */
   locationLabel?: string | null;
-  postedByLabel?: string | null;
   postedOnLabel?: string | null;
   /** Unique professional detail opens — clinic-facing only. */
   viewCount?: number | null;
@@ -55,7 +54,6 @@ export function ShiftPostDetailView({
   heroAccessory,
   featured = false,
   locationLabel,
-  postedByLabel,
   postedOnLabel,
   viewCount = null,
   applicantCount = null,
@@ -66,11 +64,14 @@ export function ShiftPostDetailView({
   const brandSubtle =
     accent === 'secondary' ? colors.secondarySubtle : colors.primarySubtle;
   const dateLabel = formatShiftPostDateLabel(shift.shift_date);
-  const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time);
+  const roleTitle = formatShiftPostRoleTitle(shift.role_type);
+  const hoursLabel = formatTimeRangePreview(shift.start_time, shift.end_time) ?? 'Hours TBD';
   const description = shift.description?.trim() || null;
   const matchableSoftware = (softwareUsed ?? []).filter(isMatchableSoftware);
   const softwareLabel =
     matchableSoftware.length > 0 ? matchableSoftware.join(' · ') : null;
+  // When the when-first hero is shown, date lives there — skip the duplicate details row.
+  const showDateInDetails = variant === 'embedded' || section === 'details';
 
   const styles = useThemedStyles(({ colors, spacing }) => ({
     wrap: {
@@ -131,8 +132,12 @@ export function ShiftPostDetailView({
           <RowDivider />
         </>
       ) : null}
-      <DetailRow label="Date" value={dateLabel} />
-      <RowDivider />
+      {showDateInDetails ? (
+        <>
+          <DetailRow label="Date" value={dateLabel} />
+          <RowDivider />
+        </>
+      ) : null}
       <DetailRow label="Hours" value={hoursLabel} />
       <RowDivider />
       <DetailRow label="Compensation" value={shift.compensation} />
@@ -186,8 +191,8 @@ export function ShiftPostDetailView({
           </View>
           <View style={styles.heroText}>
             <Text style={styles.overline}>Fill-in shift</Text>
-            <Text style={styles.title}>{formatShiftPostRoleTitle(shift.role_type)}</Text>
-            <Text style={styles.meta}>{dateLabel}</Text>
+            <Text style={styles.title}>{dateLabel}</Text>
+            <Text style={styles.meta}>{roleTitle}</Text>
             {viewCount != null ? (
               <PostEngagementStrip
                 viewCount={viewCount}
@@ -221,11 +226,6 @@ export function ShiftPostDetailView({
         {description ? (
           <CardDetailSection title="Notes" divided>
             <DetailProse text={description} />
-          </CardDetailSection>
-        ) : null}
-        {postedByLabel?.trim() ? (
-          <CardDetailSection title="Posted by" divided>
-            <DetailProse text={postedByLabel} />
           </CardDetailSection>
         ) : null}
         {postedOnLabel?.trim() ? (

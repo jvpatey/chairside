@@ -1633,6 +1633,132 @@ export async function confirmFillInApplicant(
   return row;
 }
 
+export type FillInDecisionState =
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'filled_other'
+  | 'expired'
+  | 'unavailable'
+  | 'already_decided';
+
+export type FillInDecisionPreview = {
+  application_id: string;
+  status: ApplicationStatus;
+  decision_state: FillInDecisionState;
+  worker_name: string;
+  role_type: string;
+  shift_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  compensation: string | null;
+  clinic_name: string;
+  shift_status: string;
+};
+
+export type FillInDecisionOutcome =
+  | 'accepted'
+  | 'declined'
+  | 'filled'
+  | 'expired'
+  | 'unavailable'
+  | 'already_decided';
+
+export type FillInDecisionResult = {
+  outcome: FillInDecisionOutcome;
+  application_id?: string;
+};
+
+function asNullableString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function mapFillInDecisionPreview(raw: Record<string, unknown>): FillInDecisionPreview | null {
+  const applicationId = typeof raw.application_id === 'string' ? raw.application_id : null;
+  if (!applicationId) return null;
+
+  const decisionState = (typeof raw.decision_state === 'string'
+    ? raw.decision_state
+    : 'unavailable') as FillInDecisionState;
+
+  return {
+    application_id: applicationId,
+    status: (typeof raw.status === 'string' ? raw.status : 'applied') as ApplicationStatus,
+    decision_state: decisionState,
+    worker_name: asNullableString(raw.worker_name) || 'A professional',
+    role_type: asNullableString(raw.role_type) || 'hygienist',
+    shift_date: asNullableString(raw.shift_date),
+    start_time: asNullableString(raw.start_time),
+    end_time: asNullableString(raw.end_time),
+    compensation: asNullableString(raw.compensation),
+    clinic_name: asNullableString(raw.clinic_name) || 'Clinic',
+    shift_status: asNullableString(raw.shift_status) || 'live',
+  };
+}
+
+/** Anon-safe preview for the SMS Companion Accept page. */
+export async function getFillInDecisionPreview(
+  applicationId: string,
+  token: string,
+): Promise<FillInDecisionPreview | null> {
+  const trimmedId = applicationId.trim();
+  const trimmedToken = token.trim();
+  if (!trimmedId || !trimmedToken) return null;
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_fill_in_decision_preview', {
+    p_application_id: trimmedId,
+    p_token: trimmedToken,
+  });
+
+  if (error) throw error;
+  if (data == null) return null;
+
+  const raw =
+    typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  if (!raw) return null;
+  return mapFillInDecisionPreview(raw);
+}
+
+/** Accept or decline a fill-in cover request from the SMS companion link. */
+export async function decideFillInFromSms(
+  applicationId: string,
+  token: string,
+  decision: 'accept' | 'decline',
+): Promise<FillInDecisionResult> {
+  const trimmedId = applicationId.trim();
+  const trimmedToken = token.trim();
+  if (!trimmedId || !trimmedToken) {
+    return { outcome: 'unavailable' };
+  }
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('decide_fill_in_from_sms', {
+    p_application_id: trimmedId,
+    p_token: trimmedToken,
+    p_decision: decision,
+  });
+
+  if (error) throw error;
+
+  const raw =
+    typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  const outcome =
+    raw && typeof raw.outcome === 'string'
+      ? (raw.outcome as FillInDecisionOutcome)
+      : 'unavailable';
+  const resultId =
+    raw && typeof raw.application_id === 'string' ? raw.application_id : trimmedId;
+
+  return { outcome, application_id: resultId };
+}
+
 export async function cancelConfirmedFillIn(
   applicationId: string,
   options?: { message?: string },

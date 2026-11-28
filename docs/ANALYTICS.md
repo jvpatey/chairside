@@ -60,13 +60,15 @@ Use the **same PostHog project** for client and server so SMS → listing → ap
 | `listing_sign_in_to_apply_tapped` | Clinic public listing CTA |
 | `apply_started` | Worker starts apply / cover flow |
 | `cover_requested` / `apply_submitted` | Successful cover request or job application |
+| `cover_decision_opened` | Clinic Companion Accept `/a` page loaded (`source`: `sms` \| `share` \| `direct`) |
+| `cover_decision_accepted` / `cover_decision_declined` | Clinic Accept/Decline from companion (`outcome`, `source`) |
 | `auth_signed_in` | After successful auth routing (`role` only) |
 
 Persons are identified with the Supabase user id and `role`. Sign-out calls `reset()`.
 
-SMS fill-in links include `?src=sms` (`buildFillInListingUrl` in `notify`).
+SMS fill-in links include `?src=sms` (`buildFillInListingUrl` in `notify`). Clinic Companion Accept links use `?src=sms&t=…` (do **not** send the raw token in analytics props).
 
-Do **not** send phones, emails, invite tokens, or message bodies.
+Do **not** send phones, emails, invite tokens, decision tokens, or message bodies.
 
 ## Server events
 

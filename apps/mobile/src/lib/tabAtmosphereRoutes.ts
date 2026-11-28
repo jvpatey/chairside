@@ -5,7 +5,14 @@ export type TabAtmosphereIntensity = 'none' | 'subtle' | 'prominent';
 export type TabAtmosphereAccent = 'primary' | 'secondary' | 'tertiary';
 
 const WORKER_MAIN_TABS = new Set(['browse', 'applications', 'calendar', 'fillins', 'messages']);
-const CLINIC_MAIN_TABS = new Set(['postings', 'discover', 'applications', 'calendar', 'fill-ins', 'messages']);
+const CLINIC_MAIN_TABS = new Set([
+  'postings',
+  'discover',
+  'applications',
+  'calendar',
+  'fill-ins',
+  'messages',
+]);
 
 const WORKER_STACK_FRAGMENTS = [
   '/job/',
@@ -70,7 +77,6 @@ function isProfilePath(relativePath: string): boolean {
 
 function isFillInOutreachPath(relativePath: string): boolean {
   return (
-    relativePath === '/find-available-workers' ||
     relativePath.startsWith('/outreach-compose') ||
     relativePath === '/open-inquiry-candidates'
   );
@@ -105,10 +111,7 @@ function getTabBarNameFromReturnTo(
 ): string | null {
   if (!returnTo) return null;
 
-  if (
-    returnTo === 'applications-tab' ||
-    returnTo === 'dashboard-applications'
-  ) {
+  if (returnTo === 'applications-tab' || returnTo === 'dashboard-applications') {
     return returnTo === 'dashboard-applications' ? 'index' : 'applications';
   }
 
@@ -124,11 +127,7 @@ function getTabBarNameFromReturnTo(
     return 'browse';
   }
 
-  if (
-    returnTo === 'fill-ins-tab' ||
-    returnTo === 'open-fill-ins' ||
-    returnTo === 'past-fill-ins'
-  ) {
+  if (returnTo === 'fill-ins-tab' || returnTo === 'open-fill-ins' || returnTo === 'past-fill-ins') {
     return role === 'worker' ? 'fillins' : 'fill-ins';
   }
 
@@ -142,6 +141,10 @@ function getTabBarNameFromReturnTo(
 
   if (returnTo === 'postings-fill-ins') {
     return role === 'worker' ? 'fillins' : 'postings';
+  }
+
+  if (returnTo === 'profile') {
+    return 'profile';
   }
 
   return null;
@@ -171,7 +174,6 @@ function getStackParentTabFromRelativePath(
   if (
     root === 'shift' ||
     root === 'post-shift' ||
-    root === 'find-available-workers' ||
     root === 'outreach-compose'
   ) {
     return role === 'worker' ? 'fillins' : 'fill-ins';
@@ -183,6 +185,65 @@ function getStackParentTabFromRelativePath(
   }
 
   return null;
+}
+
+/**
+ * Actual Tabs.Screen `name` for the current pathname — used for web scene
+ * visibility. Differs from getActiveTabBarName (sidebar highlight), which maps
+ * hidden routes like fill-in-availability → fillins.
+ */
+export function getFocusedTabSceneName(pathname: string, role: TabAtmosphereRole): string | null {
+  const normalized = normalizePath(pathname);
+  const relative = stripTabGroupPrefix(normalized, role);
+  const segments = relative.split('/').filter(Boolean);
+
+  if (segments.length === 0) return 'index';
+
+  const root = segments[0]!;
+
+  if (root === 'index') return 'index';
+
+  if (role === 'worker') {
+    if (root === 'conversation') return 'conversation/[id]';
+    if (root === 'job') return 'job/[id]';
+    if (root === 'shift') return 'shift/[id]';
+    if (root === 'clinic') return 'clinic/[clinicId]';
+    return root;
+  }
+
+  // clinic
+  if (root === 'conversation') return 'conversation/[id]';
+  if (root === 'job') return 'job/[id]';
+  if (root === 'shift') return 'shift/[id]';
+  if (root === 'clinic') return 'clinic/[clinicId]';
+  if (root === 'role-applicants') return 'role-applicants/[jobId]';
+  if (root === 'shift-applicants') return 'shift-applicants/[shiftId]';
+  return root;
+}
+
+/**
+ * Web tab scene focus must use the real Tabs.Screen name (e.g. `shift/[id]`),
+ * not the sidebar parent tab (`fillins`). Sidebar highlight uses
+ * getActiveTabBarName separately.
+ */
+export function isWebTabSceneFocused(
+  routeName: string,
+  pathname: string,
+  role: TabAtmosphereRole,
+): boolean {
+  const pathSceneName = getFocusedTabSceneName(pathname, role);
+  if (pathSceneName != null && routeName === pathSceneName) {
+    return true;
+  }
+
+  // Dynamic routes: `/shift/uuid` must show `shift/[id]`, not the parent fillins tab.
+  if (routeName.includes('[')) {
+    const routeBase = routeName.split('/')[0]!;
+    const normalized = normalizePath(pathname);
+    return new RegExp(`(?:^|/)${routeBase}/[^/]+`).test(normalized);
+  }
+
+  return false;
 }
 
 /** Resolve which tab bar item should appear selected for stack/detail routes. */
@@ -197,10 +258,8 @@ export function getActiveTabBarName(
   const mainTab = getMainTabFromRelativePath(relative, role);
   if (mainTab) return mainTab;
 
-  // Profile is a hidden tab (`href: null`). Keep Home selected so the dock
-  // indicator and label/icon colors stay in sync.
   if (isProfilePath(relative)) {
-    return 'index';
+    return 'profile';
   }
 
   const returnTab = getTabBarNameFromReturnTo(returnTo, role);
@@ -214,16 +273,16 @@ export function getActiveTabBarName(
 }
 
 /** True when the pathname is the top-level screen for a main tab (not a nested stack route). */
-export function isTabRootPath(
-  pathname: string,
-  tabName: string,
-  role: TabAtmosphereRole,
-): boolean {
+export function isTabRootPath(pathname: string, tabName: string, role: TabAtmosphereRole): boolean {
   const normalized = normalizePath(pathname);
   const relative = stripTabGroupPrefix(normalized, role);
 
   if (tabName === 'index') {
     return isHomePath(relative);
+  }
+
+  if (tabName === 'profile') {
+    return relative === '/profile';
   }
 
   const mainTab = getMainTabFromRelativePath(relative, role);
@@ -240,10 +299,7 @@ export function isTabRootPath(
   return segments.length === 1;
 }
 
-function getMainTabFromRelativePath(
-  relativePath: string,
-  role: TabAtmosphereRole,
-): string | null {
+function getMainTabFromRelativePath(relativePath: string, role: TabAtmosphereRole): string | null {
   const segments = relativePath.split('/').filter(Boolean);
   if (segments.length === 0) {
     return 'index';
@@ -297,7 +353,8 @@ export function getTabAtmosphereIntensityFromPathname(
 }
 
 export function getTabAccentForName(tabName: string): TabAtmosphereAccent {
-  if (tabName === 'fillins' || tabName === 'fill-ins') return 'secondary';
+  // SMS-first: fill-ins are the primary product — use brand blue, not purple lane.
+  if (tabName === 'fillins' || tabName === 'fill-ins') return 'primary';
   if (tabName === 'applications') return 'tertiary';
   return 'primary';
 }

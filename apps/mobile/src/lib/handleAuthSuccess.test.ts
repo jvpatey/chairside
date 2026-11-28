@@ -15,6 +15,10 @@ const mocks = vi.hoisted(() => ({
   consumePendingPublicListingHref: vi.fn(),
   clearPendingPublicListingHref: vi.fn(),
   captureAnalyticsEvent: vi.fn(),
+  getNextWorkerPostAuthCaptureStep: vi.fn(),
+  getWorkerPostAuthCaptureHref: vi.fn((step: string) => `/(onboarding)/capture-${step}`),
+  getNextClinicPostAuthCaptureStep: vi.fn(),
+  getClinicPostAuthCaptureHref: vi.fn((step: string) => `/(onboarding)/capture-clinic-${step}`),
 }));
 
 vi.mock('@chairside/api', () => ({
@@ -55,6 +59,16 @@ vi.mock('@/lib/resolveAuthenticatedRoute', () => ({
   resolveAuthenticatedRoute: mocks.resolveAuthenticatedRoute,
 }));
 
+vi.mock('@/lib/workerPostAuthCapture', () => ({
+  getNextWorkerPostAuthCaptureStep: mocks.getNextWorkerPostAuthCaptureStep,
+  getWorkerPostAuthCaptureHref: mocks.getWorkerPostAuthCaptureHref,
+}));
+
+vi.mock('@/lib/clinicPostAuthCapture', () => ({
+  getNextClinicPostAuthCaptureStep: mocks.getNextClinicPostAuthCaptureStep,
+  getClinicPostAuthCaptureHref: mocks.getClinicPostAuthCaptureHref,
+}));
+
 import { handleAuthSuccess } from './handleAuthSuccess';
 
 describe('handleAuthSuccess invite resume', () => {
@@ -74,6 +88,34 @@ describe('handleAuthSuccess invite resume', () => {
       href: '/(clinic-tabs)',
       role: 'clinic',
     });
+    mocks.getNextWorkerPostAuthCaptureStep.mockResolvedValue(null);
+    mocks.getNextClinicPostAuthCaptureStep.mockResolvedValue(null);
+  });
+
+  it('routes clinics into the next post-auth capture step', async () => {
+    mocks.readClinicInviteToken.mockResolvedValue(null);
+    mocks.getNextClinicPostAuthCaptureStep.mockResolvedValue('clinic-name');
+
+    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith('/(onboarding)/capture-clinic-clinic-name');
+  });
+
+  it('routes workers into the next post-auth capture step', async () => {
+    mocks.readClinicInviteToken.mockResolvedValue(null);
+    mocks.resolveAuthProfile.mockResolvedValue({ id: 'user-1', role: 'worker' });
+    mocks.resolveAuthenticatedRoute.mockResolvedValue({
+      href: '/(tabs)',
+      role: 'worker',
+    });
+    refreshProfile.mockResolvedValue({ role: 'worker' });
+    mocks.getNextWorkerPostAuthCaptureStep.mockResolvedValue('phone');
+
+    await handleAuthSuccess(refreshProfile, completeOnboarding, 'user-1');
+
+    expect(mocks.getWorkerPostAuthCaptureHref).toHaveBeenCalledWith('phone');
+    expect(mocks.routerReplace).toHaveBeenCalledWith('/(onboarding)/capture-phone');
+    expect(completeOnboarding).not.toHaveBeenCalled();
   });
 
   it('returns to accept-invite when a pending invite token is stored', async () => {
@@ -132,7 +174,7 @@ describe('handleAuthSuccess invite resume', () => {
     mocks.consumePendingSignupRole.mockResolvedValue('worker');
     mocks.setProfileRole.mockResolvedValue({ id: 'user-1', role: 'worker' });
     mocks.resolveAuthenticatedRoute.mockResolvedValue({
-      href: '/(worker-setup)/basics',
+      href: '/(tabs)',
       role: 'worker',
     });
     refreshProfile.mockResolvedValue({ role: 'worker' });
@@ -142,6 +184,6 @@ describe('handleAuthSuccess invite resume', () => {
     expect(mocks.setProfileRole).toHaveBeenCalledWith('user-1', 'worker');
     expect(refreshProfile).toHaveBeenCalledWith('user-1');
     expect(completeOnboarding).toHaveBeenCalledWith('worker');
-    expect(mocks.routerReplace).toHaveBeenCalledWith('/(worker-setup)/basics');
+    expect(mocks.routerReplace).toHaveBeenCalledWith('/(tabs)');
   });
 });

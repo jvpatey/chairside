@@ -1,4 +1,5 @@
 import {
+  ensureWorkerProfileRow,
   getWorkerProfile,
   isWorkerProfileComplete,
   listAvailabilityBlocks,
@@ -47,7 +48,10 @@ export function WorkerProfileProvider({ children }: { children: ReactNode }) {
     const requestId = ++requestRef.current;
 
     try {
-      const nextProfile = await getWorkerProfile(userId);
+      let nextProfile = await getWorkerProfile(userId);
+      if (!nextProfile) {
+        nextProfile = await ensureWorkerProfileRow(userId);
+      }
       if (requestId !== requestRef.current) return null;
       setWorkerProfile(nextProfile);
       return nextProfile;

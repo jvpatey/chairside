@@ -28,7 +28,7 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { AnalyticsEvents, type ListingOpenSource } from '@/lib/analytics/events';
 import { captureAnalyticsEvent } from '@/lib/analytics/posthog';
 import { savePendingPublicListingHref } from '@/lib/pendingPublicListing';
-import { isWorkerSetupComplete } from '@/lib/setupCompletion';
+import { canAccessWorkerTabs } from '@/lib/setupCompletion';
 import { formatShiftPostMeta } from '@/lib/shiftPostDisplay';
 import { useTheme, useThemedStyles } from '@/theme';
 
@@ -139,24 +139,62 @@ function FactGrid({ facts, twoColumn }: { facts: Fact[]; twoColumn: boolean }) {
 function PublicListingBody({
   listing,
   twoColumn,
+  showSmsHint,
 }: {
   listing: PublicListing;
   twoColumn: boolean;
+  showSmsHint?: boolean;
 }) {
-  const styles = useThemedStyles(({ spacing }) => ({
+  const styles = useThemedStyles(({ colors, spacing, typography }) => ({
     content: {
       gap: spacing.lg,
+    },
+    smsHint: {
+      ...typography.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.labelSecondary,
+    },
+    contactLabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '600' as const,
+      letterSpacing: 0.2,
+      textTransform: 'uppercase' as const,
+      color: colors.labelTertiary,
+      marginBottom: spacing.xs,
+    },
+    contactValue: {
+      fontSize: 16,
+      lineHeight: 22,
+      fontWeight: '600' as const,
+      color: colors.labelPrimary,
     },
   }));
 
   const facts = useMemo(() => listingFacts(listing), [listing]);
   const description = listing.description?.trim() || null;
+  const contactPhone = listing.contact_phone?.trim() || null;
 
   return (
     <View style={styles.content}>
+      {showSmsHint && listing.kind === 'shift' && !listing.is_sourced ? (
+        <Text style={styles.smsHint}>
+          Prefer text? Reply YES to the Chairside message to request this cover without signing in
+          first. Or sign in below to request from the app.
+        </Text>
+      ) : null}
+
       <SurfaceCard>
         <FactGrid facts={facts} twoColumn={twoColumn} />
       </SurfaceCard>
+
+      {contactPhone ? (
+        <SurfaceCard>
+          <Text style={styles.contactLabel}>Clinic contact</Text>
+          <Text style={styles.contactValue}>{contactPhone}</Text>
+        </SurfaceCard>
+      ) : null}
 
       {description ? (
         <SurfaceCard>
@@ -192,7 +230,17 @@ function ListingCtaFooter({
     );
   }
 
-  return <OnboardingButton label="Sign in to apply" onPress={onSignInToApply} />;
+  return (
+    <OnboardingButton
+      label={
+        listing.kind === 'shift'
+          ? 'Sign in to request cover'
+          : 'Sign in to apply'
+      }
+      accent="primary"
+      onPress={onSignInToApply}
+    />
+  );
 }
 
 export function PublicListingPage({
@@ -208,7 +256,7 @@ export function PublicListingPage({
   const { colors } = useTheme();
   const { isCompact } = useResponsiveLayout();
   const { session, profile, isAuthReady } = useAuth();
-  const { workerProfile, isWorkerProfileReady } = useWorkerProfile();
+  const { isWorkerProfileReady } = useWorkerProfile();
   const [listing, setListing] = useState<PublicListing | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -367,9 +415,8 @@ export function PublicListingPage({
   const workerReady =
     isAuthReady &&
     Boolean(session) &&
-    profile?.role === 'worker' &&
-    isWorkerProfileReady &&
-    isWorkerSetupComplete(workerProfile);
+    canAccessWorkerTabs(profile) &&
+    isWorkerProfileReady;
 
   if (workerReady && id.trim()) {
     return <Redirect href={inAppHref} />;
@@ -380,16 +427,10 @@ export function PublicListingPage({
     : 'This listing is no longer available.';
 
   const kindLabel = kind === 'shift' ? 'Fill-in' : 'Role';
-  const kindAccent =
-    kind === 'shift'
-      ? {
-          color: colors.secondary,
-          backgroundColor: colors.secondarySubtle,
-        }
-      : {
-          color: colors.primary,
-          backgroundColor: colors.primarySubtle,
-        };
+  const kindAccent = {
+    color: colors.primary,
+    backgroundColor: colors.primarySubtle,
+  };
 
   const place = listing ? locationLabel(listing) : null;
   const stickyCta = Boolean(isCompact && listing);
@@ -439,7 +480,11 @@ export function PublicListingPage({
 
           {listing ? (
             <WebPageEnter delayMs={120}>
-              <PublicListingBody listing={listing} twoColumn={!isCompact} />
+              <PublicListingBody
+                listing={listing}
+                twoColumn={!isCompact}
+                showSmsHint={source === 'sms'}
+              />
             </WebPageEnter>
           ) : null}
 

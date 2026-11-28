@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applePartsToPersonName,
+  collapseDuplicatedDisplayName,
   formatAppleFullName,
   getUserMetadataDisplayName,
   getUserMetadataNameParts,
   joinDisplayName,
+  normalizePersonNameParts,
   resolveAppleNamePartsToPersist,
   resolveAppleNameToPersist,
   resolveAuthDisplayName,
@@ -51,6 +53,16 @@ describe('splitDisplayName / joinDisplayName', () => {
     expect(joinDisplayName('Jane', 'Doe')).toBe('Jane Doe');
     expect(joinDisplayName('Jane', '')).toBe('Jane');
     expect(joinDisplayName('', 'Doe')).toBe('Doe');
+  });
+
+  it('collapses autofill duplicates when first and last match', () => {
+    expect(normalizePersonNameParts({ firstName: 'Jeff Patey', lastName: 'Jeff Patey' })).toEqual({
+      firstName: 'Jeff',
+      lastName: 'Patey',
+    });
+    expect(joinDisplayName('Jeff Patey', 'Jeff Patey')).toBe('Jeff Patey');
+    expect(collapseDuplicatedDisplayName('Jeff Patey Jeff Patey')).toBe('Jeff Patey');
+    expect(collapseDuplicatedDisplayName('Jeff Patey')).toBe('Jeff Patey');
   });
 });
 

@@ -17,8 +17,15 @@ type SidebarCollapseContextValue = {
 
 const SidebarCollapseContext = createContext<SidebarCollapseContextValue | null>(null);
 
-export function SidebarCollapseProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export function SidebarCollapseProvider({
+  children,
+  defaultCollapsed = false,
+}: {
+  children: ReactNode;
+  /** Worker companion shell defaults collapsed on web for a quieter chrome. */
+  defaultCollapsed?: boolean;
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const toggleCollapsed = useCallback(() => {
     setIsCollapsed((current) => !current);
